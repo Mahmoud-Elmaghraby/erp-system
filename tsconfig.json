@@ -2,5 +2,45 @@
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
-  "references": []
+  "references": [
+    {
+      "path": "./backend-e2e"
+    },
+    {
+      "path": "./backend"
+    },
+    {
+      "path": "./frontend"
+    },
+    {
+      "path": "./core"
+    },
+    {
+      "path": "./shared-kernel"
+    },
+    {
+      "path": "./modules/sales"
+    },
+    {
+      "path": "./modules/inventory"
+    },
+    {
+      "path": "./modules/purchasing"
+    },
+    {
+      "path": "./modules/accounting"
+    },
+    {
+      "path": "./modules/hr"
+    },
+    {
+      "path": "./modules/manufacturing"
+    },
+    {
+      "path": "./modules/projects"
+    },
+    {
+      "path": "./modules/inventory-ui"
+    }
+  ]
 }

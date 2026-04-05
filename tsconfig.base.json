@@ -16,6 +16,12 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "es2022",
-    "customConditions": ["@org/source"]
+    "types": ["node"],
+    "customConditions": ["@org/source"],
+    "paths": {
+      "@org/core": ["./core/src/index.ts"],
+      "@org/inventory": ["./modules/inventory/src/index.ts"],
+      "@org/inventory-ui": ["./modules/inventory-ui/src/index.ts"]
+    }
   }
 }

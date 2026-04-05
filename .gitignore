@@ -46,3 +46,8 @@ Thumbs.db
 .claude/worktrees
 .claude/settings.local.json
 .nx/polygraph
+test-output
+
+vite.config.*.timestamp*
+vitest.config.*.timestamp*
+/generated/prisma

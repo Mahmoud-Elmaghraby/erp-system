@@ -1,0 +1,52 @@
+{
+  "name": "@org/backend",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "targets": {
+      "serve": {
+        "continuous": true,
+        "executor": "@nx/js:node",
+        "defaultConfiguration": "development",
+        "dependsOn": ["build"],
+        "options": {
+          "buildTarget": "@org/backend:build",
+          "runBuildTargetDependencies": false
+        },
+        "configurations": {
+          "development": {
+            "buildTarget": "@org/backend:build:development"
+          },
+          "production": {
+            "buildTarget": "@org/backend:build:production"
+          }
+        }
+      },
+      "build": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "webpack-cli build",
+          "args": ["--node-env=production"],
+          "cwd": "backend"
+        },
+        "configurations": {
+          "development": {
+            "args": ["--node-env=development"]
+          }
+        }
+      }
+    }
+  },
+  "dependencies": {
+  "@nestjs/common": "^11.0.0",
+  "@nestjs/core": "^11.0.0",
+  "@nestjs/platform-express": "^11.0.0",
+  "reflect-metadata": "^0.1.13",
+  "rxjs": "^7.8.0",
+  "tslib": "^2.3.0",
+  "@org/core": "*",
+"@org/inventory": "*"},
+  "devDependencies": {
+    "@nestjs/testing": "^11.0.0"
+  }
+}

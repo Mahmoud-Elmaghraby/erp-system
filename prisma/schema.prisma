@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+schemas  = ["core", "inventory", "public"]
+}
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branches  Branch[]
+  users     User[]
+
+  @@map("companies")
+  @@schema("core")
+}
+
+model Branch {
+  id        String   @id @default(uuid())
+  name      String
+  address   String?
+  phone     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companyId  String
+  company    Company    @relation(fields: [companyId], references: [id])
+  users      User[]
+  warehouses Warehouse[]
+
+  @@map("branches")
+  @@schema("core")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companyId String
+  company   Company    @relation(fields: [companyId], references: [id])
+  branchId  String?
+  branch    Branch?    @relation(fields: [branchId], references: [id])
+  userRoles UserRole[]
+
+  @@map("users")
+  @@schema("core")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+  @@schema("core")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  module      String
+  createdAt   DateTime @default(now())
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+  @@schema("core")
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+  @@schema("core")
+}
+
+model RolePermission {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  roleId       String
+  role         Role       @relation(fields: [roleId], references: [id])
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+  @@schema("core")
+}
+
+
+// ===== INVENTORY SCHEMA =====
+
+model Warehouse {
+  id        String   @id @default(uuid())
+  name      String
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id])
+
+  stocks         Stock[]
+  stockMovements StockMovement[]
+
+  @@map("warehouses")
+  @@schema("inventory")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  parentId  String?
+  parent    Category?  @relation("CategoryChildren", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryChildren")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products  Product[]
+
+  @@map("categories")
+  @@schema("inventory")
+}
+
+model UnitOfMeasure {
+  id        String   @id @default(uuid())
+  name      String
+  symbol    String
+  createdAt DateTime @default(now())
+
+  products  Product[]
+
+  @@map("units_of_measure")
+  @@schema("inventory")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  barcode     String?  @unique
+  sku         String?  @unique
+  price       Decimal  @default(0)
+  cost        Decimal  @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  categoryId    String?
+  category      Category?     @relation(fields: [categoryId], references: [id])
+  unitOfMeasureId String?
+  unitOfMeasure   UnitOfMeasure? @relation(fields: [unitOfMeasureId], references: [id])
+
+  stocks         Stock[]
+  stockMovements StockMovement[]
+
+  @@map("products")
+  @@schema("inventory")
+}
+
+model Stock {
+  id        String   @id @default(uuid())
+  quantity  Decimal  @default(0)
+  minStock  Decimal  @default(0)
+  updatedAt DateTime @updatedAt
+
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+
+  @@unique([warehouseId, productId])
+  @@map("stock")
+  @@schema("inventory")
+}
+
+model StockMovement {
+  id        String            @id @default(uuid())
+  type      StockMovementType
+  quantity  Decimal
+  reason    String?
+  createdAt DateTime          @default(now())
+
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+
+  @@map("stock_movements")
+  @@schema("inventory")
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  TRANSFER
+
+  @@schema("inventory")
+}

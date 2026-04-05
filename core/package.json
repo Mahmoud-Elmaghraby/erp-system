@@ -1,0 +1,26 @@
+{
+  "name": "@org/core",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "@org/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "outputs": ["{projectRoot}/dist"]
+      }
+    }
+  },
+  "dependencies": {
+    "tslib": "^2.3.0",
+    "@nestjs/common": "*",
+    "@prisma/client": "*"
+  }
+}
