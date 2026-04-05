@@ -229,3 +229,19 @@ enum StockMovementType {
 
   @@schema("inventory")
 }
+
+
+
+model OutboxEvent {
+  id          String   @id @default(uuid())
+  eventType   String
+  payload     Json
+  status      String   @default("PENDING")
+  attempts    Int      @default(0)
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("outbox_events")
+  @@schema("core")
+}

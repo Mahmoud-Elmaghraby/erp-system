@@ -5,9 +5,10 @@ import { BranchesModule } from './branches/branches.module';
 import { RbacModule } from './rbac/rbac.module';
 import { UsersModule } from './users/users.module';
 import { RedisModule } from './redis/redis.module';
+import { OutboxModule } from './outbox/outbox.module';
 
 @Module({
-  imports: [RedisModule, AuthModule, CompaniesModule, BranchesModule, RbacModule, UsersModule],
-  exports: [RedisModule, AuthModule, CompaniesModule, BranchesModule, RbacModule, UsersModule],
+  imports: [RedisModule, AuthModule, CompaniesModule, BranchesModule, RbacModule, UsersModule, OutboxModule],
+  exports: [RedisModule, AuthModule, CompaniesModule, BranchesModule, RbacModule, UsersModule, OutboxModule],
 })
 export class OrgCoreModule {}

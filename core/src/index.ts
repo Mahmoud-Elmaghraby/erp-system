@@ -20,3 +20,5 @@ export * from './lib/users/users.controller';
 export * from './lib/redis/redis.module';
 export * from './lib/redis/token-blacklist.service';
 export * from './lib/redis/permissions-cache.service';
+export * from './lib/outbox/outbox.module';
+export * from './lib/outbox/outbox.service';
