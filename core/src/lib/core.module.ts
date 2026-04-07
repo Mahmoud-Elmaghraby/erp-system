@@ -6,9 +6,34 @@ import { RbacModule } from './rbac/rbac.module';
 import { UsersModule } from './users/users.module';
 import { RedisModule } from './redis/redis.module';
 import { OutboxModule } from './outbox/outbox.module';
+import { ConfigModule } from './config/config.module';
+import { CurrencyModule } from './currency/currency.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
-  imports: [RedisModule, AuthModule, CompaniesModule, BranchesModule, RbacModule, UsersModule, OutboxModule],
-  exports: [RedisModule, AuthModule, CompaniesModule, BranchesModule, RbacModule, UsersModule, OutboxModule],
+  imports: [
+    RedisModule,
+    AuthModule,
+    CompaniesModule,
+    BranchesModule,
+    RbacModule,
+    UsersModule,
+    OutboxModule,
+    ConfigModule,
+    CurrencyModule,
+    SettingsModule,
+  ],
+  exports: [
+    RedisModule,
+    AuthModule,
+    CompaniesModule,
+    BranchesModule,
+    RbacModule,
+    UsersModule,
+    OutboxModule,
+    ConfigModule,
+    CurrencyModule,
+    SettingsModule,
+  ],
 })
 export class OrgCoreModule {}

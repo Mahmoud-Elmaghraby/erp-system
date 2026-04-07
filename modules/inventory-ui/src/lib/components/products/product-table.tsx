@@ -1,5 +1,6 @@
 import { Table, Button, Space, Popconfirm } from 'antd';
-import { DeleteOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 
 interface Props {
   data: any[];
@@ -8,17 +9,26 @@ interface Props {
 }
 
 export default function ProductTable({ data, loading, onDelete }: Props) {
+  const navigate = useNavigate();
+
   const columns = [
     { title: 'الاسم', dataIndex: 'name', key: 'name' },
-    { title: 'الباركود', dataIndex: 'barcode', key: 'barcode' },
-    { title: 'SKU', dataIndex: 'sku', key: 'sku' },
-    { title: 'السعر', dataIndex: 'price', key: 'price' },
-    { title: 'التكلفة', dataIndex: 'cost', key: 'cost' },
+    { title: 'الباركود', dataIndex: 'barcode', key: 'barcode', render: (v: any) => v || '-' },
+    { title: 'SKU', dataIndex: 'sku', key: 'sku', render: (v: any) => v || '-' },
+    { title: 'السعر', dataIndex: 'price', key: 'price', render: (v: any) => v ? `${Number(v).toFixed(2)} ج.م` : '-' },
+    { title: 'التكلفة', dataIndex: 'cost', key: 'cost', render: (v: any) => v ? `${Number(v).toFixed(2)} ج.م` : '-' },
     {
       title: 'إجراءات',
       key: 'actions',
       render: (_: any, record: any) => (
         <Space>
+          <Button
+            icon={<EyeOutlined />}
+            size="small"
+            onClick={() => navigate(`/inventory/products/${record.id}`)}
+          >
+            تفاصيل
+          </Button>
           <Popconfirm
             title="هل أنت متأكد من الحذف؟"
             onConfirm={() => onDelete(record.id)}

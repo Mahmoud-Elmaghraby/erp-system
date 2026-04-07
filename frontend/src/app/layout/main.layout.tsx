@@ -9,6 +9,8 @@ import {
   UserOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  ShoppingCartOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { authStore } from '../../core/auth/auth.store';
 
@@ -27,15 +29,40 @@ const menuItems = [
     children: [
       { key: '/inventory/products', label: 'المنتجات' },
       { key: '/inventory/warehouses', label: 'المخازن' },
-      { key: '/inventory/stock', label: 'حركة المخزون' },
+      { key: '/inventory/stock', label: 'المخزون الحالي' },
+      { key: '/inventory/stock-movements', label: 'سجل الحركات' },
+      { key: '/inventory/adjustments', label: 'تسوية المخزون' },
+      { key: '/inventory/reordering-rules', label: 'قواعد إعادة الطلب' },
+      { key: '/inventory/traceability', label: 'تتبع المنتجات' },
+      { key: '/inventory/valuation', label: 'تقييم المخزون' },
       { key: '/inventory/categories', label: 'التصنيفات' },
       { key: '/inventory/units', label: 'وحدات القياس' },
+    ],
+  },
+  {
+    key: '/sales',
+    icon: <ShoppingCartOutlined />,
+    label: 'المبيعات',
+    children: [
+      { key: '/sales/orders', label: 'الأوردرات' },
+      { key: '/sales/customers', label: 'العملاء' },
     ],
   },
   {
     key: '/branches',
     icon: <ShopOutlined />,
     label: 'الفروع',
+  },
+  {
+    key: '/settings',
+    icon: <SettingOutlined />,
+    label: 'الإعدادات',
+    children: [
+      { key: '/settings/general', label: 'إعدادات عامة' },
+      { key: '/settings/currencies', label: 'العملات' },
+      { key: '/settings/sequences', label: 'تسلسل المستندات' },
+      { key: '/settings/modules', label: 'إعدادات الموديولات' },
+    ],
   },
 ];
 
@@ -44,10 +71,10 @@ export default function MainLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-const handleLogout = async () => {
-  await authStore.logout();
-  navigate('/login');
-};
+  const handleLogout = async () => {
+    await authStore.logout();
+    navigate('/login');
+  };
 
   const userMenuItems = [
     {
@@ -65,6 +92,7 @@ const handleLogout = async () => {
         collapsible
         collapsed={collapsed}
         style={{ background: '#001529' }}
+        width={220}
       >
         <div style={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: collapsed ? 14 : 18, fontWeight: 'bold' }}>
           {collapsed ? 'ERP' : 'نظام ERP'}
@@ -73,7 +101,7 @@ const handleLogout = async () => {
           theme="dark"
           mode="inline"
           selectedKeys={[location.pathname]}
-          defaultOpenKeys={['/inventory']}
+          defaultOpenKeys={['/inventory', '/sales', '/settings']}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
         />

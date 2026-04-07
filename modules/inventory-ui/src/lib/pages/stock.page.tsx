@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Select, Space } from 'antd';
+import { Button, Select, Space, message } from 'antd';
 import { PlusOutlined, MinusOutlined, SwapOutlined } from '@ant-design/icons';
 import { useStock, useAddStock, useRemoveStock, useTransferStock } from '../hooks/useStock';
 import { useWarehouses } from '../hooks/useWarehouses';
@@ -18,7 +18,19 @@ export default function StockPage() {
   const removeMutation = useRemoveStock();
   const transferMutation = useTransferStock();
 
+  const openModal = (type: 'add' | 'remove' | 'transfer') => {
+    if (!selectedWarehouse) {
+      message.warning('اختر مخزن أولاً');
+      return;
+    }
+    setModalType(type);
+  };
+
   const handleSubmit = (values: any) => {
+    if (!selectedWarehouse) {
+      message.warning('اختر مخزن أولاً');
+      return;
+    }
     if (modalType === 'add') {
       addMutation.mutate({ ...values, warehouseId: selectedWarehouse }, {
         onSuccess: () => setModalType(null),
@@ -41,9 +53,9 @@ export default function StockPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
         <h2>حركة المخزون</h2>
         <Space>
-          <Button icon={<PlusOutlined />} type="primary" onClick={() => setModalType('add')}>إضافة</Button>
-          <Button icon={<MinusOutlined />} danger onClick={() => setModalType('remove')}>خصم</Button>
-          <Button icon={<SwapOutlined />} onClick={() => setModalType('transfer')}>تحويل</Button>
+          <Button icon={<PlusOutlined />} type="primary" onClick={() => openModal('add')}>إضافة</Button>
+          <Button icon={<MinusOutlined />} danger onClick={() => openModal('remove')}>خصم</Button>
+          <Button icon={<SwapOutlined />} onClick={() => openModal('transfer')}>تحويل</Button>
         </Space>
       </div>
 

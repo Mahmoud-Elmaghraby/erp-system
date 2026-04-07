@@ -18,6 +18,7 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       '@org/inventory-ui': resolve(__dirname, '../modules/inventory-ui/src/index.ts'),
+      '@org/sales-ui': resolve(__dirname, '../modules/sales-ui/src/index.ts'),
     },
   },
   build: {

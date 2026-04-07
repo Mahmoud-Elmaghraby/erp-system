@@ -5,8 +5,10 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-schemas  = ["core", "inventory", "public"]
+  schemas  = ["core", "inventory", "sales", "public"]
 }
+
+// ===== CORE SCHEMA =====
 
 model Company {
   id        String   @id @default(uuid())
@@ -35,7 +37,7 @@ model Branch {
   updatedAt DateTime @updatedAt
 
   companyId  String
-  company    Company    @relation(fields: [companyId], references: [id])
+  company    Company     @relation(fields: [companyId], references: [id])
   users      User[]
   warehouses Warehouse[]
 
@@ -118,6 +120,19 @@ model RolePermission {
   @@schema("core")
 }
 
+model OutboxEvent {
+  id          String    @id @default(uuid())
+  eventType   String
+  payload     Json
+  status      String    @default("PENDING")
+  attempts    Int       @default(0)
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("outbox_events")
+  @@schema("core")
+}
 
 // ===== INVENTORY SCHEMA =====
 
@@ -128,13 +143,14 @@ model Warehouse {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  branchId  String
-  branch    Branch   @relation(fields: [branchId], references: [id])
-
+lotNumbers    LotNumber[]
+serialNumbers SerialNumber[]
+  branchId       String
+  branch         Branch          @relation(fields: [branchId], references: [id])
   stocks         Stock[]
   stockMovements StockMovement[]
-
+  stockAdjustments StockAdjustment[]
+reorderingRules  ReorderingRule[]
   @@map("warehouses")
   @@schema("inventory")
 }
@@ -167,25 +183,29 @@ model UnitOfMeasure {
 }
 
 model Product {
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  barcode     String?  @unique
-  sku         String?  @unique
-  price       Decimal  @default(0)
-  cost        Decimal  @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  categoryId    String?
-  category      Category?     @relation(fields: [categoryId], references: [id])
+  id              String         @id @default(uuid())
+  name            String
+  description     String?
+  barcode         String?        @unique
+  sku             String?        @unique
+  price           Decimal        @default(0)
+  cost            Decimal        @default(0)
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+adjustmentItems  StockAdjustmentItem[]
+reorderingRules  ReorderingRule[]
+  categoryId      String?
+  category        Category?      @relation(fields: [categoryId], references: [id])
   unitOfMeasureId String?
   unitOfMeasure   UnitOfMeasure? @relation(fields: [unitOfMeasureId], references: [id])
-
-  stocks         Stock[]
-  stockMovements StockMovement[]
-
+  stocks          Stock[]
+  stockMovements  StockMovement[]
+  lotNumbers    LotNumber[]
+serialNumbers SerialNumber[]
+images        ProductImage[]
+priceHistory  ProductPriceHistory[]
+variants      ProductVariant[]
   @@map("products")
   @@schema("inventory")
 }
@@ -207,16 +227,21 @@ model Stock {
 }
 
 model StockMovement {
-  id        String            @id @default(uuid())
-  type      StockMovementType
-  quantity  Decimal
-  reason    String?
-  createdAt DateTime          @default(now())
+  id              String            @id @default(uuid())
+  type            StockMovementType
+  quantity        Decimal
+  reason          String?
+  reference       String?
+  createdAt       DateTime          @default(now())
 
-  warehouseId String
-  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
-  productId   String
-  product     Product   @relation(fields: [productId], references: [id])
+  warehouseId     String
+  productId       String
+  fromWarehouseId String?
+  toWarehouseId   String?
+  userId          String?
+
+  warehouse       Warehouse         @relation(fields: [warehouseId], references: [id])
+  product         Product           @relation(fields: [productId], references: [id])
 
   @@map("stock_movements")
   @@schema("inventory")
@@ -226,22 +251,390 @@ enum StockMovementType {
   IN
   OUT
   TRANSFER
+  ADJUSTMENT
 
   @@schema("inventory")
 }
 
+// ===== SALES SCHEMA =====
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders    SalesOrder[]
+
+  @@map("customers")
+  @@schema("sales")
+}
+
+model SalesOrder {
+  id          String           @id @default(uuid())
+  orderNumber String           @unique
+  status      SalesOrderStatus @default(DRAFT)
+  notes       String?
+  totalAmount Decimal          @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  customerId String?
+  customer   Customer?        @relation(fields: [customerId], references: [id])
+  branchId   String
+  items      SalesOrderItem[]
+  invoices   Invoice[]
+
+  @@map("sales_orders")
+  @@schema("sales")
+}
+
+model SalesOrderItem {
+  id        String   @id @default(uuid())
+  quantity  Decimal
+  unitPrice Decimal
+  total     Decimal
+  createdAt DateTime @default(now())
+
+  orderId   String
+  order     SalesOrder @relation(fields: [orderId], references: [id])
+  productId String
+
+  @@map("sales_order_items")
+  @@schema("sales")
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique
+  status        InvoiceStatus @default(UNPAID)
+  totalAmount   Decimal
+  paidAmount    Decimal       @default(0)
+  dueDate       DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  orderId String
+  order   SalesOrder @relation(fields: [orderId], references: [id])
+
+  @@map("invoices")
+  @@schema("sales")
+}
+
+enum SalesOrderStatus {
+  DRAFT
+  CONFIRMED
+  DELIVERED
+  CANCELLED
+
+  @@schema("sales")
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PAID
+  PARTIAL
+
+  @@schema("sales")
+}
 
 
-model OutboxEvent {
+
+model InventorySettings {
+  id        String   @id @default(uuid())
+  companyId String   @unique
+
+  // تقييم المخزون
+  valuationMethod          String  @default("FIFO")
+
+  // تتبع
+  trackLotNumbers          Boolean @default(false)
+  trackSerialNumbers       Boolean @default(false)
+  trackExpiryDates         Boolean @default(false)
+
+  // موافقات
+  requireTransferApproval  Boolean @default(false)
+  requireAdjustmentApproval Boolean @default(false)
+
+  // تنبيهات
+  enableLowStockAlert      Boolean @default(true)
+  defaultMinStock          Decimal @default(0)
+
+  // حركات
+  allowNegativeStock       Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("inventory_settings")
+  @@schema("inventory")
+}
+
+
+model StockAdjustment {
   id          String   @id @default(uuid())
-  eventType   String
-  payload     Json
-  status      String   @default("PENDING")
-  attempts    Int      @default(0)
-  processedAt DateTime?
+  reason      String
+  notes       String?
+  status      String   @default("DRAFT")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@map("outbox_events")
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  userId      String?
+  items       StockAdjustmentItem[]
+
+  @@map("stock_adjustments")
+  @@schema("inventory")
+}
+
+model StockAdjustmentItem {
+  id               String   @id @default(uuid())
+  expectedQuantity Decimal
+  actualQuantity   Decimal
+  difference       Decimal
+
+  adjustmentId String
+  adjustment   StockAdjustment @relation(fields: [adjustmentId], references: [id])
+  productId    String
+  product      Product @relation(fields: [productId], references: [id])
+
+  @@map("stock_adjustment_items")
+  @@schema("inventory")
+}
+
+model ReorderingRule {
+  id             String   @id @default(uuid())
+  minQuantity    Decimal
+  maxQuantity    Decimal
+  reorderQuantity Decimal
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@unique([productId, warehouseId])
+  @@map("reordering_rules")
+  @@schema("inventory")
+}
+model ProductImage {
+  id        String   @id @default(uuid())
+  url       String
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("product_images")
+  @@schema("inventory")
+}
+
+model ProductPriceHistory {
+  id        String   @id @default(uuid())
+  price     Decimal
+  cost      Decimal
+  changedBy String?
+  createdAt DateTime @default(now())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("product_price_history")
+  @@schema("inventory")
+}
+
+model ProductVariant {
+  id         String   @id @default(uuid())
+  name       String
+  sku        String?  @unique
+  barcode    String?  @unique
+  price      Decimal  @default(0)
+  cost       Decimal  @default(0)
+  attributes Json
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("product_variants")
+  @@schema("inventory")
+}
+
+model LotNumber {
+  id           String   @id @default(uuid())
+  lotNumber    String
+  quantity     Decimal
+  receivedDate DateTime @default(now())
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@unique([lotNumber, productId, warehouseId])
+  @@map("lot_numbers")
+  @@schema("inventory")
+}
+
+model SerialNumber {
+  id           String   @id @default(uuid())
+  serialNumber String   @unique
+  status       String   @default("IN_STOCK")
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@map("serial_numbers")
+  @@schema("inventory")
+}
+
+model CompanySettings {
+  id        String @id @default(uuid())
+  companyId String @unique
+
+  defaultCurrency     String  @default("EGP")
+  fiscalYearStart     Int     @default(1)
+  taxIncludedInPrice  Boolean @default(false)
+  salesOrderPrefix    String  @default("SO")
+  purchaseOrderPrefix String  @default("PO")
+  invoicePrefix       String  @default("INV")
+  receiptPrefix       String  @default("REC")
+  billPrefix          String  @default("BILL")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("company_settings")
+  @@schema("core")
+}
+
+model Currency {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  symbol    String
+  isActive  Boolean  @default(true)
+  isBase    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  exchangeRates ExchangeRate[]
+
+  @@map("currencies")
+  @@schema("core")
+}
+
+model ExchangeRate {
+  id         String   @id @default(uuid())
+  rate       Decimal
+  date       DateTime @default(now())
+
+  currencyId String
+  currency   Currency @relation(fields: [currencyId], references: [id])
+
+  @@map("exchange_rates")
+  @@schema("core")
+}
+
+model DocumentSequence {
+  id         String @id @default(uuid())
+  module     String
+  docType    String
+  prefix     String
+  padding    Int    @default(5)
+  nextNumber Int    @default(1)
+  companyId  String
+
+  @@unique([companyId, module, docType])
+  @@map("document_sequences")
+  @@schema("core")
+}
+
+model SalesSettings {
+  id        String  @id @default(uuid())
+  companyId String  @unique
+
+  multiCurrency       Boolean @default(false)
+  allowDiscounts      Boolean @default(true)
+  maxDiscountPercent  Decimal @default(100)
+  requireDelivery     Boolean @default(false)
+  allowSalesReturns   Boolean @default(true)
+  requireApproval     Boolean @default(false)
+  approvalThreshold   Decimal @default(0)
+  defaultPaymentTerms Int     @default(30)
+  defaultWarehouseId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sales_settings")
+  @@schema("core")
+}
+
+model PurchasingSettings {
+  id        String  @id @default(uuid())
+  companyId String  @unique
+
+  requireApproval      Boolean @default(false)
+  approvalThreshold    Decimal @default(0)
+  threeWayMatching     Boolean @default(false)
+  allowPurchaseReturns Boolean @default(true)
+  defaultPaymentTerms  Int     @default(30)
+  defaultWarehouseId   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("purchasing_settings")
+  @@schema("core")
+}
+
+model AccountingSettings {
+  id        String  @id @default(uuid())
+  companyId String  @unique
+
+  method                String   @default("ACCRUAL")
+  taxMethod             String   @default("EXCLUSIVE")
+  multiCurrency         Boolean  @default(false)
+  lockDate              DateTime?
+  defaultSalesAccount   String?
+  defaultCOGSAccount    String?
+  defaultExpenseAccount String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("accounting_settings")
+  @@schema("core")
+}
+
+model ModuleSetting {
+  id        String   @id @default(uuid())
+  companyId String
+  module    String
+  key       String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, module, key])
+  @@map("module_settings")
   @@schema("core")
 }

@@ -41,6 +41,9 @@
     },
     {
       "path": "./modules/inventory-ui"
+    },
+    {
+      "path": "./modules/sales-ui"
     }
   ]
 }

@@ -21,7 +21,9 @@
     "paths": {
       "@org/core": ["./core/src/index.ts"],
       "@org/inventory": ["./modules/inventory/src/index.ts"],
-      "@org/inventory-ui": ["./modules/inventory-ui/src/index.ts"]
+      "@org/inventory-ui": ["./modules/inventory-ui/src/index.ts"],
+      "@org/sales": ["./modules/sales/src/index.ts"],
+      "@org/sales-ui": ["./modules/sales-ui/src/index.ts"]
     }
   }
 }

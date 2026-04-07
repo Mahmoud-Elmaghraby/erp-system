@@ -54,4 +54,84 @@ export const inventoryApi = {
       (await api.post('/units', data)).data,
     delete: async (id: string) => (await api.delete(`/units/${id}`)).data,
   },
+
+
+  stockMovements: {
+    getAll: async (filters?: { warehouseId?: string; productId?: string; type?: string }) => {
+      const params = new URLSearchParams();
+      if (filters?.warehouseId) params.append('warehouseId', filters.warehouseId);
+      if (filters?.productId) params.append('productId', filters.productId);
+      if (filters?.type) params.append('type', filters.type);
+      return (await api.get(`/stock-movements?${params.toString()}`)).data;
+    },
+    getByWarehouse: async (warehouseId: string) =>
+      (await api.get(`/stock-movements/warehouse/${warehouseId}`)).data,
+    getByProduct: async (productId: string) =>
+      (await api.get(`/stock-movements/product/${productId}`)).data,
+  },
+
+  settings: {
+    get: async (companyId: string) =>
+      (await api.get(`/inventory-settings/${companyId}`)).data,
+    update: async (companyId: string, data: any) =>
+      (await api.put(`/inventory-settings/${companyId}`, data)).data,
+  },
+
+
+  adjustments: {
+    getAll: async (warehouseId?: string) => {
+      const params = warehouseId ? `?warehouseId=${warehouseId}` : '';
+      return (await api.get(`/stock-adjustments${params}`)).data;
+    },
+    create: async (data: any) => (await api.post('/stock-adjustments', data)).data,
+    confirm: async (id: string) => (await api.patch(`/stock-adjustments/${id}/confirm`)).data,
+  },
+  reorderingRules: {
+    getAll: async (warehouseId?: string) => {
+      const params = warehouseId ? `?warehouseId=${warehouseId}` : '';
+      return (await api.get(`/reordering-rules${params}`)).data;
+    },
+    upsert: async (data: any) => (await api.post('/reordering-rules', data)).data,
+    delete: async (id: string) => (await api.delete(`/reordering-rules/${id}`)).data,
+  },
+
+  variants: {
+    getByProduct: async (productId: string) =>
+      (await api.get(`/product-variants/product/${productId}`)).data,
+    create: async (data: any) => (await api.post('/product-variants', data)).data,
+    update: async (id: string, data: any) => (await api.patch(`/product-variants/${id}`, data)).data,
+    delete: async (id: string) => (await api.delete(`/product-variants/${id}`)).data,
+  },
+  priceHistory: {
+    getByProduct: async (productId: string) =>
+      (await api.get(`/product-price-history/${productId}`)).data,
+  },
+
+  lotNumbers: {
+    getByProduct: async (productId: string, warehouseId?: string) => {
+      const params = warehouseId ? `?warehouseId=${warehouseId}` : '';
+      return (await api.get(`/lot-numbers/product/${productId}${params}`)).data;
+    },
+    search: async (lotNumber: string) =>
+      (await api.get(`/lot-numbers/search/${lotNumber}`)).data,
+    create: async (data: any) => (await api.post('/lot-numbers', data)).data,
+  },
+  serialNumbers: {
+    getByProduct: async (productId: string, warehouseId?: string) => {
+      const params = warehouseId ? `?warehouseId=${warehouseId}` : '';
+      return (await api.get(`/serial-numbers/product/${productId}${params}`)).data;
+    },
+    search: async (serialNumber: string) =>
+      (await api.get(`/serial-numbers/search/${serialNumber}`)).data,
+    createMany: async (data: any) => (await api.post('/serial-numbers', data)).data,
+    updateStatus: async (id: string, status: string) =>
+      (await api.patch(`/serial-numbers/${id}/status`, { status })).data,
+  },
+  valuation: {
+    get: async (warehouseId?: string) => {
+      const params = warehouseId ? `?warehouseId=${warehouseId}` : '';
+      return (await api.get(`/stock-valuation${params}`)).data;
+    },
+  },
 };
+

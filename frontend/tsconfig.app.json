@@ -1,6 +1,7 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
+    "rootDir": ".",
     "outDir": "dist",
     "tsBuildInfoFile": "dist/tsconfig.app.tsbuildinfo",
     "jsx": "react-jsx",
@@ -35,7 +36,11 @@
     "../modules/inventory-ui/src/**/*.spec.tsx",
     "../modules/inventory-ui/src/**/*.test.tsx",
     "../modules/inventory-ui/src/**/*.spec.ts",
-    "../modules/inventory-ui/src/**/*.test.ts"
+    "../modules/inventory-ui/src/**/*.test.ts",
+    "../modules/sales-ui/src/**/*.spec.tsx",
+    "../modules/sales-ui/src/**/*.test.tsx",
+    "../modules/sales-ui/src/**/*.spec.ts",
+    "../modules/sales-ui/src/**/*.test.ts"
   ],
   "include": [
     "src/**/*.js",
@@ -44,9 +49,15 @@
     "src/**/*.tsx",
     "../modules/inventory-ui/src/lib/**/*.ts",
     "../modules/inventory-ui/src/lib/**/*.tsx",
-    "../modules/inventory-ui/src/index.ts"
+    "../modules/inventory-ui/src/index.ts",
+    "../modules/sales-ui/src/lib/**/*.ts",
+    "../modules/sales-ui/src/lib/**/*.tsx",
+    "../modules/sales-ui/src/index.ts"
   ],
   "references": [
+    {
+      "path": "../modules/sales-ui/tsconfig.lib.json"
+    },
     {
       "path": "../modules/inventory-ui/tsconfig.lib.json"
     }

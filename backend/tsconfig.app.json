@@ -23,6 +23,9 @@
   ],
   "references": [
     {
+      "path": "../modules/sales/tsconfig.lib.json"
+    },
+    {
       "path": "../modules/inventory/tsconfig.lib.json"
     },
     {
