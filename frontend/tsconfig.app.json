@@ -40,7 +40,10 @@
     "../modules/sales-ui/src/**/*.spec.tsx",
     "../modules/sales-ui/src/**/*.test.tsx",
     "../modules/sales-ui/src/**/*.spec.ts",
-    "../modules/sales-ui/src/**/*.test.ts"
+    "../modules/sales-ui/src/**/*.test.ts",
+    "../modules/purchasing-ui/src/lib/**/*.ts",
+"../modules/purchasing-ui/src/lib/**/*.tsx",
+"../modules/purchasing-ui/src/index.ts"
   ],
   "include": [
     "src/**/*.js",
@@ -60,6 +63,7 @@
     },
     {
       "path": "../modules/inventory-ui/tsconfig.lib.json"
-    }
+    },
+    { "path": "../modules/purchasing-ui/tsconfig.lib.json" }
   ]
 }

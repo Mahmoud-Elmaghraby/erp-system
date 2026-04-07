@@ -44,6 +44,9 @@
     },
     {
       "path": "./modules/sales-ui"
+    },
+    {
+      "path": "./modules/purchasing-ui"
     }
   ]
 }

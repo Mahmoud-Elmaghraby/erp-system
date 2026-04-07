@@ -4,12 +4,13 @@ import ProtectedRoute from './protected.route';
 import MainLayout from '../layout/main.layout';
 import { inventoryRoutes } from '@org/inventory-ui';
 import { salesRoutes } from '@org/sales-ui';
+import { purchasingRoutes } from '@org/purchasing-ui';
 import SettingsPage from '../../pages/settings/settings.page';
 import GeneralSettingsPage from '../../pages/settings/general-settings.page';
 import CurrenciesPage from '../../pages/settings/currencies.page';
 import DocumentSequencesPage from '../../pages/settings/document-sequences.page';
 
-const enabledModules = ['inventory', 'sales'];
+const enabledModules = ['inventory', 'sales', 'purchasing'];
 
 export const router = createBrowserRouter([
   {
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
       { path: 'dashboard', element: <div><h2>مرحباً بك في نظام ERP</h2></div> },
       ...enabledModules.includes('inventory') ? inventoryRoutes : [],
       ...enabledModules.includes('sales') ? salesRoutes : [],
+      ...enabledModules.includes('purchasing') ? purchasingRoutes : [],
       { path: 'branches', element: <div>الفروع</div> },
       {
         path: 'settings',
