@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["core", "inventory", "sales", "public"]
+  schemas  = ["core", "inventory", "sales", "purchasing", "public"]
 }
 
 // ===== CORE SCHEMA =====
@@ -637,4 +637,127 @@ model ModuleSetting {
   @@unique([companyId, module, key])
   @@map("module_settings")
   @@schema("core")
+}
+
+
+// ===== PURCHASING SCHEMA =====
+
+model Supplier {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  taxNumber String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchaseOrders PurchaseOrder[]
+
+  @@map("suppliers")
+  @@schema("purchasing")
+}
+
+model PurchaseOrder {
+  id              String              @id @default(uuid())
+  orderNumber     String              @unique
+  status          PurchaseOrderStatus @default(DRAFT)
+  notes           String?
+  totalAmount     Decimal             @default(0)
+  currency        String              @default("EGP")
+  exchangeRate    Decimal             @default(1)
+  expectedDate    DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  supplierId      String
+  supplier        Supplier            @relation(fields: [supplierId], references: [id])
+  warehouseId     String
+  branchId        String
+  items           PurchaseOrderItem[]
+  receipts        PurchaseReceipt[]
+  bills           VendorBill[]
+
+  @@map("purchase_orders")
+  @@schema("purchasing")
+}
+
+model PurchaseOrderItem {
+  id          String   @id @default(uuid())
+  quantity    Decimal
+  unitCost    Decimal
+  total       Decimal
+  receivedQty Decimal  @default(0)
+  createdAt   DateTime @default(now())
+
+  orderId   String
+  order     PurchaseOrder @relation(fields: [orderId], references: [id])
+  productId String
+
+  @@map("purchase_order_items")
+  @@schema("purchasing")
+}
+
+model PurchaseReceipt {
+  id            String   @id @default(uuid())
+  receiptNumber String   @unique
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  orderId     String
+  order       PurchaseOrder        @relation(fields: [orderId], references: [id])
+  warehouseId String
+  items       PurchaseReceiptItem[]
+
+  @@map("purchase_receipts")
+  @@schema("purchasing")
+}
+
+model PurchaseReceiptItem {
+  id             String   @id @default(uuid())
+  receivedQty    Decimal
+  createdAt      DateTime @default(now())
+
+  receiptId String
+  receipt   PurchaseReceipt @relation(fields: [receiptId], references: [id])
+  productId String
+
+  @@map("purchase_receipt_items")
+  @@schema("purchasing")
+}
+
+model VendorBill {
+  id         String          @id @default(uuid())
+  billNumber String          @unique
+  status     VendorBillStatus @default(UNPAID)
+  totalAmount Decimal
+  paidAmount  Decimal        @default(0)
+  dueDate    DateTime?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  orderId String
+  order   PurchaseOrder @relation(fields: [orderId], references: [id])
+
+  @@map("vendor_bills")
+  @@schema("purchasing")
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  CONFIRMED
+  PARTIALLY_RECEIVED
+  FULLY_RECEIVED
+  CANCELLED
+
+  @@schema("purchasing")
+}
+
+enum VendorBillStatus {
+  UNPAID
+  PAID
+  PARTIAL
+
+  @@schema("purchasing")
 }

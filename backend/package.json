@@ -46,7 +46,8 @@
     "tslib": "^2.3.0",
     "@org/core": "*",
     "@org/inventory": "*",
-    "@org/sales": "*"
+    "@org/sales": "*",
+    "@org/purchasing": "*"
   },
   "devDependencies": {
     "@nestjs/testing": "^11.0.0"

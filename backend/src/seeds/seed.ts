@@ -94,6 +94,18 @@ async function main() {
     { name: 'settings.currencies.view', module: 'core', description: 'عرض العملات' },
     { name: 'settings.currencies.create', module: 'core', description: 'إضافة عملة' },
     { name: 'settings.currencies.edit', module: 'core', description: 'تعديل سعر صرف' },
+    { name: 'purchasing.suppliers.view', module: 'purchasing', description: 'عرض الموردين' },
+{ name: 'purchasing.suppliers.create', module: 'purchasing', description: 'إضافة مورد' },
+{ name: 'purchasing.suppliers.edit', module: 'purchasing', description: 'تعديل مورد' },
+{ name: 'purchasing.suppliers.delete', module: 'purchasing', description: 'حذف مورد' },
+{ name: 'purchasing.orders.view', module: 'purchasing', description: 'عرض أوامر الشراء' },
+{ name: 'purchasing.orders.create', module: 'purchasing', description: 'إنشاء أمر شراء' },
+{ name: 'purchasing.orders.confirm', module: 'purchasing', description: 'تأكيد أمر شراء' },
+{ name: 'purchasing.receipts.view', module: 'purchasing', description: 'عرض الاستلامات' },
+{ name: 'purchasing.receipts.create', module: 'purchasing', description: 'إنشاء استلام' },
+{ name: 'purchasing.bills.view', module: 'purchasing', description: 'عرض فواتير الموردين' },
+{ name: 'purchasing.bills.create', module: 'purchasing', description: 'إنشاء فاتورة مورد' },
+{ name: 'purchasing.bills.pay', module: 'purchasing', description: 'دفع فاتورة مورد' },
   ];
 
   for (const permission of permissions) {
