@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { randomUUID } from 'crypto';
-
 export interface ISalesSettings {
+  taxEnabled: boolean;             // ✅ موجود في الـ Schema
   multiCurrency: boolean;
   allowDiscounts: boolean;
   maxDiscountPercent: number;
-  requireDelivery: boolean;
-  allowSalesReturns: boolean;
+  quotationsEnabled: boolean;      // ✅ موجود في الـ Schema
+  deliveryEnabled: boolean;        // ✅ الاسم الصح
+  salesReturnsEnabled: boolean;    // ✅ الاسم الصح
   requireApproval: boolean;
   approvalThreshold: number;
   defaultPaymentTerms: number;

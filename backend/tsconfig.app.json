@@ -9,10 +9,7 @@
     "emitDecoratorMetadata": true,
     "target": "es2021"
   },
-  "include": [
-    "src/**/*.ts",
-    "../modules/purchasing/src/**/*.ts"
-  ],
+  "include": ["src/**/*.ts", "../modules/purchasing/src/**/*.ts"],
   "exclude": [
     "out-tsc",
     "dist",
@@ -26,13 +23,16 @@
   ],
   "references": [
     {
+      "path": "../modules/accounting/tsconfig.lib.json"
+    },
+    {
+      "path": "../modules/purchasing/tsconfig.lib.json"
+    },
+    {
       "path": "../modules/sales/tsconfig.lib.json"
     },
     {
       "path": "../modules/inventory/tsconfig.lib.json"
-    },
-    {
-      "path": "../modules/purchasing/tsconfig.lib.json"
     },
     {
       "path": "../core/tsconfig.lib.json"

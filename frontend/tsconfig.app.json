@@ -41,9 +41,14 @@
     "../modules/sales-ui/src/**/*.test.tsx",
     "../modules/sales-ui/src/**/*.spec.ts",
     "../modules/sales-ui/src/**/*.test.ts",
-    "../modules/purchasing-ui/src/lib/**/*.ts",
-"../modules/purchasing-ui/src/lib/**/*.tsx",
-"../modules/purchasing-ui/src/index.ts"
+    "../modules/purchasing-ui/src/**/*.spec.tsx",
+    "../modules/purchasing-ui/src/**/*.test.tsx",
+    "../modules/purchasing-ui/src/**/*.spec.ts",
+    "../modules/purchasing-ui/src/**/*.test.ts",
+    "../modules/accounting-ui/src/**/*.spec.tsx",
+    "../modules/accounting-ui/src/**/*.test.tsx",
+    "../modules/accounting-ui/src/**/*.spec.ts",
+    "../modules/accounting-ui/src/**/*.test.ts"
   ],
   "include": [
     "src/**/*.js",
@@ -55,15 +60,18 @@
     "../modules/inventory-ui/src/index.ts",
     "../modules/sales-ui/src/lib/**/*.ts",
     "../modules/sales-ui/src/lib/**/*.tsx",
-    "../modules/sales-ui/src/index.ts"
+    "../modules/sales-ui/src/index.ts",
+    "../modules/purchasing-ui/src/lib/**/*.ts",
+    "../modules/purchasing-ui/src/lib/**/*.tsx",
+    "../modules/purchasing-ui/src/index.ts",
+    "../modules/accounting-ui/src/lib/**/*.ts",
+    "../modules/accounting-ui/src/lib/**/*.tsx",
+    "../modules/accounting-ui/src/index.ts"
   ],
   "references": [
-    {
-      "path": "../modules/sales-ui/tsconfig.lib.json"
-    },
-    {
-      "path": "../modules/inventory-ui/tsconfig.lib.json"
-    },
-    { "path": "../modules/purchasing-ui/tsconfig.lib.json" }
+    { "path": "../modules/sales-ui/tsconfig.lib.json" },
+    { "path": "../modules/inventory-ui/tsconfig.lib.json" },
+    { "path": "../modules/purchasing-ui/tsconfig.lib.json" },
+    { "path": "../modules/accounting-ui/tsconfig.lib.json" }
   ]
 }

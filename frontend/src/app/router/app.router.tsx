@@ -5,12 +5,13 @@ import MainLayout from '../layout/main.layout';
 import { inventoryRoutes } from '@org/inventory-ui';
 import { salesRoutes } from '@org/sales-ui';
 import { purchasingRoutes } from '@org/purchasing-ui';
+import { accountingRoutes } from '@org/accounting-ui'; // ✅
 import SettingsPage from '../../pages/settings/settings.page';
 import GeneralSettingsPage from '../../pages/settings/general-settings.page';
 import CurrenciesPage from '../../pages/settings/currencies.page';
 import DocumentSequencesPage from '../../pages/settings/document-sequences.page';
 
-const enabledModules = ['inventory', 'sales', 'purchasing'];
+const enabledModules = ['inventory', 'sales', 'purchasing', 'accounting']; // ✅
 
 export const router = createBrowserRouter([
   {
@@ -30,6 +31,7 @@ export const router = createBrowserRouter([
       ...enabledModules.includes('inventory') ? inventoryRoutes : [],
       ...enabledModules.includes('sales') ? salesRoutes : [],
       ...enabledModules.includes('purchasing') ? purchasingRoutes : [],
+      ...enabledModules.includes('accounting') ? accountingRoutes : [], // ✅
       { path: 'branches', element: <div>الفروع</div> },
       {
         path: 'settings',

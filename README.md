@@ -1,106 +1,136 @@
-# New Nx Repository
+# نظام ERP
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+## 🚀 التشغيل السريع (موصى به)
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+### المتطلبات الوحيدة
+- [Docker](https://docs.docker.com/get-docker/)
+- [VS Code](https://code.visualstudio.com/)
+- [Dev Containers Extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
-## Finish your Nx platform setup
+### الخطوات
+1. افتح المشروع في VS Code
+2. اضغط `Ctrl+Shift+P` واختار **"Reopen in Container"**
+3. انتظر دقيقتين وكل حاجة هتشتغل تلقائي ✅
 
-🚀 [Finish setting up your workspace](https://cloud.nx.app/connect/JrKAMmanpc) to get faster builds with remote caching, distributed task execution, and self-healing CI. [Learn more about Nx Cloud](https://nx.dev/ci/intro/why-nx-cloud).
-## Generate a library
-
-```sh
-npx nx g @nx/js:lib packages/pkg1 --publishable --importPath=@my-org/pkg1
+### تشغيل الباك اند
+```bash
+npx nx serve backend --skip-nx-cache
 ```
 
-## Run tasks
-
-To build the library use:
-
-```sh
-npx nx build pkg1
+### تشغيل الفرونت (تيرمنال تاني)
+```bash
+npx nx serve frontend
 ```
 
-To run any task with Nx use:
+## بيانات الدخول
+- **Email**: admin@erp.com
+- **Password**: Admin@123
 
-```sh
-npx nx <target> <project-name>
+## الروابط
+- Frontend: http://localhost:4200
+- Backend API: http://localhost:3000/api
+
+---
+
+## 🔧 التشغيل اليدوي (بديل)
+
+### المتطلبات
+- Node.js v20+
+- Docker + Docker Compose
+- nvm
+
+### 1. تثبيت Docker
+```bash
+sudo apt install docker.io -y
+sudo apt install docker-compose-v2 -y
+sudo usermod -aG docker $USER
+newgrp docker
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
-
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Versioning and releasing
-
-To version and release the library use
-
-```
-npx nx release
+### 2. استنساخ المشروع
+```bash
+git clone https://github.com/Mahmoud-Elmaghraby/erp-system.git
+cd erp-system
 ```
 
-Pass `--dry-run` to see what would happen without actually releasing the library.
+### 3. إعداد ملف البيئة
+```bash
+cp .env.example .env
+```
 
-[Learn more about Nx release &raquo;](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### 4. ⚠️ وقف PostgreSQL المحلي لو موجود
+```bash
+sudo systemctl stop postgresql
+sudo systemctl disable postgresql
+```
 
-## Keep TypeScript project references up to date
+### 5. تشغيل قاعدة البيانات والـ Redis
+```bash
+docker compose up -d
+```
 
-Nx automatically updates TypeScript [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) in `tsconfig.json` files to ensure they remain accurate based on your project dependencies (`import` or `require` statements). This sync is automatically done when running tasks such as `build` or `typecheck`, which require updated references to function correctly.
+### 6. تثبيت الـ packages
+```bash
+nvm use 20
+npm install
+```
 
-To manually trigger the process to sync the project graph dependencies information to the TypeScript project references, run the following command:
+### 7. إعداد قاعدة البيانات
+```bash
+npx prisma generate
+npx prisma db push
+npx tsx backend/src/seeds/seed.ts
+```
 
-```sh
+### 8. تشغيل الباك اند
+```bash
+npx nx serve backend --skip-nx-cache
+```
+
+### 9. تشغيل الفرونت (تيرمنال تاني)
+```bash
+npx nx serve frontend
+```
+
+---
+
+## أوامر مفيدة
+```bash
+# إيقاف Docker
+docker compose down
+
+# حذف البيانات والبدء من الصفر
+docker compose down -v
+npx tsx backend/src/seeds/seed.ts
+
+# بناء موديول
+npx nx build @org/[module-name]
+
+# Sync الـ workspace
 npx nx sync
+
+# Prisma
+npx prisma db push
+npx prisma generate
 ```
 
-You can enforce that the TypeScript project references are always in the correct state when running in CI by adding a step to your CI job configuration that runs the following command:
+---
 
-```sh
-npx nx sync:check
+## ⚠️ مشاكل شائعة
+
+### Port 5432 already in use
+```bash
+sudo systemctl stop postgresql
+sudo systemctl disable postgresql
+docker compose up -d
 ```
 
-[Learn more about nx sync](https://nx.dev/reference/nx-commands#sync)
-
-## Nx Cloud
-
-Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Set up CI (non-Github Actions CI)
-
-**Note:** This is only required if your CI provider is not GitHub Actions.
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
+### Prisma Client not generated
+```bash
+npx prisma generate
 ```
 
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### Backend لا يشتغل
+```bash
+npx nx serve backend --skip-nx-cache
+```

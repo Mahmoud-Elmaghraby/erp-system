@@ -2,7 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../../../generated/prisma';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
-
+import { TaxScope, AccountType, TaxType } from '../../../generated/prisma';
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
 });
@@ -49,6 +49,7 @@ async function main() {
 
   // Create Permissions
   const permissions = [
+    // Inventory
     { name: 'inventory.products.view', module: 'inventory', description: 'عرض المنتجات' },
     { name: 'inventory.products.create', module: 'inventory', description: 'إضافة منتج' },
     { name: 'inventory.products.edit', module: 'inventory', description: 'تعديل منتج' },
@@ -79,33 +80,64 @@ async function main() {
     { name: 'inventory.traceability.view', module: 'inventory', description: 'عرض تتبع المنتجات' },
     { name: 'inventory.traceability.create', module: 'inventory', description: 'إضافة بيانات تتبع' },
     { name: 'inventory.valuation.view', module: 'inventory', description: 'عرض تقييم المخزون' },
+    // Sales
     { name: 'sales.customers.view', module: 'sales', description: 'عرض العملاء' },
     { name: 'sales.customers.create', module: 'sales', description: 'إضافة عميل' },
     { name: 'sales.customers.edit', module: 'sales', description: 'تعديل عميل' },
     { name: 'sales.customers.delete', module: 'sales', description: 'حذف عميل' },
-    { name: 'sales.orders.view', module: 'sales', description: 'عرض الأوردرات' },
-    { name: 'sales.orders.create', module: 'sales', description: 'إنشاء أوردر' },
-    { name: 'sales.orders.confirm', module: 'sales', description: 'تأكيد أوردر' },
+    { name: 'sales.quotations.view', module: 'sales', description: 'عرض عروض الأسعار' },
+    { name: 'sales.quotations.create', module: 'sales', description: 'إنشاء عرض سعر' },
+    { name: 'sales.quotations.confirm', module: 'sales', description: 'تأكيد عرض سعر' },
+    { name: 'sales.orders.view', module: 'sales', description: 'عرض أوامر البيع' },
+    { name: 'sales.orders.create', module: 'sales', description: 'إنشاء أمر بيع' },
+    { name: 'sales.orders.confirm', module: 'sales', description: 'تأكيد أمر بيع' },
+    { name: 'sales.deliveries.view', module: 'sales', description: 'عرض التسليمات' },
+    { name: 'sales.deliveries.create', module: 'sales', description: 'إنشاء تسليم' },
+    { name: 'sales.deliveries.confirm', module: 'sales', description: 'تأكيد تسليم' },
     { name: 'sales.invoices.view', module: 'sales', description: 'عرض الفواتير' },
     { name: 'sales.invoices.create', module: 'sales', description: 'إنشاء فاتورة' },
     { name: 'sales.invoices.pay', module: 'sales', description: 'تسجيل دفع' },
+    { name: 'sales.returns.view', module: 'sales', description: 'عرض المرتجعات' },
+    { name: 'sales.returns.create', module: 'sales', description: 'إنشاء مرتجع' },
+    { name: 'sales.returns.confirm', module: 'sales', description: 'تأكيد مرتجع' },
+    // Purchasing
+    { name: 'purchasing.suppliers.view', module: 'purchasing', description: 'عرض الموردين' },
+    { name: 'purchasing.suppliers.create', module: 'purchasing', description: 'إضافة مورد' },
+    { name: 'purchasing.suppliers.edit', module: 'purchasing', description: 'تعديل مورد' },
+    { name: 'purchasing.suppliers.delete', module: 'purchasing', description: 'حذف مورد' },
+    { name: 'purchasing.rfq.view', module: 'purchasing', description: 'عرض طلبات عروض الأسعار' },
+    { name: 'purchasing.rfq.create', module: 'purchasing', description: 'إنشاء طلب عرض سعر' },
+    { name: 'purchasing.rfq.confirm', module: 'purchasing', description: 'تأكيد طلب عرض سعر' },
+    { name: 'purchasing.orders.view', module: 'purchasing', description: 'عرض أوامر الشراء' },
+    { name: 'purchasing.orders.create', module: 'purchasing', description: 'إنشاء أمر شراء' },
+    { name: 'purchasing.orders.confirm', module: 'purchasing', description: 'تأكيد أمر شراء' },
+    { name: 'purchasing.receipts.view', module: 'purchasing', description: 'عرض الاستلامات' },
+    { name: 'purchasing.receipts.create', module: 'purchasing', description: 'إنشاء استلام' },
+    { name: 'purchasing.bills.view', module: 'purchasing', description: 'عرض فواتير الموردين' },
+    { name: 'purchasing.bills.create', module: 'purchasing', description: 'إنشاء فاتورة مورد' },
+    { name: 'purchasing.bills.pay', module: 'purchasing', description: 'دفع فاتورة مورد' },
+    { name: 'purchasing.returns.view', module: 'purchasing', description: 'عرض مرتجعات المشتريات' },
+    { name: 'purchasing.returns.create', module: 'purchasing', description: 'إنشاء مرتجع مشتريات' },
+    { name: 'purchasing.returns.confirm', module: 'purchasing', description: 'تأكيد مرتجع مشتريات' },
+    // Accounting
+    { name: 'accounting.taxes.view', module: 'accounting', description: 'عرض الضرائب' },
+    { name: 'accounting.taxes.create', module: 'accounting', description: 'إضافة ضريبة' },
+    { name: 'accounting.taxes.edit', module: 'accounting', description: 'تعديل ضريبة' },
+    { name: 'accounting.taxes.delete', module: 'accounting', description: 'حذف ضريبة' },
+    { name: 'accounting.payment-terms.view', module: 'accounting', description: 'عرض شروط الدفع' },
+    { name: 'accounting.payment-terms.create', module: 'accounting', description: 'إضافة شرط دفع' },
+    { name: 'accounting.payment-terms.edit', module: 'accounting', description: 'تعديل شرط دفع' },
+    { name: 'accounting.payment-terms.delete', module: 'accounting', description: 'حذف شرط دفع' },
+    { name: 'accounting.accounts.view', module: 'accounting', description: 'عرض الحسابات' },
+    { name: 'accounting.accounts.create', module: 'accounting', description: 'إضافة حساب' },
+    { name: 'accounting.accounts.edit', module: 'accounting', description: 'تعديل حساب' },
+    { name: 'accounting.accounts.delete', module: 'accounting', description: 'حذف حساب' },
+    // Settings
     { name: 'settings.company.view', module: 'core', description: 'عرض إعدادات الشركة' },
     { name: 'settings.company.edit', module: 'core', description: 'تعديل إعدادات الشركة' },
     { name: 'settings.currencies.view', module: 'core', description: 'عرض العملات' },
     { name: 'settings.currencies.create', module: 'core', description: 'إضافة عملة' },
     { name: 'settings.currencies.edit', module: 'core', description: 'تعديل سعر صرف' },
-    { name: 'purchasing.suppliers.view', module: 'purchasing', description: 'عرض الموردين' },
-{ name: 'purchasing.suppliers.create', module: 'purchasing', description: 'إضافة مورد' },
-{ name: 'purchasing.suppliers.edit', module: 'purchasing', description: 'تعديل مورد' },
-{ name: 'purchasing.suppliers.delete', module: 'purchasing', description: 'حذف مورد' },
-{ name: 'purchasing.orders.view', module: 'purchasing', description: 'عرض أوامر الشراء' },
-{ name: 'purchasing.orders.create', module: 'purchasing', description: 'إنشاء أمر شراء' },
-{ name: 'purchasing.orders.confirm', module: 'purchasing', description: 'تأكيد أمر شراء' },
-{ name: 'purchasing.receipts.view', module: 'purchasing', description: 'عرض الاستلامات' },
-{ name: 'purchasing.receipts.create', module: 'purchasing', description: 'إنشاء استلام' },
-{ name: 'purchasing.bills.view', module: 'purchasing', description: 'عرض فواتير الموردين' },
-{ name: 'purchasing.bills.create', module: 'purchasing', description: 'إنشاء فاتورة مورد' },
-{ name: 'purchasing.bills.pay', module: 'purchasing', description: 'دفع فاتورة مورد' },
   ];
 
   for (const permission of permissions) {
@@ -205,16 +237,29 @@ async function main() {
     create: { id: randomUUID(), companyId: company.id },
   });
 
+  await prisma.logisticsSettings.upsert({
+    where: { companyId: company.id },
+    update: {},
+    create: { id: randomUUID(), companyId: company.id },
+  });
+
   console.log('✅ Company settings created');
 
   // Create Document Sequences
   const sequences = [
+    { module: 'sales', docType: 'quotation', prefix: 'QUO' },
     { module: 'sales', docType: 'order', prefix: 'SO' },
     { module: 'sales', docType: 'invoice', prefix: 'INV' },
+    { module: 'sales', docType: 'delivery', prefix: 'DEL' },
+    { module: 'sales', docType: 'return', prefix: 'RET' },
+    { module: 'purchasing', docType: 'rfq', prefix: 'RFQ' },
     { module: 'purchasing', docType: 'order', prefix: 'PO' },
     { module: 'purchasing', docType: 'bill', prefix: 'BILL' },
+    { module: 'purchasing', docType: 'return', prefix: 'PRET' },
     { module: 'inventory', docType: 'receipt', prefix: 'REC' },
     { module: 'inventory', docType: 'adjustment', prefix: 'ADJ' },
+    { module: 'logistics', docType: 'shipment', prefix: 'SHP' },
+    { module: 'logistics', docType: 'storage', prefix: 'STR' },
   ];
 
   for (const seq of sequences) {
@@ -238,6 +283,137 @@ async function main() {
   }
 
   console.log('✅ Document sequences created');
+
+  // Create Default Taxes
+// Create Default Taxes
+const taxes = [
+  {
+    id: randomUUID(),
+    name: 'ضريبة القيمة المضافة 14%',
+    rate: 14,
+    taxType: 'PERCENTAGE' as TaxType,  // ✅ تم التصليح
+    scope: 'BOTH' as TaxScope,
+    isActive: true,
+    companyId: company.id,
+    etaType: 'T1',
+    etaSubtype: 'V001',
+    zatcaType: 'S',
+  },
+  {
+    id: randomUUID(),
+    name: 'معفى من الضريبة 0%',
+    rate: 0,
+    taxType: 'PERCENTAGE' as TaxType,  // ✅ تم التصليح
+    scope: 'BOTH' as TaxScope,
+    isActive: true,
+    companyId: company.id,
+    etaType: 'T1',
+    etaSubtype: 'V002',
+    zatcaType: 'Z',
+  },
+  {
+    id: randomUUID(),
+    name: 'ضريبة القيمة المضافة 15% (السعودية)',
+    rate: 15,
+    taxType: 'PERCENTAGE' as TaxType,  // ✅ تم التصليح
+    scope: 'BOTH' as TaxScope,
+    isActive: true,
+    companyId: company.id,
+    etaType: null,
+    etaSubtype: null,
+    zatcaType: 'S',
+  },
+];
+
+  for (const tax of taxes) {
+    const exists = await prisma.tax.findFirst({
+      where: { name: tax.name, companyId: tax.companyId },
+    });
+    if (!exists) {
+      await prisma.tax.create({ data: tax });
+    }
+  }
+
+  console.log('✅ Default taxes created');
+
+  // Create Default Payment Terms
+  const paymentTerms = [
+    {
+      id: randomUUID(),
+      name: 'فوري',
+      companyId: company.id,
+      lines: [{ id: randomUUID(), value: 100, valueType: 'PERCENT', days: 0 }],
+    },
+    {
+      id: randomUUID(),
+      name: 'صافي 30 يوم',
+      companyId: company.id,
+      lines: [{ id: randomUUID(), value: 100, valueType: 'PERCENT', days: 30 }],
+    },
+    {
+      id: randomUUID(),
+      name: 'صافي 60 يوم',
+      companyId: company.id,
+      lines: [{ id: randomUUID(), value: 100, valueType: 'PERCENT', days: 60 }],
+    },
+    {
+      id: randomUUID(),
+      name: '50% مقدم - 50% عند الاستلام',
+      companyId: company.id,
+      lines: [
+        { id: randomUUID(), value: 50, valueType: 'PERCENT', days: 0 },
+        { id: randomUUID(), value: 50, valueType: 'PERCENT', days: 30 },
+      ],
+    },
+  ];
+
+  for (const term of paymentTerms) {
+    const exists = await prisma.paymentTerm.findFirst({
+      where: { name: term.name, companyId: term.companyId },
+    });
+    if (!exists) {
+      await prisma.paymentTerm.create({
+        data: {
+          id: term.id,
+          name: term.name,
+          companyId: term.companyId,
+          lines: { create: term.lines },
+        },
+      });
+    }
+  }
+
+  console.log('✅ Default payment terms created');
+
+  // Create Default Chart of Accounts
+const accounts = [
+  { id: randomUUID(), code: '1000', name: 'الأصول المتداولة', type: 'ASSET' as AccountType, companyId: company.id },
+  { id: randomUUID(), code: '1100', name: 'النقدية والبنوك', type: 'ASSET' as AccountType, companyId: company.id },
+  { id: randomUUID(), code: '1200', name: 'حسابات القبض', type: 'ASSET' as AccountType, companyId: company.id },
+  { id: randomUUID(), code: '1300', name: 'المخزون', type: 'ASSET' as AccountType, companyId: company.id },
+  { id: randomUUID(), code: '2000', name: 'الخصوم المتداولة', type: 'LIABILITY' as AccountType, companyId: company.id },
+  { id: randomUUID(), code: '2100', name: 'حسابات الدفع', type: 'LIABILITY' as AccountType, companyId: company.id },
+  { id: randomUUID(), code: '2200', name: 'ضريبة القيمة المضافة المستحقة', type: 'LIABILITY' as AccountType, companyId: company.id },
+  { id: randomUUID(), code: '3000', name: 'حقوق الملكية', type: 'EQUITY' as AccountType, companyId: company.id },
+  { id: randomUUID(), code: '4000', name: 'المبيعات', type: 'REVENUE' as AccountType, companyId: company.id },
+  { id: randomUUID(), code: '4100', name: 'إيرادات الخدمات', type: 'REVENUE' as AccountType, companyId: company.id },
+  { id: randomUUID(), code: '5000', name: 'تكلفة البضاعة المباعة', type: 'COGS' as AccountType, companyId: company.id },
+  { id: randomUUID(), code: '6000', name: 'المصروفات التشغيلية', type: 'EXPENSE' as AccountType, companyId: company.id },
+  { id: randomUUID(), code: '6100', name: 'مصروفات الرواتب', type: 'EXPENSE' as AccountType, companyId: company.id },
+  { id: randomUUID(), code: '6200', name: 'مصروفات الإيجار', type: 'EXPENSE' as AccountType, companyId: company.id },
+  { id: randomUUID(), code: '6300', name: 'مصروفات المرافق', type: 'EXPENSE' as AccountType, companyId: company.id },
+];
+
+  for (const account of accounts) {
+    const exists = await prisma.chartOfAccount.findFirst({
+      where: { code: account.code, companyId: account.companyId },
+    });
+    if (!exists) {
+      await prisma.chartOfAccount.create({ data: { ...account, isActive: true } });
+    }
+  }
+
+  console.log('✅ Default chart of accounts created');
   console.log('');
   console.log('🎉 Seed completed successfully!');
   console.log('📧 Email: admin@erp.com');

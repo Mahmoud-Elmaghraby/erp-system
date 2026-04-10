@@ -12,6 +12,7 @@ import {
   ShoppingCartOutlined,
   SettingOutlined,
   ShoppingOutlined,
+  AccountBookOutlined, // ✅
 } from '@ant-design/icons';
 import { authStore } from '../../core/auth/auth.store';
 
@@ -57,6 +58,16 @@ const menuItems = [
     children: [
       { key: '/purchasing/orders', label: 'أوامر الشراء' },
       { key: '/purchasing/suppliers', label: 'الموردين' },
+    ],
+  },
+  {
+    key: '/accounting',                          // ✅
+    icon: <AccountBookOutlined />,
+    label: 'المحاسبة',
+    children: [
+      { key: '/accounting/taxes', label: 'الضرائب' },
+      { key: '/accounting/payment-terms', label: 'شروط الدفع' },
+      { key: '/accounting/chart-of-accounts', label: 'دليل الحسابات' },
     ],
   },
   {
@@ -112,7 +123,7 @@ export default function MainLayout() {
           theme="dark"
           mode="inline"
           selectedKeys={[location.pathname]}
-          defaultOpenKeys={['/inventory', '/sales', '/purchasing', '/settings']}
+          defaultOpenKeys={['/inventory', '/sales', '/purchasing', '/accounting', '/settings']}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
         />

@@ -3,14 +3,16 @@ import { PrismaService } from '../prisma.service';
 import { randomUUID } from 'crypto';
 
 export interface IPurchasingSettings {
+  taxEnabled: boolean;             // ✅ موجود في الـ Schema
+  rfqEnabled: boolean;             // ✅ موجود في الـ Schema
+  purchaseReturnsEnabled: boolean; // ✅ الاسم الصح
+  landedCostsEnabled: boolean;     // ✅ موجود في الـ Schema
   requireApproval: boolean;
   approvalThreshold: number;
   threeWayMatching: boolean;
-  allowPurchaseReturns: boolean;
   defaultPaymentTerms: number;
   defaultWarehouseId?: string | null;
 }
-
 @Injectable()
 export class PurchasingSettingsService {
   constructor(private prisma: PrismaService) {}

@@ -20,6 +20,7 @@ export default defineConfig(() => ({
       '@org/inventory-ui': resolve(__dirname, '../modules/inventory-ui/src/index.ts'),
       '@org/sales-ui': resolve(__dirname, '../modules/sales-ui/src/index.ts'),
       '@org/purchasing-ui': resolve(__dirname, '../modules/purchasing-ui/src/index.ts'),
+      '@org/accounting-ui': resolve(__dirname, '../modules/accounting-ui/src/index.ts'), // ✅
     },
   },
   build: {

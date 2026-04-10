@@ -41,6 +41,7 @@ export class OrderRepository implements IOrderRepository {
             productId: item.productId,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
+            subtotal: item.unitPrice * item.quantity, // ✅ مضاف
             total: item.total,
           })),
         },
@@ -65,7 +66,10 @@ export class OrderRepository implements IOrderRepository {
       o.customerId, o.notes, Number(o.totalAmount), [],
     );
     order.items = (o.items || []).map((i: any) =>
-      new OrderItem(i.id, i.orderId, i.productId, Number(i.quantity), Number(i.unitPrice), Number(i.total))
+      new OrderItem(
+        i.id, i.orderId, i.productId,
+        Number(i.quantity), Number(i.unitPrice), Number(i.total)
+      )
     );
     return order;
   }

@@ -22,7 +22,8 @@ export class SupplierRepository implements ISupplierRepository {
       data: {
         id: entity.id, name: entity.name, email: entity.email,
         phone: entity.phone, address: entity.address,
-        taxNumber: entity.taxNumber, isActive: entity.isActive,
+        taxRegNumber: entity.taxNumber, // ✅ taxNumber → taxRegNumber
+        isActive: entity.isActive,
       },
     });
     return this.toEntity(supplier);
@@ -41,6 +42,10 @@ export class SupplierRepository implements ISupplierRepository {
   }
 
   private toEntity(s: any): SupplierEntity {
-    return new SupplierEntity(s.id, s.name, s.email, s.phone, s.address, s.taxNumber, s.isActive);
+    return new SupplierEntity(
+      s.id, s.name, s.email, s.phone, s.address,
+      s.taxRegNumber, // ✅ s.taxNumber → s.taxRegNumber
+      s.isActive
+    );
   }
 }
