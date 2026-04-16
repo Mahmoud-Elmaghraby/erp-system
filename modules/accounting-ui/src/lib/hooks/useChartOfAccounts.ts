@@ -1,20 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { accountingApi } from '../api/accounting.api';
+import { message } from 'antd';
 
-const COMPANY_ID = 'default';
-
-export const useChartOfAccounts = () =>
+export const useChartOfAccounts = (params?: { type?: string }) =>
   useQuery({
-    queryKey: ['chart-of-accounts', COMPANY_ID],
-    queryFn: () => accountingApi.accounts.getAll(COMPANY_ID),
+    queryKey: ['chart-of-accounts', params],
+    queryFn: async () => {
+      const res = await accountingApi.accounts.getAll(params) as any;
+      return res?.data ?? res ?? [];
+    },
   });
 
 export const useCreateAccount = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: any) =>
-      accountingApi.accounts.create({ ...data, companyId: COMPANY_ID }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['chart-of-accounts'] }),
+    mutationFn: (data: any) => accountingApi.accounts.create(data),
+    onSuccess: () => {
+      message.success('تم إضافة الحساب');
+      qc.invalidateQueries({ queryKey: ['chart-of-accounts'] });
+    },
+    onError: () => message.error('حدث خطأ'),
   });
 };
 
@@ -23,7 +28,11 @@ export const useUpdateAccount = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) =>
       accountingApi.accounts.update(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['chart-of-accounts'] }),
+    onSuccess: () => {
+      message.success('تم تعديل الحساب');
+      qc.invalidateQueries({ queryKey: ['chart-of-accounts'] });
+    },
+    onError: () => message.error('حدث خطأ'),
   });
 };
 
@@ -31,6 +40,10 @@ export const useDeleteAccount = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => accountingApi.accounts.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['chart-of-accounts'] }),
+    onSuccess: () => {
+      message.success('تم حذف الحساب');
+      qc.invalidateQueries({ queryKey: ['chart-of-accounts'] });
+    },
+    onError: () => message.error('حدث خطأ'),
   });
 };

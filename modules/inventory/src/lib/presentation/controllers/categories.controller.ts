@@ -1,6 +1,22 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, Inject } from '@nestjs/common';
+
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Inject,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard, RequirePermission, PermissionGuard } from '@org/core';
+import {
+  JwtAuthGuard,
+  RequirePermission,
+  PermissionGuard,
+  CurrentUser,
+} from '@org/core';
+
 import { CreateCategoryUseCase } from '../../application/use-cases/categories/create-category.use-case';
 import type { ICategoryRepository } from '../../domain/repositories/category.repository.interface';
 import { CATEGORY_REPOSITORY } from '../../domain/repositories/category.repository.interface';
@@ -12,26 +28,33 @@ import { CreateCategoryDto } from '../../application/dtos/category.dto';
 @Controller('categories')
 export class CategoriesController {
   constructor(
-    private createCategoryUseCase: CreateCategoryUseCase,
+    private readonly createCategoryUseCase: CreateCategoryUseCase,
     @Inject(CATEGORY_REPOSITORY)
-    private categoryRepository: ICategoryRepository,
+    private readonly categoryRepository: ICategoryRepository,
   ) {}
 
   @Get()
   @RequirePermission('inventory.categories.view')
-  findAll() {
-    return this.categoryRepository.findAll();
+  async findAll(@CurrentUser('companyId') companyId: string) {
+    return this.categoryRepository.findAll(companyId);
   }
 
   @Post()
   @RequirePermission('inventory.categories.create')
-  create(@Body() dto: CreateCategoryDto) {
-    return this.createCategoryUseCase.execute(dto);
+  async create(
+    @Body() dto: CreateCategoryDto,
+    @CurrentUser('companyId') companyId: string,
+  ) {
+    return this.createCategoryUseCase.execute(dto, companyId);
   }
 
   @Delete(':id')
   @RequirePermission('inventory.categories.delete')
-  remove(@Param('id') id: string) {
-    return this.categoryRepository.delete(id);
+  async remove(
+    @Param('id') id: string,
+    @CurrentUser('companyId') companyId: string,
+  ) {
+    return this.categoryRepository.delete(id, companyId);
   }
 }
+

@@ -1,12 +1,11 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards, Inject } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, UseGuards, Query, Inject } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard, RequirePermission, PermissionGuard } from '@org/core';
-import type { IInvoiceRepository } from '../../domain/repositories/invoice.repository.interface';
-import { INVOICE_REPOSITORY } from '../../domain/repositories/invoice.repository.interface';
-import { InvoiceEntity } from '../../domain/entities/invoice.entity';
+import { JwtAuthGuard, RequirePermission, PermissionGuard, CurrentUser } from '@org/core';
+import { CreateInvoiceUseCase } from '../../application/use-cases/invoices/create-invoice.use-case';
+import { PayInvoiceUseCase } from '../../application/use-cases/invoices/pay-invoice.use-case';
 import { CreateInvoiceDto, PayInvoiceDto } from '../../application/dtos/invoice.dto';
-import { randomUUID } from 'crypto';
-import { PrismaService } from '@org/core';
+import { INVOICE_REPOSITORY } from '../../domain/repositories/invoice.repository.interface';
+import type { IInvoiceRepository } from '../../domain/repositories/invoice.repository.interface';
 
 @ApiTags('Invoices')
 @ApiBearerAuth()
@@ -14,38 +13,46 @@ import { PrismaService } from '@org/core';
 @Controller('invoices')
 export class InvoicesController {
   constructor(
+    private createInvoiceUseCase: CreateInvoiceUseCase,
+    private payInvoiceUseCase: PayInvoiceUseCase,
     @Inject(INVOICE_REPOSITORY)
     private invoiceRepository: IInvoiceRepository,
-    private prisma: PrismaService,
   ) {}
 
-  @Get('order/:orderId')
+  @Get()
   @RequirePermission('sales.invoices.view')
-  findAll(@Param('orderId') orderId: string) {
-    return this.invoiceRepository.findAll(orderId);
+  findAll(
+    @CurrentUser('companyId') companyId: string,
+    @Query('orderId') orderId?: string,
+  ) {
+    if (orderId) return this.invoiceRepository.findAll(orderId);
+    return (this.invoiceRepository as any).findByCompany(companyId);
+  }
+
+  @Get(':id')
+  @RequirePermission('sales.invoices.view')
+  findOne(@Param('id') id: string) {
+    return this.invoiceRepository.findById(id);
   }
 
   @Post()
   @RequirePermission('sales.invoices.create')
-  async create(@Body() dto: CreateInvoiceDto) {
-    const order = await this.prisma.salesOrder.findUnique({ where: { id: dto.orderId } });
-    if (!order) throw new Error('Order not found');
-    const invoice = InvoiceEntity.create({
-      id: randomUUID(),
-      invoiceNumber: `INV-${Date.now()}`,
-      orderId: dto.orderId,
-      totalAmount: Number(order.totalAmount),
-      dueDate: dto.dueDate,
-    });
-    return this.invoiceRepository.create(invoice);
+  create(@Body() dto: CreateInvoiceDto) {
+    return this.createInvoiceUseCase.execute(dto);
   }
 
   @Patch(':id/pay')
   @RequirePermission('sales.invoices.pay')
-  async pay(@Param('id') id: string, @Body() dto: PayInvoiceDto) {
+  pay(@Param('id') id: string, @Body() dto: PayInvoiceDto) {
+    return this.payInvoiceUseCase.execute(id, dto);
+  }
+
+  @Patch(':id/cancel')
+  @RequirePermission('sales.invoices.edit')
+  async cancel(@Param('id') id: string) {
     const invoice = await this.invoiceRepository.findById(id);
     if (!invoice) throw new Error('Invoice not found');
-    invoice.pay(dto.amount);
-    return this.invoiceRepository.update(id, { status: invoice.status, paidAmount: invoice.paidAmount });
+    invoice.cancel();
+    return this.invoiceRepository.update(id, { status: 'CANCELLED' });
   }
 }

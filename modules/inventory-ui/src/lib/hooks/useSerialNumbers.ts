@@ -4,7 +4,10 @@ import { message } from 'antd';
 
 export const useSerialNumbers = (productId: string, warehouseId?: string) => useQuery({
   queryKey: ['serial-numbers', productId, warehouseId],
-  queryFn: () => inventoryApi.serialNumbers.getByProduct(productId, warehouseId),
+  queryFn: async () => {
+    const res = await inventoryApi.serialNumbers.getByProduct(productId, warehouseId) as any;
+    return res?.data ?? res ?? [];
+  },
   enabled: !!productId,
 });
 

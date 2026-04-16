@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Table, Button, Modal, Form, Input, Select, Space, Popconfirm, message, Tag } from 'antd';
+import { Table, Button, Modal, Form, Input, Select, Space, Popconfirm, message, Tag, TreeSelect } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useChartOfAccounts, useCreateAccount, useDeleteAccount, useUpdateAccount } from '../hooks/useChartOfAccounts';
 
@@ -8,11 +8,13 @@ const { Option } = Select;
 const typeColors: Record<string, string> = {
   ASSET: 'blue', LIABILITY: 'red', EQUITY: 'purple',
   REVENUE: 'green', EXPENSE: 'orange', COGS: 'volcano',
+  BANK: 'geekblue', CASH: 'cyan', RECEIVABLE: 'gold', PAYABLE: 'magenta',
 };
 
 const typeLabels: Record<string, string> = {
   ASSET: 'أصول', LIABILITY: 'خصوم', EQUITY: 'حقوق ملكية',
   REVENUE: 'إيرادات', EXPENSE: 'مصروفات', COGS: 'تكلفة مبيعات',
+  BANK: 'بنك', CASH: 'صندوق', RECEIVABLE: 'عملاء', PAYABLE: 'موردون',
 };
 
 export default function ChartOfAccountsPage() {
@@ -20,13 +22,19 @@ export default function ChartOfAccountsPage() {
   const [editing, setEditing] = useState<any>(null);
   const [form] = Form.useForm();
 
-  const { data: accounts, isLoading } = useChartOfAccounts();
+  const { data: accountsData, isLoading } = useChartOfAccounts();
+  const accounts = accountsData?.data ?? accountsData ?? [];
+
   const createAccount = useCreateAccount();
   const updateAccount = useUpdateAccount();
   const deleteAccount = useDeleteAccount();
 
   const openCreate = () => { setEditing(null); form.resetFields(); setOpen(true); };
-  const openEdit = (record: any) => { setEditing(record); form.setFieldsValue(record); setOpen(true); };
+  const openEdit = (record: any) => {
+    setEditing(record);
+    form.setFieldsValue(record);
+    setOpen(true);
+  };
 
   const handleSubmit = async () => {
     const values = await form.validateFields();
@@ -41,11 +49,19 @@ export default function ChartOfAccountsPage() {
   };
 
   const columns = [
-    { title: 'الكود', dataIndex: 'code', key: 'code', width: 100 },
+    { title: 'الكود', dataIndex: 'code', key: 'code', width: 80 },
     { title: 'الاسم', dataIndex: 'name', key: 'name' },
     {
       title: 'النوع', dataIndex: 'type', key: 'type',
       render: (v: string) => <Tag color={typeColors[v]}>{typeLabels[v]}</Tag>,
+    },
+    {
+      title: 'الرصيد الطبيعي', dataIndex: 'normalBalance', key: 'normalBalance',
+      render: (v: string) => <Tag color={v === 'DEBIT' ? 'blue' : 'green'}>{v === 'DEBIT' ? 'مدين' : 'دائن'}</Tag>,
+    },
+    {
+      title: 'مجموعة', dataIndex: 'isGroup', key: 'isGroup',
+      render: (v: boolean) => v ? <Tag color="purple">مجموعة</Tag> : <Tag>تفصيلي</Tag>,
     },
     {
       title: 'الحالة', dataIndex: 'isActive', key: 'isActive',
@@ -78,20 +94,39 @@ export default function ChartOfAccountsPage() {
         okText="حفظ" cancelText="إلغاء"
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="code" label="كود الحساب" rules={[{ required: true, message: 'مطلوب' }]}>
-            <Input placeholder="1000" />
+          <Form.Item name="code" label="كود الحساب" rules={[{ required: true }]}>
+            <Input placeholder="111" />
           </Form.Item>
-          <Form.Item name="name" label="اسم الحساب" rules={[{ required: true, message: 'مطلوب' }]}>
-            <Input placeholder="النقدية والبنوك" />
+          <Form.Item name="name" label="اسم الحساب" rules={[{ required: true }]}>
+            <Input placeholder="الصندوق" />
           </Form.Item>
-          <Form.Item name="type" label="نوع الحساب" rules={[{ required: true, message: 'مطلوب' }]}>
+          <Form.Item name="type" label="نوع الحساب" rules={[{ required: true }]}>
             <Select placeholder="اختر النوع">
-              <Option value="ASSET">أصول</Option>
-              <Option value="LIABILITY">خصوم</Option>
-              <Option value="EQUITY">حقوق ملكية</Option>
-              <Option value="REVENUE">إيرادات</Option>
-              <Option value="EXPENSE">مصروفات</Option>
-              <Option value="COGS">تكلفة مبيعات</Option>
+              {Object.entries(typeLabels).map(([v, l]) => (
+                <Option key={v} value={v}>{l}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item name="normalBalance" label="الرصيد الطبيعي" rules={[{ required: true }]}>
+            <Select placeholder="اختر الرصيد">
+              <Option value="DEBIT">مدين</Option>
+              <Option value="CREDIT">دائن</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="parentId" label="الحساب الأب">
+            <Select placeholder="اختر الحساب الأب" allowClear showSearch
+              filterOption={(input, option) =>
+                String(option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+              }>
+              {accounts.filter((a: any) => a.isGroup).map((a: any) => (
+                <Option key={a.id} value={a.id}>{a.code} — {a.name}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item name="isGroup" label="حساب مجموعة" valuePropName="checked">
+            <Select placeholder="نوع الحساب">
+              <Option value={false}>تفصيلي — يُدخل عليه قيود</Option>
+              <Option value={true}>مجموعة — تجميعي فقط</Option>
             </Select>
           </Form.Item>
         </Form>

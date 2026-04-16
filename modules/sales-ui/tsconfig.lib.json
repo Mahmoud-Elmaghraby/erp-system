@@ -22,5 +22,8 @@
     "vite.config.ts", "vite.config.mts",
     "eslint.config.js", "eslint.config.mjs"
   ],
-  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"]
+  "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
+  "references": [
+    { "path": "../inventory-ui/tsconfig.lib.json" }
+  ]
 }

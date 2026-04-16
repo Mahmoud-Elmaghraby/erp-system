@@ -1,0 +1,194 @@
+
+
+===== modules/inventory/src/lib/domain/entities/category.entity.ts =====
+export class CategoryEntity {
+  constructor(
+    public readonly id: string,
+    public name: string,
+    public parentId: string | null,
+  ) {}
+
+  static create(data: { id: string; name: string; parentId?: string }): CategoryEntity {
+    return new CategoryEntity(data.id, data.name, data.parentId ?? null);
+  }
+}
+
+===== modules/inventory/src/lib/domain/entities/unit.entity.ts =====
+export class UnitEntity {
+  constructor(
+    public readonly id: string,
+    public name: string,
+    public symbol: string,
+  ) {}
+
+  static create(data: { id: string; name: string; symbol: string }): UnitEntity {
+    return new UnitEntity(data.id, data.name, data.symbol);
+  }
+}
+
+===== modules/inventory/src/lib/domain/entities/product.entity.ts =====
+import { Money } from '../value-objects/money.vo';
+
+export class ProductEntity {
+  constructor(
+    public readonly id: string,
+    public name: string,
+    public description: string | null,
+    public barcode: string | null,
+    public sku: string | null,
+    public price: Money,
+    public cost: Money,
+    public categoryId: string | null,
+    public unitOfMeasureId: string | null,
+    public isActive: boolean,
+  ) {}
+
+  static create(data: {
+    id: string;
+    name: string;
+    description?: string;
+    barcode?: string;
+    sku?: string;
+    price?: number;
+    cost?: number;
+    categoryId?: string;
+    unitOfMeasureId?: string;
+  }): ProductEntity {
+    return new ProductEntity(
+      data.id,
+      data.name,
+      data.description ?? null,
+      data.barcode ?? null,
+      data.sku ?? null,
+      Money.create(data.price ?? 0),
+      Money.create(data.cost ?? 0),
+      data.categoryId ?? null,
+      data.unitOfMeasureId ?? null,
+      true,
+    );
+  }
+
+  updatePrice(price: Money): void { this.price = price; }
+  deactivate(): void { this.isActive = false; }
+}
+
+===== modules/purchasing/src/lib/domain/entities/supplier.entity.ts =====
+export class SupplierEntity {
+  constructor(
+    public readonly id: string,
+    public name: string,
+    public email: string | null,
+    public phone: string | null,
+    public address: string | null,
+    public taxNumber: string | null,
+    public isActive: boolean,
+  ) {}
+
+  static create(data: {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    taxNumber?: string;
+  }): SupplierEntity {
+    return new SupplierEntity(
+      data.id, data.name, data.email ?? null,
+      data.phone ?? null, data.address ?? null,
+      data.taxNumber ?? null, true,
+    );
+  }
+
+  deactivate(): void { this.isActive = false; }
+}
+
+===== modules/sales/src/lib/domain/entities/customer.entity.ts =====
+export class CustomerEntity {
+  constructor(
+    public readonly id: string,
+    public name: string,
+    public email: string | null,
+    public phone: string | null,
+    public address: string | null,
+    public isActive: boolean,
+  ) {}
+
+  static create(data: {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+  }): CustomerEntity {
+    return new CustomerEntity(
+      data.id, data.name, data.email ?? null,
+      data.phone ?? null, data.address ?? null, true,
+    );
+  }
+
+  deactivate(): void { this.isActive = false; }
+}
+
+===== modules/inventory/src/lib/domain/repositories/category.repository.interface.ts =====
+import { CategoryEntity } from '../entities/category.entity';
+
+export interface ICategoryRepository {
+  findAll(): Promise<CategoryEntity[]>;
+  findById(id: string): Promise<CategoryEntity | null>;
+  create(category: CategoryEntity): Promise<CategoryEntity>;
+  delete(id: string): Promise<void>;
+}
+
+export const CATEGORY_REPOSITORY = 'CATEGORY_REPOSITORY';
+
+===== modules/inventory/src/lib/domain/repositories/unit.repository.interface.ts =====
+import { UnitEntity } from '../entities/unit.entity';
+
+export interface IUnitRepository {
+  findAll(): Promise<UnitEntity[]>;
+  findById(id: string): Promise<UnitEntity | null>;
+  create(unit: UnitEntity): Promise<UnitEntity>;
+  delete(id: string): Promise<void>;
+}
+
+export const UNIT_REPOSITORY = 'UNIT_REPOSITORY';
+
+===== modules/inventory/src/lib/domain/repositories/product.repository.interface.ts =====
+import { ProductEntity } from '../entities/product.entity';
+
+export interface IProductRepository {
+  findAll(): Promise<ProductEntity[]>;
+  findById(id: string): Promise<ProductEntity | null>;
+  findByBarcode(barcode: string): Promise<ProductEntity | null>;
+  create(product: ProductEntity): Promise<ProductEntity>;
+  update(id: string, data: Partial<ProductEntity>): Promise<ProductEntity>;
+  delete(id: string): Promise<void>;
+}
+
+export const PRODUCT_REPOSITORY = 'PRODUCT_REPOSITORY';
+
+===== modules/purchasing/src/lib/domain/repositories/supplier.repository.interface.ts =====
+import type { SupplierEntity } from '../entities/supplier.entity';
+
+export interface ISupplierRepository {
+  findAll(): Promise<SupplierEntity[]>;
+  findById(id: string): Promise<SupplierEntity | null>;
+  create(supplier: SupplierEntity): Promise<SupplierEntity>;
+  update(id: string, data: Partial<SupplierEntity>): Promise<SupplierEntity>;
+  delete(id: string): Promise<void>;
+}
+
+export const SUPPLIER_REPOSITORY = 'SUPPLIER_REPOSITORY';
+
+===== modules/sales/src/lib/domain/repositories/customer.repository.interface.ts =====
+import { CustomerEntity } from '../entities/customer.entity';
+
+export interface ICustomerRepository {
+  findAll(): Promise<CustomerEntity[]>;
+  findById(id: string): Promise<CustomerEntity | null>;
+  create(customer: CustomerEntity): Promise<CustomerEntity>;
+  update(id: string, data: Partial<CustomerEntity>): Promise<CustomerEntity>;
+  delete(id: string): Promise<void>;
+}
+
+export const CUSTOMER_REPOSITORY = 'CUSTOMER_REPOSITORY';

@@ -1,11 +1,10 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Inject } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard, RequirePermission, PermissionGuard } from '@org/core';
+import { JwtAuthGuard, RequirePermission, PermissionGuard, CurrentUser } from '@org/core';
 import { CreateWarehouseUseCase } from '../../application/use-cases/warehouses/create-warehouse.use-case';
 import type { IWarehouseRepository } from '../../domain/repositories/warehouse.repository.interface';
 import { WAREHOUSE_REPOSITORY } from '../../domain/repositories/warehouse.repository.interface';
 import { CreateWarehouseDto, UpdateWarehouseDto } from '../../application/dtos/warehouse.dto';
-import { Inject } from '@nestjs/common';
 
 @ApiTags('Warehouses')
 @ApiBearerAuth()
@@ -20,14 +19,8 @@ export class WarehousesController {
 
   @Get()
   @RequirePermission('inventory.warehouses.view')
-  findAll() {
-    return this.warehouseRepository.findAll('');
-  }
-
-  @Get('branch/:branchId')
-  @RequirePermission('inventory.warehouses.view')
-  findByBranch(@Param('branchId') branchId: string) {
-    return this.warehouseRepository.findAll(branchId);
+  findAll(@CurrentUser('companyId') companyId: string) {
+    return this.warehouseRepository.findAll(companyId);
   }
 
   @Get(':id')
@@ -38,8 +31,8 @@ export class WarehousesController {
 
   @Post()
   @RequirePermission('inventory.warehouses.create')
-  create(@Body() dto: CreateWarehouseDto) {
-    return this.createWarehouseUseCase.execute(dto);
+  create(@Body() dto: CreateWarehouseDto, @CurrentUser('companyId') companyId: string) {
+    return this.createWarehouseUseCase.execute(dto, companyId);
   }
 
   @Patch(':id')

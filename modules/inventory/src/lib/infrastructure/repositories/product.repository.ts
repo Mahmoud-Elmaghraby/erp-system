@@ -8,9 +8,11 @@ import { Money } from '../../domain/value-objects/money.vo';
 export class ProductRepository implements IProductRepository {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(): Promise<ProductEntity[]> {
-    const products = await this.prisma.product.findMany({ where: { isActive: true } });
-    return products.map(this.toEntity);
+  async findAll(companyId: string): Promise<ProductEntity[]> {
+    const products = await this.prisma.product.findMany({
+      where: { isActive: true, companyId },
+    });
+    return products.map((p) => this.toEntity(p));
   }
 
   async findById(id: string): Promise<ProductEntity | null> {
@@ -18,8 +20,17 @@ export class ProductRepository implements IProductRepository {
     return product ? this.toEntity(product) : null;
   }
 
-  async findByBarcode(barcode: string): Promise<ProductEntity | null> {
-    const product = await this.prisma.product.findUnique({ where: { barcode } });
+  async findByBarcode(barcode: string, companyId: string): Promise<ProductEntity | null> {
+    const product = await this.prisma.product.findFirst({
+      where: { barcode, companyId },
+    });
+    return product ? this.toEntity(product) : null;
+  }
+
+  async findBySku(sku: string, companyId: string): Promise<ProductEntity | null> {
+    const product = await this.prisma.product.findFirst({
+      where: { sku, companyId },
+    });
     return product ? this.toEntity(product) : null;
   }
 
@@ -36,28 +47,41 @@ export class ProductRepository implements IProductRepository {
         categoryId: entity.categoryId,
         unitOfMeasureId: entity.unitOfMeasureId,
         isActive: entity.isActive,
+        companyId: entity.companyId,
+        itemCode: entity.itemCode,
+        itemType: entity.itemType,
+        unitType: entity.unitType,
       },
     });
     return this.toEntity(product);
   }
 
-  async update(id: string, data: Partial<ProductEntity>): Promise<ProductEntity> {
+  async save(entity: ProductEntity): Promise<ProductEntity> {
     const product = await this.prisma.product.update({
-      where: { id },
+      where: { id: entity.id },
       data: {
-        name: data.name,
-        description: data.description,
-        price: data.price?.getAmount(),
-        cost: data.cost?.getAmount(),
-        categoryId: data.categoryId,
-        isActive: data.isActive,
+        name: entity.name,
+        description: entity.description,
+        barcode: entity.barcode,
+        sku: entity.sku,
+        price: entity.price.getAmount(),
+        cost: entity.cost.getAmount(),
+        categoryId: entity.categoryId,
+        unitOfMeasureId: entity.unitOfMeasureId,
+        isActive: entity.isActive,
+        itemCode: entity.itemCode,
+        itemType: entity.itemType,
+        unitType: entity.unitType,
       },
     });
     return this.toEntity(product);
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.product.update({ where: { id }, data: { isActive: false } });
+    await this.prisma.product.update({
+      where: { id },
+      data: { isActive: false },
+    });
   }
 
   private toEntity(product: any): ProductEntity {
@@ -72,6 +96,10 @@ export class ProductRepository implements IProductRepository {
       product.categoryId,
       product.unitOfMeasureId,
       product.isActive,
+      product.companyId,
+      product.itemCode ?? null,
+      product.itemType ?? null,
+      product.unitType ?? null,
     );
   }
 }

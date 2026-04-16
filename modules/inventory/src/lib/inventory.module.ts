@@ -2,7 +2,8 @@ import { Module, OnModuleInit } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PrismaService, RbacModule, SettingsRegistry } from '@org/core';
 import { inventorySettingsDefinition } from './inventory.settings';
-
+import { DeliveryConfirmedListener } from './application/listeners/delivery-confirmed.listener';
+import { SalesReturnConfirmedListener } from './application/listeners/sales-return-confirmed.listener';
 import { ProductsController } from './presentation/controllers/products.controller';
 import { WarehousesController } from './presentation/controllers/warehouses.controller';
 import { StockController } from './presentation/controllers/stock.controller';
@@ -94,6 +95,8 @@ import { StockValuationService } from './application/services/stock-valuation.se
     PurchaseReceivedListener,
     StockLowListener,
     StockValuationService,
+    DeliveryConfirmedListener,
+SalesReturnConfirmedListener,
     { provide: PRODUCT_REPOSITORY, useClass: ProductRepository },
     { provide: WAREHOUSE_REPOSITORY, useClass: WarehouseRepository },
     { provide: STOCK_REPOSITORY, useClass: StockRepository },

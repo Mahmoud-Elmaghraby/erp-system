@@ -1,7 +1,7 @@
 import { CustomerEntity } from '../entities/customer.entity';
 
 export interface ICustomerRepository {
-  findAll(): Promise<CustomerEntity[]>;
+  findAll(companyId: string): Promise<CustomerEntity[]>;
   findById(id: string): Promise<CustomerEntity | null>;
   create(customer: CustomerEntity): Promise<CustomerEntity>;
   update(id: string, data: Partial<CustomerEntity>): Promise<CustomerEntity>;

@@ -7,6 +7,7 @@ export class StockMovementEntity {
     public readonly quantity: number,
     public readonly warehouseId: string,
     public readonly productId: string,
+    public readonly companyId: string,
     public readonly reason: string | null,
     public readonly reference: string | null,
     public readonly fromWarehouseId: string | null,
@@ -21,6 +22,7 @@ export class StockMovementEntity {
     quantity: number;
     warehouseId: string;
     productId: string;
+    companyId: string;
     reason?: string;
     reference?: string;
     fromWarehouseId?: string;
@@ -33,6 +35,7 @@ export class StockMovementEntity {
       data.quantity,
       data.warehouseId,
       data.productId,
+      data.companyId,
       data.reason ?? null,
       data.reference ?? null,
       data.fromWarehouseId ?? null,

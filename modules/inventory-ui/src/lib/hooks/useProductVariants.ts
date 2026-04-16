@@ -4,13 +4,19 @@ import { message } from 'antd';
 
 export const useProductVariants = (productId: string) => useQuery({
   queryKey: ['variants', productId],
-  queryFn: () => inventoryApi.variants.getByProduct(productId),
+  queryFn: async () => {
+    const res = await inventoryApi.variants.getByProduct(productId) as any;
+    return res?.data ?? res ?? [];
+  },
   enabled: !!productId,
 });
 
 export const useProductPriceHistory = (productId: string) => useQuery({
   queryKey: ['price-history', productId],
-  queryFn: () => inventoryApi.priceHistory.getByProduct(productId),
+  queryFn: async () => {
+    const res = await inventoryApi.priceHistory.getByProduct(productId) as any;
+    return res?.data ?? res ?? [];
+  },
   enabled: !!productId,
 });
 

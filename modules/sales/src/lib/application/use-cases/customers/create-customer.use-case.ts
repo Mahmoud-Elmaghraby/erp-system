@@ -12,8 +12,8 @@ export class CreateCustomerUseCase {
     private customerRepository: ICustomerRepository,
   ) {}
 
-  async execute(dto: CreateCustomerDto): Promise<CustomerEntity> {
-    const customer = CustomerEntity.create({ id: randomUUID(), ...dto });
+  async execute(dto: CreateCustomerDto, companyId: string): Promise<CustomerEntity> {
+    const customer = CustomerEntity.create({ id: randomUUID(), ...dto, companyId });
     return this.customerRepository.create(customer);
   }
 }

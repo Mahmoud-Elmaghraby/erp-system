@@ -1,0 +1,2143 @@
+
+===== modules/sales/src/index.ts =====
+export * from './lib/sales.module';
+export * from './lib/domain/entities/order.entity';
+export * from './lib/domain/entities/customer.entity';
+export * from './lib/domain/events/order-confirmed.event';
+===== modules/sales/src/lib/application/dtos/customer.dto.ts =====
+export class CreateCustomerDto {
+  name!: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+}
+
+export class UpdateCustomerDto {
+  name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+}
+===== modules/sales/src/lib/application/dtos/delivery.dto.ts =====
+export class CreateDeliveryItemDto {
+  productId!: string;
+  quantity!: number;
+}
+
+export class CreateDeliveryDto {
+  orderId!: string;
+  warehouseId!: string;
+  branchId!: string;
+  notes?: string;
+  deliveryDate?: Date;
+  items!: CreateDeliveryItemDto[];
+}
+===== modules/sales/src/lib/application/dtos/invoice.dto.ts =====
+export class CreateInvoiceDto {
+  orderId!: string;
+  dueDate?: Date;
+  paymentTermId?: string;
+  currency?: string;
+  discountAmount?: number;
+  taxRate?: number;
+}
+
+export class PayInvoiceDto {
+  amount!: number;
+  paymentMethod!: 'CASH' | 'BANK_TRANSFER' | 'CHEQUE' | 'CARD';
+}
+===== modules/sales/src/lib/application/dtos/order.dto.ts =====
+export class CreateOrderDto {
+  branchId!: string;
+  customerId?: string;
+  notes?: string;
+  items!: Array<{
+    productId: string;
+    quantity: number;
+    unitPrice: number;
+  }>;
+}
+===== modules/sales/src/lib/application/dtos/quotation.dto.ts =====
+export class CreateQuotationItemDto {
+  productId!: string;
+  quantity!: number;
+  unitPrice!: number;
+  discount?: number;
+  taxId?: string;
+}
+
+export class CreateQuotationDto {
+  branchId!: string;
+  customerId?: string;
+  notes?: string;
+  validUntil?: Date;
+  currency?: string;
+  paymentTermId?: string;
+  discountAmount?: number;
+  items!: CreateQuotationItemDto[];
+}
+
+export class UpdateQuotationDto {
+  notes?: string;
+  validUntil?: Date;
+  paymentTermId?: string;
+  discountAmount?: number;
+}
+===== modules/sales/src/lib/application/dtos/sales-return.dto.ts =====
+export class CreateSalesReturnItemDto {
+  productId!: string;
+  quantity!: number;
+  unitPrice!: number;
+}
+
+export class CreateSalesReturnDto {
+  orderId!: string;
+  reason!: string;
+  notes?: string;
+  customerId?: string;
+  items!: CreateSalesReturnItemDto[];
+}
+===== modules/sales/src/lib/application/use-cases/customers/create-customer.use-case.ts =====
+import { Inject, Injectable } from '@nestjs/common';
+import type { ICustomerRepository } from '../../../domain/repositories/customer.repository.interface';
+import { CUSTOMER_REPOSITORY } from '../../../domain/repositories/customer.repository.interface';
+import { CustomerEntity } from '../../../domain/entities/customer.entity';
+import { CreateCustomerDto } from '../../dtos/customer.dto';
+import { randomUUID } from 'crypto';
+
+@Injectable()
+export class CreateCustomerUseCase {
+  constructor(
+    @Inject(CUSTOMER_REPOSITORY)
+    private customerRepository: ICustomerRepository,
+  ) {}
+
+  async execute(dto: CreateCustomerDto, companyId: string): Promise<CustomerEntity> {
+    const customer = CustomerEntity.create({ id: randomUUID(), ...dto, companyId });
+    return this.customerRepository.create(customer);
+  }
+}
+===== modules/sales/src/lib/application/use-cases/deliveries/confirm-delivery.use-case.ts =====
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { PrismaService, OutboxService } from '@org/core';
+import type { IDeliveryRepository } from '../../../domain/repositories/delivery.repository.interface';
+import { DELIVERY_REPOSITORY } from '../../../domain/repositories/delivery.repository.interface';
+import type { IOrderRepository } from '../../../domain/repositories/order.repository.interface';
+import { ORDER_REPOSITORY } from '../../../domain/repositories/order.repository.interface';
+import { DeliveryEntity } from '../../../domain/entities/delivery.entity';
+
+@Injectable()
+export class ConfirmDeliveryUseCase {
+  constructor(
+    @Inject(DELIVERY_REPOSITORY)
+    private deliveryRepository: IDeliveryRepository,
+    @Inject(ORDER_REPOSITORY)
+    private orderRepository: IOrderRepository,
+    private prisma: PrismaService,
+    private outboxService: OutboxService,
+  ) {}
+
+  async execute(deliveryId: string): Promise<DeliveryEntity> {
+    const delivery = await this.deliveryRepository.findById(deliveryId);
+    if (!delivery) throw new NotFoundException('Delivery not found');
+
+    delivery.confirm();
+
+    const branch = await this.prisma.branch.findUnique({
+      where: { id: delivery.branchId },
+    });
+    const companyId = branch!.companyId;
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.deliveryRepository.update(deliveryId, { status: 'CONFIRMED' });
+
+      // ابعت Event للـ Inventory عشان يخصم المخزون
+      await this.outboxService.publish(
+        'delivery.confirmed',
+        {
+          deliveryId: delivery.id,
+          orderId: delivery.orderId,
+          warehouseId: delivery.warehouseId,
+          companyId,
+          items: delivery.items.map((i) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+          })),
+        },
+        tx,
+      );
+    });
+
+    // لو كل الـ Items اتسلمت — حدّث الـ Order لـ DELIVERED
+    const order = await this.orderRepository.findById(delivery.orderId);
+    if (order) {
+      order.deliver();
+      await this.orderRepository.update(delivery.orderId, { status: 'DELIVERED' });
+    }
+
+    return delivery;
+  }
+}
+===== modules/sales/src/lib/application/use-cases/deliveries/create-delivery.use-case.ts =====
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { PrismaService, DocumentSequenceService } from '@org/core';
+import type { IDeliveryRepository } from '../../../domain/repositories/delivery.repository.interface';
+import { DELIVERY_REPOSITORY } from '../../../domain/repositories/delivery.repository.interface';
+import type { IOrderRepository } from '../../../domain/repositories/order.repository.interface';
+import { ORDER_REPOSITORY } from '../../../domain/repositories/order.repository.interface';
+import { DeliveryEntity } from '../../../domain/entities/delivery.entity';
+import { DeliveryItemEntity } from '../../../domain/entities/delivery-item.entity';
+import { CreateDeliveryDto } from '../../dtos/delivery.dto';
+
+@Injectable()
+export class CreateDeliveryUseCase {
+  constructor(
+    @Inject(DELIVERY_REPOSITORY)
+    private deliveryRepository: IDeliveryRepository,
+    @Inject(ORDER_REPOSITORY)
+    private orderRepository: IOrderRepository,
+    private prisma: PrismaService,
+    private documentSequenceService: DocumentSequenceService,
+  ) {}
+
+  async execute(dto: CreateDeliveryDto): Promise<DeliveryEntity> {
+    const order = await this.orderRepository.findById(dto.orderId);
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.status !== 'CONFIRMED')
+      throw new Error('Order must be CONFIRMED to create delivery');
+
+    const branch = await this.prisma.branch.findUnique({ where: { id: dto.branchId } });
+    if (!branch) throw new NotFoundException('Branch not found');
+    const companyId = branch.companyId;
+
+    const deliveryNumber = await this.documentSequenceService.getNextNumber(
+      companyId, 'sales', 'delivery', 'DEL'
+    );
+
+    const deliveryId = randomUUID();
+    const delivery = DeliveryEntity.create({
+      id: deliveryId,
+      deliveryNumber,
+      orderId: dto.orderId,
+      warehouseId: dto.warehouseId,
+      branchId: dto.branchId,
+      notes: dto.notes,
+      deliveryDate: dto.deliveryDate,
+    });
+
+    delivery.items = dto.items.map((item) =>
+      DeliveryItemEntity.create({
+        id: randomUUID(),
+        productId: item.productId,
+        quantity: item.quantity,
+        deliveryId,
+      })
+    );
+
+    return this.deliveryRepository.create(delivery);
+  }
+}
+===== modules/sales/src/lib/application/use-cases/invoices/create-invoice.use-case.ts =====
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { OutboxService, PrismaService, SettingsService, DocumentSequenceService } from '@org/core';
+import type { IInvoiceRepository } from '../../../domain/repositories/invoice.repository.interface';
+import { INVOICE_REPOSITORY } from '../../../domain/repositories/invoice.repository.interface';
+import type { IOrderRepository } from '../../../domain/repositories/order.repository.interface';
+import { ORDER_REPOSITORY } from '../../../domain/repositories/order.repository.interface';
+import { InvoiceEntity } from '../../../domain/entities/invoice.entity';
+import { CreateInvoiceDto } from '../../dtos/invoice.dto';
+
+@Injectable()
+export class CreateInvoiceUseCase {
+  constructor(
+    @Inject(INVOICE_REPOSITORY)
+    private invoiceRepository: IInvoiceRepository,
+    @Inject(ORDER_REPOSITORY)
+    private orderRepository: IOrderRepository,
+    private prisma: PrismaService,
+    private settingsService: SettingsService,
+    private outboxService: OutboxService,
+    private documentSequenceService: DocumentSequenceService,
+  ) {}
+
+  async execute(dto: CreateInvoiceDto): Promise<InvoiceEntity> {
+    const order = await this.orderRepository.findById(dto.orderId);
+    if (!order) throw new NotFoundException('Order not found');
+
+    const branch = await this.prisma.branch.findUnique({
+      where: { id: order.branchId },
+    });
+    if (!branch) throw new NotFoundException('Branch not found');
+    const companyId = branch.companyId;
+
+    const taxEnabled = await this.settingsService.getSetting(companyId, 'accounting', 'taxEnabled');
+    const taxMethod  = await this.settingsService.getSetting(companyId, 'accounting', 'taxMethod');
+
+    let untaxedAmount = Number(order.totalAmount);
+    let taxAmount = 0;
+    let discountAmount = dto.discountAmount ?? 0;
+    untaxedAmount -= discountAmount;
+
+    if (taxEnabled === 'true' && dto.taxRate) {
+      if (taxMethod === 'INCLUSIVE') {
+        taxAmount = untaxedAmount - untaxedAmount / (1 + dto.taxRate / 100);
+        untaxedAmount = untaxedAmount - taxAmount;
+      } else {
+        taxAmount = untaxedAmount * (dto.taxRate / 100);
+      }
+    }
+
+    const totalAmount = untaxedAmount + taxAmount;
+
+    const invoiceNumber = await this.documentSequenceService.getNextNumber(
+      companyId, 'sales', 'invoice', 'INV'
+    );
+
+    const invoiceId = randomUUID();
+    const invoice = InvoiceEntity.create({
+      id: invoiceId,
+      invoiceNumber,
+      orderId: dto.orderId,
+      untaxedAmount,
+      taxAmount,
+      totalAmount,
+      discountAmount,
+      currency: dto.currency ?? 'EGP',
+      dueDate: dto.dueDate,
+      paymentTermId: dto.paymentTermId,
+      companyId,
+    });
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.invoiceRepository.create(invoice);
+      await this.outboxService.publish(
+        'invoice.created',
+        {
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          orderId: invoice.orderId,
+          companyId,
+          untaxedAmount: invoice.untaxedAmount,
+          taxAmount: invoice.taxAmount,
+          totalAmount: invoice.totalAmount,
+          currency: invoice.currency,
+          date: invoice.dateTimeIssued,
+        },
+        tx,
+      );
+    });
+
+    return invoice;
+  }
+}
+===== modules/sales/src/lib/application/use-cases/invoices/pay-invoice.use-case.ts =====
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { OutboxService, PrismaService } from '@org/core';
+import type { IInvoiceRepository } from '../../../domain/repositories/invoice.repository.interface';
+import { INVOICE_REPOSITORY } from '../../../domain/repositories/invoice.repository.interface';
+import { PayInvoiceDto } from '../../dtos/invoice.dto';
+import { InvoiceEntity } from '../../../domain/entities/invoice.entity';
+
+@Injectable()
+export class PayInvoiceUseCase {
+  constructor(
+    @Inject(INVOICE_REPOSITORY)
+    private invoiceRepository: IInvoiceRepository,
+    private prisma: PrismaService,
+    private outboxService: OutboxService,
+  ) {}
+
+  async execute(invoiceId: string, dto: PayInvoiceDto): Promise<InvoiceEntity> {
+    const invoice = await this.invoiceRepository.findById(invoiceId);
+    if (!invoice) throw new NotFoundException('Invoice not found');
+
+    const order = await this.prisma.salesOrder.findUnique({
+      where: { id: invoice.orderId },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+
+    const branch = await this.prisma.branch.findUnique({
+      where: { id: order.branchId },
+    });
+    const companyId = branch?.companyId;
+    if (!companyId) throw new NotFoundException('Company not found');
+
+    invoice.pay(dto.amount);
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.invoiceRepository.update(invoiceId, {
+        status: invoice.status,
+        paidAmount: invoice.paidAmount,
+      });
+      await this.outboxService.publish(
+        'invoice.paid',
+        {
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          companyId,
+          amount: dto.amount,
+          paymentMethod: dto.paymentMethod,
+          date: new Date(),
+        },
+        tx,
+      );
+    });
+
+    return invoice;
+  }
+}
+===== modules/sales/src/lib/application/use-cases/orders/confirm-order.use-case.ts =====
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import type { IOrderRepository } from '../../../domain/repositories/order.repository.interface';
+import { ORDER_REPOSITORY } from '../../../domain/repositories/order.repository.interface';
+import { OutboxService, PrismaService } from '@org/core';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+
+@Injectable()
+export class ConfirmOrderUseCase {
+  constructor(
+    @Inject(ORDER_REPOSITORY)
+    private orderRepository: IOrderRepository,
+    private outboxService: OutboxService,
+    private prisma: PrismaService,
+    private eventEmitter: EventEmitter2,
+  ) {}
+
+  async execute(orderId: string): Promise<void> {
+    const order = await this.orderRepository.findById(orderId);
+    if (!order) throw new NotFoundException('Order not found');
+
+    order.confirm();
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.orderRepository.update(orderId, { status: 'CONFIRMED' });
+      await this.outboxService.publish(
+        'order.confirmed',
+        {
+          orderId: order.id,
+          branchId: order.branchId,
+          items: order.items.map((i) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+          })),
+        },
+        tx,
+      );
+    });
+
+    this.eventEmitter.emit('order.confirmed', {
+      orderId: order.id,
+      branchId: order.branchId,
+      items: order.items.map((i) => ({
+        productId: i.productId,
+        quantity: i.quantity,
+      })),
+    });
+  }
+}
+===== modules/sales/src/lib/application/use-cases/orders/create-order.use-case.ts =====
+import { Inject, Injectable } from '@nestjs/common';
+import type { IOrderRepository } from '../../../domain/repositories/order.repository.interface';
+import { ORDER_REPOSITORY } from '../../../domain/repositories/order.repository.interface';
+import { OrderEntity } from '../../../domain/entities/order.entity';
+import { OrderItem } from '../../../domain/entities/order-item.entity';
+import { CreateOrderDto } from '../../dtos/order.dto';
+import { randomUUID } from 'crypto';
+
+@Injectable()
+export class CreateOrderUseCase {
+  constructor(
+    @Inject(ORDER_REPOSITORY)
+    private orderRepository: IOrderRepository,
+  ) {}
+
+  async execute(dto: CreateOrderDto): Promise<OrderEntity> {
+    const orderId = randomUUID();
+    const orderNumber = `ORD-${Date.now()}`;
+
+    const order = OrderEntity.create({
+      id: orderId,
+      orderNumber,
+      branchId: dto.branchId,
+      customerId: dto.customerId,
+      notes: dto.notes,
+    });
+
+    order.items = dto.items.map((item) =>
+      OrderItem.create({
+        id: randomUUID(),
+        orderId,
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      })
+    );
+
+    order.calculateTotal();
+    return this.orderRepository.create(order);
+  }
+}
+===== modules/sales/src/lib/application/use-cases/quotations/confirm-quotation.use-case.ts =====
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { DocumentSequenceService, PrismaService, OutboxService } from '@org/core';
+import type { IQuotationRepository } from '../../../domain/repositories/quotation.repository.interface';
+import { QUOTATION_REPOSITORY } from '../../../domain/repositories/quotation.repository.interface';
+import type { IOrderRepository } from '../../../domain/repositories/order.repository.interface';
+import { ORDER_REPOSITORY } from '../../../domain/repositories/order.repository.interface';
+import { OrderEntity } from '../../../domain/entities/order.entity';
+import { OrderItem } from '../../../domain/entities/order-item.entity';
+
+@Injectable()
+export class ConfirmQuotationUseCase {
+  constructor(
+    @Inject(QUOTATION_REPOSITORY)
+    private quotationRepository: IQuotationRepository,
+    @Inject(ORDER_REPOSITORY)
+    private orderRepository: IOrderRepository,
+    private documentSequenceService: DocumentSequenceService,
+    private outboxService: OutboxService,
+    private prisma: PrismaService,
+  ) {}
+
+  async execute(quotationId: string): Promise<OrderEntity> {
+    const quotation = await this.quotationRepository.findById(quotationId);
+    if (!quotation) throw new NotFoundException('Quotation not found');
+
+    quotation.confirm();
+
+    const branch = await this.prisma.branch.findUnique({ where: { id: quotation.branchId } });
+    const companyId = branch!.companyId;
+
+    const orderNumber = await this.documentSequenceService.getNextNumber(
+      companyId, 'sales', 'order', 'SO'
+    );
+
+    const orderId = randomUUID();
+    const order = OrderEntity.create({
+      id: orderId,
+      orderNumber,
+      branchId: quotation.branchId,
+      customerId: quotation.customerId ?? undefined,
+      notes: quotation.notes ?? undefined,
+    });
+
+    order.items = quotation.items.map((item) =>
+      new OrderItem(
+        randomUUID(), orderId,
+        item.productId, item.quantity,
+        item.unitPrice, item.total,
+      )
+    );
+    order.calculateTotal();
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.quotationRepository.update(quotationId, { status: 'CONFIRMED' } as any);
+      await this.orderRepository.create(order);
+      await this.outboxService.publish(
+        'quotation.confirmed',
+        { quotationId, orderId, companyId },
+        tx,
+      );
+    });
+
+    return order;
+  }
+}
+===== modules/sales/src/lib/application/use-cases/quotations/create-quotation.use-case.ts =====
+import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { DocumentSequenceService, PrismaService, SettingsService } from '@org/core';
+import { QuotationEntity } from '../../../domain/entities/quotation.entity';
+import { QuotationItemEntity } from '../../../domain/entities/quotation-item.entity';
+import { Inject } from '@nestjs/common';
+import type { IQuotationRepository } from '../../../domain/repositories/quotation.repository.interface';
+import { QUOTATION_REPOSITORY } from '../../../domain/repositories/quotation.repository.interface';
+import { CreateQuotationDto } from '../../dtos/quotation.dto';
+
+@Injectable()
+export class CreateQuotationUseCase {
+  constructor(
+    @Inject(QUOTATION_REPOSITORY)
+    private quotationRepository: IQuotationRepository,
+    private documentSequenceService: DocumentSequenceService,
+    private settingsService: SettingsService,
+    private prisma: PrismaService,
+  ) {}
+
+  async execute(dto: CreateQuotationDto): Promise<QuotationEntity> {
+    const branch = await this.prisma.branch.findUnique({ where: { id: dto.branchId } });
+    if (!branch) throw new Error('Branch not found');
+    const companyId = branch.companyId;
+
+    const taxEnabled = await this.settingsService.getSetting(companyId, 'accounting', 'taxEnabled');
+    const taxMethod  = await this.settingsService.getSetting(companyId, 'accounting', 'taxMethod');
+
+    const quotationNumber = await this.documentSequenceService.getNextNumber(
+      companyId, 'sales', 'quotation', 'QUO'
+    );
+
+    const quotationId = randomUUID();
+    const quotation = QuotationEntity.create({
+      id: quotationId,
+      quotationNumber,
+      branchId: dto.branchId,
+      customerId: dto.customerId,
+      notes: dto.notes,
+      validUntil: dto.validUntil,
+      currency: dto.currency,
+      paymentTermId: dto.paymentTermId,
+    });
+
+    quotation.discountAmount = dto.discountAmount ?? 0;
+
+    // احسب الـ items مع الضريبة
+    quotation.items = await Promise.all(dto.items.map(async (item) => {
+      let taxAmount = 0;
+      if (taxEnabled === 'true' && item.taxId) {
+        const tax = await this.prisma.tax.findUnique({ where: { id: item.taxId } });
+        if (tax) {
+          const subtotal = item.quantity * item.unitPrice - (item.discount ?? 0);
+          if (taxMethod === 'INCLUSIVE') {
+            taxAmount = subtotal - subtotal / (1 + Number(tax.rate) / 100);
+          } else {
+            taxAmount = subtotal * (Number(tax.rate) / 100);
+          }
+        }
+      }
+      return QuotationItemEntity.create({
+        id: randomUUID(),
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        discount: item.discount,
+        taxAmount,
+        taxId: item.taxId,
+        quotationId,
+      });
+    }));
+
+    quotation.calculateTotals();
+
+    return this.quotationRepository.create(quotation);
+  }
+}
+===== modules/sales/src/lib/application/use-cases/sales-returns/confirm-sales-return.use-case.ts =====
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { PrismaService, OutboxService } from '@org/core';
+import type { ISalesReturnRepository } from '../../../domain/repositories/sales-return.repository.interface';
+import { SALES_RETURN_REPOSITORY } from '../../../domain/repositories/sales-return.repository.interface';
+import { SalesReturnEntity } from '../../../domain/entities/sales-return.entity';
+
+@Injectable()
+export class ConfirmSalesReturnUseCase {
+  constructor(
+    @Inject(SALES_RETURN_REPOSITORY)
+    private salesReturnRepository: ISalesReturnRepository,
+    private prisma: PrismaService,
+    private outboxService: OutboxService,
+  ) {}
+
+  async execute(returnId: string): Promise<SalesReturnEntity> {
+    const salesReturn = await this.salesReturnRepository.findById(returnId);
+    if (!salesReturn) throw new NotFoundException('Sales return not found');
+
+    salesReturn.confirm();
+
+    const order = await this.prisma.salesOrder.findUnique({
+      where: { id: salesReturn.orderId },
+    });
+    const branch = await this.prisma.branch.findUnique({
+      where: { id: order!.branchId },
+    });
+    const companyId = branch!.companyId;
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.salesReturnRepository.update(returnId, { status: 'CONFIRMED' });
+
+      // ابعت Event للـ Inventory عشان يرجع المخزون
+      await this.outboxService.publish(
+        'sales.return.confirmed',
+        {
+          returnId: salesReturn.id,
+          orderId: salesReturn.orderId,
+          companyId,
+          items: salesReturn.items.map((i) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+          })),
+        },
+        tx,
+      );
+    });
+
+    return salesReturn;
+  }
+}
+===== modules/sales/src/lib/application/use-cases/sales-returns/create-sales-return.use-case.ts =====
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { PrismaService, DocumentSequenceService } from '@org/core';
+import type { ISalesReturnRepository } from '../../../domain/repositories/sales-return.repository.interface';
+import { SALES_RETURN_REPOSITORY } from '../../../domain/repositories/sales-return.repository.interface';
+import type { IOrderRepository } from '../../../domain/repositories/order.repository.interface';
+import { ORDER_REPOSITORY } from '../../../domain/repositories/order.repository.interface';
+import { SalesReturnEntity } from '../../../domain/entities/sales-return.entity';
+import { SalesReturnItemEntity } from '../../../domain/entities/sales-return-item.entity';
+import { CreateSalesReturnDto } from '../../dtos/sales-return.dto';
+
+@Injectable()
+export class CreateSalesReturnUseCase {
+  constructor(
+    @Inject(SALES_RETURN_REPOSITORY)
+    private salesReturnRepository: ISalesReturnRepository,
+    @Inject(ORDER_REPOSITORY)
+    private orderRepository: IOrderRepository,
+    private prisma: PrismaService,
+    private documentSequenceService: DocumentSequenceService,
+  ) {}
+
+  async execute(dto: CreateSalesReturnDto): Promise<SalesReturnEntity> {
+    const order = await this.orderRepository.findById(dto.orderId);
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.status !== 'CONFIRMED' && order.status !== 'DELIVERED')
+      throw new Error('Order must be CONFIRMED or DELIVERED to create return');
+
+    const branch = await this.prisma.branch.findUnique({ where: { id: order.branchId } });
+    if (!branch) throw new NotFoundException('Branch not found');
+    const companyId = branch.companyId;
+
+    const returnNumber = await this.documentSequenceService.getNextNumber(
+      companyId, 'sales', 'return', 'RET'
+    );
+
+    const returnId = randomUUID();
+    const salesReturn = SalesReturnEntity.create({
+      id: returnId,
+      returnNumber,
+      reason: dto.reason,
+      orderId: dto.orderId,
+      customerId: dto.customerId,
+      notes: dto.notes,
+    });
+
+    salesReturn.items = dto.items.map((item) =>
+      SalesReturnItemEntity.create({
+        id: randomUUID(),
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        returnId,
+      })
+    );
+
+    salesReturn.calculateTotal();
+
+    return this.salesReturnRepository.create(salesReturn);
+  }
+}
+===== modules/sales/src/lib/domain/entities/customer.entity.ts =====
+export class CustomerEntity {
+  constructor(
+    public readonly id: string,
+    public name: string,
+    public email: string | null,
+    public phone: string | null,
+    public address: string | null,
+    public isActive: boolean,
+    public readonly companyId: string,
+  ) {}
+
+  static create(data: {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    companyId: string;
+  }): CustomerEntity {
+    return new CustomerEntity(
+      data.id, data.name, data.email ?? null,
+      data.phone ?? null, data.address ?? null,
+      true, data.companyId,
+    );
+  }
+
+  deactivate(): void { this.isActive = false; }
+}
+===== modules/sales/src/lib/domain/entities/delivery.entity.ts =====
+import type { DeliveryItemEntity } from './delivery-item.entity';
+
+export type DeliveryStatus = 'DRAFT' | 'CONFIRMED' | 'DONE' | 'CANCELLED';
+
+export class DeliveryEntity {
+  constructor(
+    public readonly id: string,
+    public deliveryNumber: string,
+    public status: DeliveryStatus,
+    public orderId: string,
+    public warehouseId: string,
+    public branchId: string,
+    public notes: string | null,
+    public deliveryDate: Date | null,
+    public items: DeliveryItemEntity[],
+    public readonly createdAt?: Date,
+  ) {}
+
+  static create(data: {
+    id: string;
+    deliveryNumber: string;
+    orderId: string;
+    warehouseId: string;
+    branchId: string;
+    notes?: string;
+    deliveryDate?: Date;
+  }): DeliveryEntity {
+    return new DeliveryEntity(
+      data.id, data.deliveryNumber, 'DRAFT',
+      data.orderId, data.warehouseId, data.branchId,
+      data.notes ?? null, data.deliveryDate ?? null, [],
+    );
+  }
+
+  confirm(): void {
+    if (this.status !== 'DRAFT')
+      throw new Error('Only DRAFT deliveries can be confirmed');
+    (this as any).status = 'CONFIRMED';
+  }
+
+  complete(): void {
+    if (this.status !== 'CONFIRMED')
+      throw new Error('Only CONFIRMED deliveries can be completed');
+    (this as any).status = 'DONE';
+  }
+
+  cancel(): void {
+    if (this.status === 'DONE')
+      throw new Error('Cannot cancel completed delivery');
+    (this as any).status = 'CANCELLED';
+  }
+}
+===== modules/sales/src/lib/domain/entities/delivery-item.entity.ts =====
+export class DeliveryItemEntity {
+  constructor(
+    public readonly id: string,
+    public productId: string,
+    public quantity: number,
+    public deliveryId: string,
+  ) {}
+
+  static create(data: {
+    id: string;
+    productId: string;
+    quantity: number;
+    deliveryId: string;
+  }): DeliveryItemEntity {
+    return new DeliveryItemEntity(
+      data.id, data.productId, data.quantity, data.deliveryId,
+    );
+  }
+}
+===== modules/sales/src/lib/domain/entities/invoice.entity.ts =====
+export type InvoiceStatus = 'UNPAID' | 'PAID' | 'PARTIAL' | 'CANCELLED';
+
+export class InvoiceEntity {
+  constructor(
+    public readonly id: string,
+    public invoiceNumber: string,
+    public status: InvoiceStatus,
+    public untaxedAmount: number,
+    public taxAmount: number,
+    public totalAmount: number,
+    public paidAmount: number,
+    public discountAmount: number,
+    public currency: string,
+    public exchangeRate: number,
+    public orderId: string,
+    public dueDate: Date | null,
+    public paymentTermId: string | null,
+    // E-Invoice Fields
+    public readonly uuid: string,
+    public dateTimeIssued: Date,
+    public etaStatus: string | null,
+    public etaUUID: string | null,
+    public zatcaStatus: string | null,
+    public qrCode: string | null,
+    public companyId?: string,
+  ) {}
+
+  static create(data: {
+    id: string;
+    invoiceNumber: string;
+    orderId: string;
+    untaxedAmount: number;
+    taxAmount: number;
+    totalAmount: number;
+    discountAmount?: number;
+    currency?: string;
+    exchangeRate?: number;
+    dueDate?: Date;
+    paymentTermId?: string;
+    companyId?: string;
+  }): InvoiceEntity {
+    return new InvoiceEntity(
+      data.id,
+      data.invoiceNumber,
+      'UNPAID',
+      data.untaxedAmount,
+      data.taxAmount,
+      data.totalAmount,
+      0,
+      data.discountAmount ?? 0,
+      data.currency ?? 'EGP',
+      data.exchangeRate ?? 1,
+      data.orderId,
+      data.dueDate ?? null,
+      data.paymentTermId ?? null,
+      data.id, // uuid
+      new Date(),
+      null, null, null, null,
+      data.companyId,
+    );
+  }
+
+  pay(amount: number): void {
+    this.paidAmount += amount;
+    if (this.paidAmount >= this.totalAmount) {
+      this.status = 'PAID';
+    } else {
+      this.status = 'PARTIAL';
+    }
+  }
+
+  cancel(): void {
+    if (this.status === 'PAID') throw new Error('Cannot cancel paid invoice');
+    this.status = 'CANCELLED';
+  }
+
+  getRemainingAmount(): number {
+    return this.totalAmount - this.paidAmount;
+  }
+
+  isOverdue(): boolean {
+    if (!this.dueDate) return false;
+    return new Date() > this.dueDate && this.status !== 'PAID';
+  }
+}
+===== modules/sales/src/lib/domain/entities/order.entity.ts =====
+import { OrderItem } from './order-item.entity';
+
+export type OrderStatus = 'DRAFT' | 'CONFIRMED' | 'DELIVERED' | 'CANCELLED';
+
+export class OrderEntity {
+  constructor(
+    public readonly id: string,
+    public orderNumber: string,
+    public status: OrderStatus,
+    public branchId: string,
+    public customerId: string | null,
+    public notes: string | null,
+    public totalAmount: number,
+    public items: OrderItem[],
+  ) {}
+
+  static create(data: {
+    id: string;
+    orderNumber: string;
+    branchId: string;
+    customerId?: string;
+    notes?: string;
+  }): OrderEntity {
+    return new OrderEntity(
+      data.id, data.orderNumber, 'DRAFT',
+      data.branchId, data.customerId ?? null,
+      data.notes ?? null, 0, [],
+    );
+  }
+
+  confirm(): void {
+    if (this.status !== 'DRAFT') throw new Error('Only DRAFT orders can be confirmed');
+    this.status = 'CONFIRMED';
+  }
+
+  cancel(): void {
+    if (this.status === 'DELIVERED') throw new Error('Cannot cancel delivered orders');
+    this.status = 'CANCELLED';
+  }
+
+  deliver(): void {
+    if (this.status !== 'CONFIRMED') throw new Error('Only CONFIRMED orders can be delivered');
+    this.status = 'DELIVERED';
+  }
+
+  calculateTotal(): void {
+    this.totalAmount = this.items.reduce((sum, item) => sum + item.total, 0);
+  }
+}
+===== modules/sales/src/lib/domain/entities/order-item.entity.ts =====
+export class OrderItem {
+  constructor(
+    public readonly id: string,
+    public readonly orderId: string,
+    public readonly productId: string,
+    public quantity: number,
+    public unitPrice: number,
+    public total: number,
+  ) {}
+
+  static create(data: {
+    id: string;
+    orderId: string;
+    productId: string;
+    quantity: number;
+    unitPrice: number;
+  }): OrderItem {
+    return new OrderItem(
+      data.id, data.orderId, data.productId,
+      data.quantity, data.unitPrice,
+      data.quantity * data.unitPrice,
+    );
+  }
+}
+===== modules/sales/src/lib/domain/entities/quotation.entity.ts =====
+import type { QuotationItemEntity } from './quotation-item.entity';
+
+export type QuotationStatus = 'DRAFT' | 'SENT' | 'CONFIRMED' | 'CANCELLED' | 'EXPIRED';
+
+export class QuotationEntity {
+  constructor(
+    public readonly id: string,
+    public quotationNumber: string,
+    public status: QuotationStatus,
+    public branchId: string,
+    public customerId: string | null,
+    public notes: string | null,
+    public validUntil: Date | null,
+    public untaxedAmount: number,
+    public taxAmount: number,
+    public totalAmount: number,
+    public discountAmount: number,
+    public currency: string,
+    public exchangeRate: number,
+    public paymentTermId: string | null,
+    public items: QuotationItemEntity[],
+    public readonly createdAt?: Date,
+  ) {}
+
+  static create(data: {
+    id: string;
+    quotationNumber: string;
+    branchId: string;
+    customerId?: string;
+    notes?: string;
+    validUntil?: Date;
+    currency?: string;
+    paymentTermId?: string;
+  }): QuotationEntity {
+    return new QuotationEntity(
+      data.id, data.quotationNumber, 'DRAFT',
+      data.branchId, data.customerId ?? null,
+      data.notes ?? null, data.validUntil ?? null,
+      0, 0, 0, 0,
+      data.currency ?? 'EGP', 1,
+      data.paymentTermId ?? null, [],
+    );
+  }
+
+  confirm(): void {
+    if (this.status !== 'DRAFT' && this.status !== 'SENT')
+      throw new Error('Only DRAFT or SENT quotations can be confirmed');
+    (this as any).status = 'CONFIRMED';
+  }
+
+  send(): void {
+    if (this.status !== 'DRAFT')
+      throw new Error('Only DRAFT quotations can be sent');
+    (this as any).status = 'SENT';
+  }
+
+  cancel(): void {
+    if (this.status === 'CONFIRMED')
+      throw new Error('Cannot cancel confirmed quotation');
+    (this as any).status = 'CANCELLED';
+  }
+
+  calculateTotals(): void {
+    this.untaxedAmount = this.items.reduce((s, i) => s + i.subtotal, 0) - this.discountAmount;
+    this.taxAmount = this.items.reduce((s, i) => s + i.taxAmount, 0);
+    this.totalAmount = this.untaxedAmount + this.taxAmount;
+  }
+}
+===== modules/sales/src/lib/domain/entities/quotation-item.entity.ts =====
+export class QuotationItemEntity {
+  constructor(
+    public readonly id: string,
+    public productId: string,
+    public quantity: number,
+    public unitPrice: number,
+    public discount: number,
+    public subtotal: number,
+    public taxAmount: number,
+    public total: number,
+    public taxId: string | null,
+    public quotationId: string,
+  ) {}
+
+  static create(data: {
+    id: string;
+    productId: string;
+    quantity: number;
+    unitPrice: number;
+    discount?: number;
+    taxAmount?: number;
+    quotationId: string;
+    taxId?: string;
+  }): QuotationItemEntity {
+    const discount = data.discount ?? 0;
+    const subtotal = data.quantity * data.unitPrice - discount;
+    const taxAmount = data.taxAmount ?? 0;
+    const total = subtotal + taxAmount;
+    return new QuotationItemEntity(
+      data.id, data.productId, data.quantity,
+      data.unitPrice, discount, subtotal,
+      taxAmount, total, data.taxId ?? null, data.quotationId,
+    );
+  }
+}
+===== modules/sales/src/lib/domain/entities/sales-return.entity.ts =====
+import type { SalesReturnItemEntity } from './sales-return-item.entity';
+
+export type SalesReturnStatus = 'DRAFT' | 'CONFIRMED' | 'CANCELLED';
+
+export class SalesReturnEntity {
+  constructor(
+    public readonly id: string,
+    public returnNumber: string,
+    public status: SalesReturnStatus,
+    public reason: string,
+    public notes: string | null,
+    public totalAmount: number,
+    public orderId: string,
+    public customerId: string | null,
+    public items: SalesReturnItemEntity[],
+    public readonly createdAt?: Date,
+  ) {}
+
+  static create(data: {
+    id: string;
+    returnNumber: string;
+    reason: string;
+    orderId: string;
+    customerId?: string;
+    notes?: string;
+  }): SalesReturnEntity {
+    return new SalesReturnEntity(
+      data.id, data.returnNumber, 'DRAFT',
+      data.reason, data.notes ?? null, 0,
+      data.orderId, data.customerId ?? null, [],
+    );
+  }
+
+  confirm(): void {
+    if (this.status !== 'DRAFT')
+      throw new Error('Only DRAFT returns can be confirmed');
+    (this as any).status = 'CONFIRMED';
+  }
+
+  cancel(): void {
+    if (this.status === 'CONFIRMED')
+      throw new Error('Cannot cancel confirmed return');
+    (this as any).status = 'CANCELLED';
+  }
+
+  calculateTotal(): void {
+    (this as any).totalAmount = this.items.reduce((s, i) => s + i.total, 0);
+  }
+}
+===== modules/sales/src/lib/domain/entities/sales-return-item.entity.ts =====
+export class SalesReturnItemEntity {
+  constructor(
+    public readonly id: string,
+    public productId: string,
+    public quantity: number,
+    public unitPrice: number,
+    public total: number,
+    public returnId: string,
+  ) {}
+
+  static create(data: {
+    id: string;
+    productId: string;
+    quantity: number;
+    unitPrice: number;
+    returnId: string;
+  }): SalesReturnItemEntity {
+    return new SalesReturnItemEntity(
+      data.id, data.productId, data.quantity,
+      data.unitPrice, data.quantity * data.unitPrice,
+      data.returnId,
+    );
+  }
+}
+===== modules/sales/src/lib/domain/events/order-confirmed.event.ts =====
+export class OrderConfirmedEvent {
+  constructor(
+    public readonly orderId: string,
+    public readonly branchId: string,
+    public readonly items: Array<{
+      productId: string;
+      quantity: number;
+    }>,
+  ) {}
+}
+===== modules/sales/src/lib/domain/repositories/customer.repository.interface.ts =====
+import { CustomerEntity } from '../entities/customer.entity';
+
+export interface ICustomerRepository {
+  findAll(companyId: string): Promise<CustomerEntity[]>;
+  findById(id: string): Promise<CustomerEntity | null>;
+  create(customer: CustomerEntity): Promise<CustomerEntity>;
+  update(id: string, data: Partial<CustomerEntity>): Promise<CustomerEntity>;
+  delete(id: string): Promise<void>;
+}
+
+export const CUSTOMER_REPOSITORY = 'CUSTOMER_REPOSITORY';
+===== modules/sales/src/lib/domain/repositories/delivery.repository.interface.ts =====
+import type { DeliveryEntity } from '../entities/delivery.entity';
+
+export interface IDeliveryRepository {
+  findAll(orderId: string): Promise<DeliveryEntity[]>;
+  findByBranch(branchId: string): Promise<DeliveryEntity[]>; // ✅ جديد
+  findById(id: string): Promise<DeliveryEntity | null>;
+  create(delivery: DeliveryEntity): Promise<DeliveryEntity>;
+  update(id: string, data: Partial<DeliveryEntity>): Promise<DeliveryEntity>;
+}
+
+export const DELIVERY_REPOSITORY = 'DELIVERY_REPOSITORY';
+===== modules/sales/src/lib/domain/repositories/invoice.repository.interface.ts =====
+import { InvoiceEntity } from '../entities/invoice.entity';
+
+export interface IInvoiceRepository {
+  findAll(orderId: string): Promise<InvoiceEntity[]>;
+  findByBranch(branchId: string): Promise<InvoiceEntity[]>; // ✅ جديد
+  findById(id: string): Promise<InvoiceEntity | null>;
+  create(invoice: InvoiceEntity): Promise<InvoiceEntity>;
+  update(id: string, data: Partial<InvoiceEntity>): Promise<InvoiceEntity>;
+}
+
+export const INVOICE_REPOSITORY = 'INVOICE_REPOSITORY';
+===== modules/sales/src/lib/domain/repositories/order.repository.interface.ts =====
+import { OrderEntity } from '../entities/order.entity';
+
+export interface IOrderRepository {
+  findAll(branchId: string): Promise<OrderEntity[]>;
+  findById(id: string): Promise<OrderEntity | null>;
+  create(order: OrderEntity): Promise<OrderEntity>;
+  update(id: string, data: Partial<OrderEntity>): Promise<OrderEntity>;
+}
+
+export const ORDER_REPOSITORY = 'ORDER_REPOSITORY';
+===== modules/sales/src/lib/domain/repositories/quotation.repository.interface.ts =====
+import type { QuotationEntity } from '../entities/quotation.entity';
+
+export interface IQuotationRepository {
+  findAll(branchId: string): Promise<QuotationEntity[]>;
+  findById(id: string): Promise<QuotationEntity | null>;
+  create(quotation: QuotationEntity): Promise<QuotationEntity>;
+  update(id: string, data: Partial<QuotationEntity>): Promise<QuotationEntity>;
+  delete(id: string): Promise<void>;
+}
+
+export const QUOTATION_REPOSITORY = 'QUOTATION_REPOSITORY';
+===== modules/sales/src/lib/domain/repositories/sales-return.repository.interface.ts =====
+import type { SalesReturnEntity } from '../entities/sales-return.entity';
+
+export interface ISalesReturnRepository {
+  findAll(orderId: string): Promise<SalesReturnEntity[]>;
+  findByBranch(branchId: string): Promise<SalesReturnEntity[]>; // ✅ جديد
+  findById(id: string): Promise<SalesReturnEntity | null>;
+  create(salesReturn: SalesReturnEntity): Promise<SalesReturnEntity>;
+  update(id: string, data: Partial<SalesReturnEntity>): Promise<SalesReturnEntity>;
+}
+
+export const SALES_RETURN_REPOSITORY = 'SALES_RETURN_REPOSITORY';
+===== modules/sales/src/lib/infrastructure/repositories/customer.repository.ts =====
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '@org/core';
+import type { ICustomerRepository } from '../../domain/repositories/customer.repository.interface';
+import { CustomerEntity } from '../../domain/entities/customer.entity';
+
+@Injectable()
+export class CustomerRepository implements ICustomerRepository {
+  constructor(private prisma: PrismaService) {}
+
+  async findAll(companyId: string): Promise<CustomerEntity[]> {
+    const customers = await this.prisma.customer.findMany({
+      where: { isActive: true, companyId },
+    });
+    return customers.map(this.toEntity);
+  }
+
+  async findById(id: string): Promise<CustomerEntity | null> {
+    const customer = await this.prisma.customer.findUnique({ where: { id } });
+    return customer ? this.toEntity(customer) : null;
+  }
+
+  async create(entity: CustomerEntity): Promise<CustomerEntity> {
+    const customer = await this.prisma.customer.create({
+      data: {
+        id: entity.id,
+        name: entity.name,
+        email: entity.email,
+        phone: entity.phone,
+        address: entity.address,
+        isActive: entity.isActive,
+        companyId: entity.companyId,
+      },
+    });
+    return this.toEntity(customer);
+  }
+
+  async update(id: string, data: Partial<CustomerEntity>): Promise<CustomerEntity> {
+    const customer = await this.prisma.customer.update({
+      where: { id },
+      data: { name: data.name, email: data.email, phone: data.phone, address: data.address },
+    });
+    return this.toEntity(customer);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.customer.update({ where: { id }, data: { isActive: false } });
+  }
+
+  private toEntity(c: any): CustomerEntity {
+    return new CustomerEntity(c.id, c.name, c.email, c.phone, c.address, c.isActive, c.companyId);
+  }
+}
+===== modules/sales/src/lib/infrastructure/repositories/delivery.repository.ts =====
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '@org/core';
+import type { IDeliveryRepository } from '../../domain/repositories/delivery.repository.interface';
+import { DeliveryEntity, DeliveryStatus } from '../../domain/entities/delivery.entity';
+import { DeliveryItemEntity } from '../../domain/entities/delivery-item.entity';
+
+@Injectable()
+export class DeliveryRepository implements IDeliveryRepository {
+  constructor(private prisma: PrismaService) {}
+
+  async findAll(orderId: string): Promise<DeliveryEntity[]> {
+    const deliveries = await this.prisma.delivery.findMany({
+      where: { orderId },
+      include: { items: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    return deliveries.map(this.toEntity);
+  }
+
+  async findById(id: string): Promise<DeliveryEntity | null> {
+    const delivery = await this.prisma.delivery.findUnique({
+      where: { id },
+      include: { items: true },
+    });
+    return delivery ? this.toEntity(delivery) : null;
+  }
+
+  async create(entity: DeliveryEntity): Promise<DeliveryEntity> {
+    const delivery = await this.prisma.delivery.create({
+      data: {
+        id: entity.id,
+        deliveryNumber: entity.deliveryNumber,
+        status: entity.status,
+        orderId: entity.orderId,
+        warehouseId: entity.warehouseId,
+        branchId: entity.branchId,
+        notes: entity.notes,
+        deliveryDate: entity.deliveryDate,
+        items: {
+          create: entity.items.map((item) => ({
+            id: item.id,
+            productId: item.productId,
+            quantity: item.quantity,
+          })),
+        },
+      },
+      include: { items: true },
+    });
+    return this.toEntity(delivery);
+  }
+
+async findByBranch(branchId: string): Promise<DeliveryEntity[]> {
+  const deliveries = await this.prisma.delivery.findMany({
+    where: { branchId },
+    include: { items: true },
+    orderBy: { createdAt: 'desc' },
+  });
+  return deliveries.map(this.toEntity);
+}
+
+  async update(id: string, data: Partial<DeliveryEntity>): Promise<DeliveryEntity> {
+    const delivery = await this.prisma.delivery.update({
+      where: { id },
+      data: { status: data.status, notes: data.notes },
+      include: { items: true },
+    });
+    return this.toEntity(delivery);
+  }
+
+  private toEntity(d: any): DeliveryEntity {
+    const items = (d.items || []).map((i: any) =>
+      new DeliveryItemEntity(i.id, i.productId, Number(i.quantity), i.deliveryId)
+    );
+    return new DeliveryEntity(
+      d.id, d.deliveryNumber, d.status as DeliveryStatus,
+      d.orderId, d.warehouseId, d.branchId,
+      d.notes, d.deliveryDate, items, d.createdAt,
+    );
+  }
+}
+===== modules/sales/src/lib/infrastructure/repositories/invoice.repository.ts =====
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '@org/core';
+import type { IInvoiceRepository } from '../../domain/repositories/invoice.repository.interface';
+import { InvoiceEntity } from '../../domain/entities/invoice.entity';
+
+@Injectable()
+export class InvoiceRepository implements IInvoiceRepository {
+  constructor(private prisma: PrismaService) {}
+
+  async findAll(orderId: string): Promise<InvoiceEntity[]> {
+    const invoices = await this.prisma.invoice.findMany({
+      where: { orderId },
+      include: { paymentTerm: true },
+      orderBy: { dateTimeIssued: 'desc' },
+    });
+    return invoices.map(this.toEntity);
+  }
+
+  async findById(id: string): Promise<InvoiceEntity | null> {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id },
+      include: { paymentTerm: true, order: true },
+    });
+    return invoice ? this.toEntity(invoice) : null;
+  }
+
+
+async findByBranch(branchId: string): Promise<InvoiceEntity[]> {
+  const invoices = await this.prisma.invoice.findMany({
+    where: { order: { branchId } },
+    include: { paymentTerm: true },
+    orderBy: { dateTimeIssued: 'desc' },
+  });
+  return invoices.map(this.toEntity);
+}
+
+  async findByCompany(companyId: string): Promise<InvoiceEntity[]> {
+  const invoices = await this.prisma.invoice.findMany({
+    where: {
+      order: {
+        branchId: {
+          in: await this.prisma.branch.findMany({
+            where: { companyId },
+            select: { id: true },
+          }).then(branches => branches.map(b => b.id)),
+        },
+      },
+    },
+    include: { paymentTerm: true },
+    orderBy: { dateTimeIssued: 'desc' },
+  });
+  return invoices.map(this.toEntity);
+}
+
+  async create(entity: InvoiceEntity): Promise<InvoiceEntity> {
+    const invoice = await this.prisma.invoice.create({
+      data: {
+        id: entity.id,
+        invoiceNumber: entity.invoiceNumber,
+        status: entity.status,
+        untaxedAmount: entity.untaxedAmount,
+        taxAmount: entity.taxAmount,
+        totalAmount: entity.totalAmount,
+        paidAmount: entity.paidAmount,
+        discountAmount: entity.discountAmount,
+        currency: entity.currency,
+        exchangeRate: entity.exchangeRate,
+        orderId: entity.orderId,
+        dueDate: entity.dueDate,
+        paymentTermId: entity.paymentTermId,
+        dateTimeIssued: entity.dateTimeIssued,
+      },
+    });
+    return this.toEntity(invoice);
+  }
+
+  async update(id: string, data: Partial<InvoiceEntity>): Promise<InvoiceEntity> {
+    const invoice = await this.prisma.invoice.update({
+      where: { id },
+      data: {
+        status: data.status,
+        paidAmount: data.paidAmount,
+        etaStatus: data.etaStatus,
+        etaUUID: data.etaUUID,
+        zatcaStatus: data.zatcaStatus,
+        qrCode: data.qrCode,
+      },
+    });
+    return this.toEntity(invoice);
+  }
+
+  private toEntity(i: any): InvoiceEntity {
+    return new InvoiceEntity(
+      i.id,
+      i.invoiceNumber,
+      i.status,
+      Number(i.untaxedAmount),
+      Number(i.taxAmount),
+      Number(i.totalAmount),
+      Number(i.paidAmount),
+      Number(i.discountAmount),
+      i.currency,
+      Number(i.exchangeRate),
+      i.orderId,
+      i.dueDate,
+      i.paymentTermId,
+      i.uuid,
+      i.dateTimeIssued,
+      i.etaStatus,
+      i.etaUUID,
+      i.zatcaStatus,
+      i.qrCode,
+    );
+  }
+}
+===== modules/sales/src/lib/infrastructure/repositories/order.repository.ts =====
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '@org/core';
+import type { IOrderRepository } from '../../domain/repositories/order.repository.interface';
+import { OrderEntity } from '../../domain/entities/order.entity';
+import { OrderItem } from '../../domain/entities/order-item.entity';
+
+@Injectable()
+export class OrderRepository implements IOrderRepository {
+  constructor(private prisma: PrismaService) {}
+
+  async findAll(branchId: string): Promise<OrderEntity[]> {
+    const orders = await this.prisma.salesOrder.findMany({
+      where: { branchId },
+      include: { items: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    return orders.map(this.toEntity);
+  }
+
+  async findById(id: string): Promise<OrderEntity | null> {
+    const order = await this.prisma.salesOrder.findUnique({
+      where: { id },
+      include: { items: true, customer: true },
+    });
+    return order ? this.toEntity(order) : null;
+  }
+
+  async create(entity: OrderEntity): Promise<OrderEntity> {
+    const order = await this.prisma.salesOrder.create({
+      data: {
+        id: entity.id,
+        orderNumber: entity.orderNumber,
+        status: entity.status,
+        branchId: entity.branchId,
+        customerId: entity.customerId,
+        notes: entity.notes,
+        totalAmount: entity.totalAmount,
+        items: {
+          create: entity.items.map((item) => ({
+            id: item.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            subtotal: item.unitPrice * item.quantity, // ✅ مضاف
+            total: item.total,
+          })),
+        },
+      },
+      include: { items: true },
+    });
+    return this.toEntity(order);
+  }
+
+  async update(id: string, data: Partial<OrderEntity>): Promise<OrderEntity> {
+    const order = await this.prisma.salesOrder.update({
+      where: { id },
+      data: { status: data.status, totalAmount: data.totalAmount },
+      include: { items: true },
+    });
+    return this.toEntity(order);
+  }
+
+  private toEntity(o: any): OrderEntity {
+    const order = new OrderEntity(
+      o.id, o.orderNumber, o.status, o.branchId,
+      o.customerId, o.notes, Number(o.totalAmount), [],
+    );
+    order.items = (o.items || []).map((i: any) =>
+      new OrderItem(
+        i.id, i.orderId, i.productId,
+        Number(i.quantity), Number(i.unitPrice), Number(i.total)
+      )
+    );
+    return order;
+  }
+}
+===== modules/sales/src/lib/infrastructure/repositories/quotation.repository.ts =====
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '@org/core';
+import type { IQuotationRepository } from '../../domain/repositories/quotation.repository.interface';
+import { QuotationEntity, QuotationStatus } from '../../domain/entities/quotation.entity';
+import { QuotationItemEntity } from '../../domain/entities/quotation-item.entity';
+
+@Injectable()
+export class QuotationRepository implements IQuotationRepository {
+  constructor(private prisma: PrismaService) {}
+
+  async findAll(branchId: string): Promise<QuotationEntity[]> {
+    const quotations = await this.prisma.salesQuotation.findMany({
+      where: { branchId },
+      include: { items: true, customer: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    return quotations.map(this.toEntity);
+  }
+
+  async findById(id: string): Promise<QuotationEntity | null> {
+    const quotation = await this.prisma.salesQuotation.findUnique({
+      where: { id },
+      include: { items: true, customer: true, paymentTerm: true },
+    });
+    return quotation ? this.toEntity(quotation) : null;
+  }
+
+  async create(entity: QuotationEntity): Promise<QuotationEntity> {
+    const quotation = await this.prisma.salesQuotation.create({
+      data: {
+        id: entity.id,
+        quotationNumber: entity.quotationNumber,
+        status: entity.status,
+        branchId: entity.branchId,
+        customerId: entity.customerId,
+        notes: entity.notes,
+        validUntil: entity.validUntil,
+        untaxedAmount: entity.untaxedAmount,
+        taxAmount: entity.taxAmount,
+        totalAmount: entity.totalAmount,
+        discountAmount: entity.discountAmount,
+        currency: entity.currency,
+        exchangeRate: entity.exchangeRate,
+        paymentTermId: entity.paymentTermId,
+        items: {
+          create: entity.items.map((item) => ({
+            id: item.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            discount: item.discount,
+            subtotal: item.subtotal,
+            taxAmount: item.taxAmount,
+            total: item.total,
+            taxId: item.taxId,
+          })),
+        },
+      },
+      include: { items: true },
+    });
+    return this.toEntity(quotation);
+  }
+
+  async update(id: string, data: Partial<QuotationEntity>): Promise<QuotationEntity> {
+    const quotation = await this.prisma.salesQuotation.update({
+      where: { id },
+      data: {
+        status: data.status,
+        notes: data.notes,
+        validUntil: data.validUntil,
+        discountAmount: data.discountAmount,
+      },
+      include: { items: true },
+    });
+    return this.toEntity(quotation);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.salesQuotation.delete({ where: { id } });
+  }
+
+  private toEntity(q: any): QuotationEntity {
+    const items = (q.items || []).map((i: any) =>
+      new QuotationItemEntity(
+        i.id, i.productId,
+        Number(i.quantity), Number(i.unitPrice),
+        Number(i.discount), Number(i.subtotal),
+        Number(i.taxAmount), Number(i.total),
+        i.taxId, i.quotationId,
+      )
+    );
+    return new QuotationEntity(
+      q.id, q.quotationNumber, q.status as QuotationStatus,
+      q.branchId, q.customerId, q.notes, q.validUntil,
+      Number(q.untaxedAmount), Number(q.taxAmount),
+      Number(q.totalAmount), Number(q.discountAmount),
+      q.currency, Number(q.exchangeRate),
+      q.paymentTermId, items, q.createdAt,
+    );
+  }
+}
+===== modules/sales/src/lib/infrastructure/repositories/sales-return.repository.ts =====
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '@org/core';
+import type { ISalesReturnRepository } from '../../domain/repositories/sales-return.repository.interface';
+import { SalesReturnEntity, SalesReturnStatus } from '../../domain/entities/sales-return.entity';
+import { SalesReturnItemEntity } from '../../domain/entities/sales-return-item.entity';
+
+@Injectable()
+export class SalesReturnRepository implements ISalesReturnRepository {
+  constructor(private prisma: PrismaService) {}
+
+  async findAll(orderId: string): Promise<SalesReturnEntity[]> {
+    const returns = await this.prisma.salesReturn.findMany({
+      where: { orderId },
+      include: { items: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    return returns.map(this.toEntity);
+  }
+
+  async findById(id: string): Promise<SalesReturnEntity | null> {
+    const salesReturn = await this.prisma.salesReturn.findUnique({
+      where: { id },
+      include: { items: true, customer: true },
+    });
+    return salesReturn ? this.toEntity(salesReturn) : null;
+  }
+
+  async create(entity: SalesReturnEntity): Promise<SalesReturnEntity> {
+    const salesReturn = await this.prisma.salesReturn.create({
+      data: {
+        id: entity.id,
+        returnNumber: entity.returnNumber,
+        status: entity.status,
+        reason: entity.reason,
+        notes: entity.notes,
+        totalAmount: entity.totalAmount,
+        orderId: entity.orderId,
+        customerId: entity.customerId,
+        items: {
+          create: entity.items.map((item) => ({
+            id: item.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            total: item.total,
+          })),
+        },
+      },
+      include: { items: true },
+    });
+    return this.toEntity(salesReturn);
+  }
+async findByBranch(branchId: string): Promise<SalesReturnEntity[]> {
+  const returns = await this.prisma.salesReturn.findMany({
+    where: { order: { branchId } },
+    include: { items: true },
+    orderBy: { createdAt: 'desc' },
+  });
+  return returns.map(this.toEntity);
+}
+  async update(id: string, data: Partial<SalesReturnEntity>): Promise<SalesReturnEntity> {
+    const salesReturn = await this.prisma.salesReturn.update({
+      where: { id },
+      data: { status: data.status, notes: data.notes },
+      include: { items: true },
+    });
+    return this.toEntity(salesReturn);
+  }
+
+  private toEntity(r: any): SalesReturnEntity {
+    const items = (r.items || []).map((i: any) =>
+      new SalesReturnItemEntity(
+        i.id, i.productId, Number(i.quantity),
+        Number(i.unitPrice), Number(i.total), i.returnId,
+      )
+    );
+    return new SalesReturnEntity(
+      r.id, r.returnNumber, r.status as SalesReturnStatus,
+      r.reason, r.notes, Number(r.totalAmount),
+      r.orderId, r.customerId, items, r.createdAt,
+    );
+  }
+}
+===== modules/sales/src/lib/presentation/controllers/customers.controller.ts =====
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Inject } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard, RequirePermission, PermissionGuard, CurrentUser } from '@org/core';
+import { CreateCustomerUseCase } from '../../application/use-cases/customers/create-customer.use-case';
+import type { ICustomerRepository } from '../../domain/repositories/customer.repository.interface';
+import { CUSTOMER_REPOSITORY } from '../../domain/repositories/customer.repository.interface';
+import { CreateCustomerDto, UpdateCustomerDto } from '../../application/dtos/customer.dto';
+
+@ApiTags('Customers')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PermissionGuard)
+@Controller('customers')
+export class CustomersController {
+  constructor(
+    private createCustomerUseCase: CreateCustomerUseCase,
+    @Inject(CUSTOMER_REPOSITORY)
+    private customerRepository: ICustomerRepository,
+  ) {}
+
+  @Get()
+  @RequirePermission('sales.customers.view')
+  findAll(@CurrentUser('companyId') companyId: string) {
+    return this.customerRepository.findAll(companyId);
+  }
+
+  @Get(':id')
+  @RequirePermission('sales.customers.view')
+  findOne(@Param('id') id: string) {
+    return this.customerRepository.findById(id);
+  }
+
+  @Post()
+  @RequirePermission('sales.customers.create')
+  create(@Body() dto: CreateCustomerDto, @CurrentUser('companyId') companyId: string) {
+    return this.createCustomerUseCase.execute(dto, companyId);
+  }
+
+  @Patch(':id')
+  @RequirePermission('sales.customers.edit')
+  update(@Param('id') id: string, @Body() dto: UpdateCustomerDto) {
+    return this.customerRepository.update(id, dto);
+  }
+
+  @Delete(':id')
+  @RequirePermission('sales.customers.delete')
+  remove(@Param('id') id: string) {
+    return this.customerRepository.delete(id);
+  }
+}
+===== modules/sales/src/lib/presentation/controllers/deliveries.controller.ts =====
+import { Controller, Get, Post, Patch, Body, Param, UseGuards, Inject, Query } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard, RequirePermission, PermissionGuard } from '@org/core';
+import type { IDeliveryRepository } from '../../domain/repositories/delivery.repository.interface';
+import { DELIVERY_REPOSITORY } from '../../domain/repositories/delivery.repository.interface';
+import { CreateDeliveryUseCase } from '../../application/use-cases/deliveries/create-delivery.use-case';
+import { ConfirmDeliveryUseCase } from '../../application/use-cases/deliveries/confirm-delivery.use-case';
+import { CreateDeliveryDto } from '../../application/dtos/delivery.dto';
+
+@ApiTags('Deliveries')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PermissionGuard)
+@Controller('deliveries')
+export class DeliveriesController {
+  constructor(
+    @Inject(DELIVERY_REPOSITORY)
+    private deliveryRepository: IDeliveryRepository,
+    private createDeliveryUseCase: CreateDeliveryUseCase,
+    private confirmDeliveryUseCase: ConfirmDeliveryUseCase,
+  ) {}
+
+@Get()
+@RequirePermission('sales.deliveries.view')
+findByBranch(@Query('branchId') branchId: string) {
+  return this.deliveryRepository.findByBranch(branchId);
+}
+
+  @Get(':id')
+  @RequirePermission('sales.deliveries.view')
+  findOne(@Param('id') id: string) {
+    return this.deliveryRepository.findById(id);
+  }
+
+  @Post()
+  @RequirePermission('sales.deliveries.create')
+  create(@Body() dto: CreateDeliveryDto) {
+    return this.createDeliveryUseCase.execute(dto);
+  }
+
+  @Patch(':id/confirm')
+  @RequirePermission('sales.deliveries.confirm')
+  confirm(@Param('id') id: string) {
+    return this.confirmDeliveryUseCase.execute(id);
+  }
+}
+===== modules/sales/src/lib/presentation/controllers/invoices.controller.ts =====
+import { Controller, Get, Post, Patch, Body, Param, UseGuards, Query } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard, RequirePermission, PermissionGuard } from '@org/core';
+import { CreateInvoiceUseCase } from '../../application/use-cases/invoices/create-invoice.use-case';
+import { PayInvoiceUseCase } from '../../application/use-cases/invoices/pay-invoice.use-case';
+import { CreateInvoiceDto, PayInvoiceDto } from '../../application/dtos/invoice.dto';
+import { Inject } from '@nestjs/common';
+import { INVOICE_REPOSITORY } from '../../domain/repositories/invoice.repository.interface';
+import type { IInvoiceRepository } from '../../domain/repositories/invoice.repository.interface';
+
+@ApiTags('Invoices')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PermissionGuard)
+@Controller('invoices')
+export class InvoicesController {
+  constructor(
+    private createInvoiceUseCase: CreateInvoiceUseCase,
+    private payInvoiceUseCase: PayInvoiceUseCase,
+    @Inject(INVOICE_REPOSITORY)
+    private invoiceRepository: IInvoiceRepository,
+  ) {}
+
+@Get()
+@RequirePermission('sales.invoices.view')
+findAll(
+  @Query('orderId') orderId?: string,
+  @Query('branchId') branchId?: string,
+) {
+  if (branchId) return this.invoiceRepository.findByBranch(branchId);
+  if (orderId) return this.invoiceRepository.findAll(orderId);
+  return [];
+}
+  @Get(':id')
+  @RequirePermission('sales.invoices.view')
+  findOne(@Param('id') id: string) {
+    return this.invoiceRepository.findById(id);
+  }
+
+  @Post()
+  @RequirePermission('sales.invoices.create')
+  create(@Body() dto: CreateInvoiceDto) {
+    return this.createInvoiceUseCase.execute(dto);
+  }
+
+  @Patch(':id/pay')
+  @RequirePermission('sales.invoices.pay')
+  pay(@Param('id') id: string, @Body() dto: PayInvoiceDto) {
+    return this.payInvoiceUseCase.execute(id, dto);
+  }
+}
+===== modules/sales/src/lib/presentation/controllers/orders.controller.ts =====
+import { Controller, Get, Post, Patch, Body, Param, UseGuards, Inject } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard, RequirePermission, PermissionGuard } from '@org/core';
+import { CreateOrderUseCase } from '../../application/use-cases/orders/create-order.use-case';
+import { ConfirmOrderUseCase } from '../../application/use-cases/orders/confirm-order.use-case';
+import type { IOrderRepository } from '../../domain/repositories/order.repository.interface';
+import { ORDER_REPOSITORY } from '../../domain/repositories/order.repository.interface';
+import { CreateOrderDto } from '../../application/dtos/order.dto';
+
+@ApiTags('Orders')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PermissionGuard)
+@Controller('orders')
+export class OrdersController {
+  constructor(
+    private createOrderUseCase: CreateOrderUseCase,
+    private confirmOrderUseCase: ConfirmOrderUseCase,
+    @Inject(ORDER_REPOSITORY)
+    private orderRepository: IOrderRepository,
+  ) {}
+
+  @Get('branch/:branchId')
+  @RequirePermission('sales.orders.view')
+  findAll(@Param('branchId') branchId: string) {
+    return this.orderRepository.findAll(branchId);
+  }
+
+  @Get(':id')
+  @RequirePermission('sales.orders.view')
+  findOne(@Param('id') id: string) { return this.orderRepository.findById(id); }
+
+  @Post()
+  @RequirePermission('sales.orders.create')
+  create(@Body() dto: CreateOrderDto) { return this.createOrderUseCase.execute(dto); }
+
+  @Patch(':id/confirm')
+  @RequirePermission('sales.orders.confirm')
+  confirm(@Param('id') id: string) { return this.confirmOrderUseCase.execute(id); }
+}
+===== modules/sales/src/lib/presentation/controllers/quotations.controller.ts =====
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Inject } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard, RequirePermission, PermissionGuard } from '@org/core';
+import type { IQuotationRepository } from '../../domain/repositories/quotation.repository.interface';
+import { QUOTATION_REPOSITORY } from '../../domain/repositories/quotation.repository.interface';
+import { CreateQuotationUseCase } from '../../application/use-cases/quotations/create-quotation.use-case';
+import { ConfirmQuotationUseCase } from '../../application/use-cases/quotations/confirm-quotation.use-case';
+import { CreateQuotationDto, UpdateQuotationDto } from '../../application/dtos/quotation.dto';
+
+@ApiTags('Quotations')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PermissionGuard)
+@Controller('quotations')
+export class QuotationsController {
+  constructor(
+    @Inject(QUOTATION_REPOSITORY)
+    private quotationRepository: IQuotationRepository,
+    private createQuotationUseCase: CreateQuotationUseCase,
+    private confirmQuotationUseCase: ConfirmQuotationUseCase,
+  ) {}
+
+  @Get('branch/:branchId')
+  @RequirePermission('sales.quotations.view')
+  findAll(@Param('branchId') branchId: string) {
+    return this.quotationRepository.findAll(branchId);
+  }
+
+  @Get(':id')
+  @RequirePermission('sales.quotations.view')
+  findOne(@Param('id') id: string) {
+    return this.quotationRepository.findById(id);
+  }
+
+  @Post()
+  @RequirePermission('sales.quotations.create')
+  create(@Body() dto: CreateQuotationDto) {
+    return this.createQuotationUseCase.execute(dto);
+  }
+
+  @Patch(':id')
+  @RequirePermission('sales.quotations.create')
+  update(@Param('id') id: string, @Body() dto: UpdateQuotationDto) {
+    return this.quotationRepository.update(id, dto as any);
+  }
+
+  @Patch(':id/confirm')
+  @RequirePermission('sales.quotations.confirm')
+  confirm(@Param('id') id: string) {
+    return this.confirmQuotationUseCase.execute(id);
+  }
+
+  @Delete(':id')
+  @RequirePermission('sales.quotations.create')
+  delete(@Param('id') id: string) {
+    return this.quotationRepository.delete(id);
+  }
+}
+===== modules/sales/src/lib/presentation/controllers/sales-returns.controller.ts =====
+import { Controller, Get, Post, Patch, Body, Param, UseGuards, Inject, Query } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard, RequirePermission, PermissionGuard } from '@org/core';
+import type { ISalesReturnRepository } from '../../domain/repositories/sales-return.repository.interface';
+import { SALES_RETURN_REPOSITORY } from '../../domain/repositories/sales-return.repository.interface';
+import { CreateSalesReturnUseCase } from '../../application/use-cases/sales-returns/create-sales-return.use-case';
+import { ConfirmSalesReturnUseCase } from '../../application/use-cases/sales-returns/confirm-sales-return.use-case';
+import { CreateSalesReturnDto } from '../../application/dtos/sales-return.dto';
+
+@ApiTags('Sales Returns')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PermissionGuard)
+@Controller('sales-returns')
+export class SalesReturnsController {
+  constructor(
+    @Inject(SALES_RETURN_REPOSITORY)
+    private salesReturnRepository: ISalesReturnRepository,
+    private createSalesReturnUseCase: CreateSalesReturnUseCase,
+    private confirmSalesReturnUseCase: ConfirmSalesReturnUseCase,
+  ) {}
+
+@Get()
+@RequirePermission('sales.returns.view')
+findByBranch(@Query('branchId') branchId: string) {
+  return this.salesReturnRepository.findByBranch(branchId);
+}
+  @Get(':id')
+  @RequirePermission('sales.returns.view')
+  findOne(@Param('id') id: string) {
+    return this.salesReturnRepository.findById(id);
+  }
+
+  @Post()
+  @RequirePermission('sales.returns.create')
+  create(@Body() dto: CreateSalesReturnDto) {
+    return this.createSalesReturnUseCase.execute(dto);
+  }
+
+  @Patch(':id/confirm')
+  @RequirePermission('sales.returns.confirm')
+  confirm(@Param('id') id: string) {
+    return this.confirmSalesReturnUseCase.execute(id);
+  }
+}
+===== modules/sales/src/lib/sales.module.ts =====
+import { Module } from '@nestjs/common';
+import { PrismaService, RbacModule, OutboxModule } from '@org/core';
+
+import { CustomersController } from './presentation/controllers/customers.controller';
+import { OrdersController } from './presentation/controllers/orders.controller';
+import { InvoicesController } from './presentation/controllers/invoices.controller';
+import { QuotationsController } from './presentation/controllers/quotations.controller';
+import { DeliveriesController } from './presentation/controllers/deliveries.controller';
+import { SalesReturnsController } from './presentation/controllers/sales-returns.controller';
+
+import { CreateCustomerUseCase } from './application/use-cases/customers/create-customer.use-case';
+import { CreateOrderUseCase } from './application/use-cases/orders/create-order.use-case';
+import { ConfirmOrderUseCase } from './application/use-cases/orders/confirm-order.use-case';
+import { CreateInvoiceUseCase } from './application/use-cases/invoices/create-invoice.use-case';
+import { PayInvoiceUseCase } from './application/use-cases/invoices/pay-invoice.use-case';
+import { CreateQuotationUseCase } from './application/use-cases/quotations/create-quotation.use-case';
+import { ConfirmQuotationUseCase } from './application/use-cases/quotations/confirm-quotation.use-case';
+import { CreateDeliveryUseCase } from './application/use-cases/deliveries/create-delivery.use-case';
+import { ConfirmDeliveryUseCase } from './application/use-cases/deliveries/confirm-delivery.use-case';
+import { CreateSalesReturnUseCase } from './application/use-cases/sales-returns/create-sales-return.use-case';
+import { ConfirmSalesReturnUseCase } from './application/use-cases/sales-returns/confirm-sales-return.use-case';
+
+import { CustomerRepository } from './infrastructure/repositories/customer.repository';
+import { OrderRepository } from './infrastructure/repositories/order.repository';
+import { InvoiceRepository } from './infrastructure/repositories/invoice.repository';
+import { QuotationRepository } from './infrastructure/repositories/quotation.repository';
+import { DeliveryRepository } from './infrastructure/repositories/delivery.repository';
+import { SalesReturnRepository } from './infrastructure/repositories/sales-return.repository';
+
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { CUSTOMER_REPOSITORY } from './domain/repositories/customer.repository.interface';
+import { ORDER_REPOSITORY } from './domain/repositories/order.repository.interface';
+import { INVOICE_REPOSITORY } from './domain/repositories/invoice.repository.interface';
+import { QUOTATION_REPOSITORY } from './domain/repositories/quotation.repository.interface';
+import { DELIVERY_REPOSITORY } from './domain/repositories/delivery.repository.interface';
+import { SALES_RETURN_REPOSITORY } from './domain/repositories/sales-return.repository.interface';
+
+@Module({
+  imports: [
+    RbacModule,
+    OutboxModule,
+    EventEmitterModule.forRoot(),
+  ],
+  controllers: [
+    CustomersController,
+    OrdersController,
+    InvoicesController,
+    QuotationsController,
+    DeliveriesController,
+    SalesReturnsController,
+  ],
+  providers: [
+    PrismaService,
+    CreateCustomerUseCase,
+    CreateOrderUseCase,
+    ConfirmOrderUseCase,
+    CreateInvoiceUseCase,
+    PayInvoiceUseCase,
+    CreateQuotationUseCase,
+    ConfirmQuotationUseCase,
+    CreateDeliveryUseCase,
+    ConfirmDeliveryUseCase,
+    CreateSalesReturnUseCase,
+    ConfirmSalesReturnUseCase,
+    { provide: CUSTOMER_REPOSITORY, useClass: CustomerRepository },
+    { provide: ORDER_REPOSITORY, useClass: OrderRepository },
+    { provide: INVOICE_REPOSITORY, useClass: InvoiceRepository },
+    { provide: QUOTATION_REPOSITORY, useClass: QuotationRepository },
+    { provide: DELIVERY_REPOSITORY, useClass: DeliveryRepository },
+    { provide: SALES_RETURN_REPOSITORY, useClass: SalesReturnRepository },
+  ],
+  exports: [CreateOrderUseCase],
+})
+export class SalesModule {}

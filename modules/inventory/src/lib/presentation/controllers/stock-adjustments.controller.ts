@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Inject } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard, RequirePermission, PermissionGuard } from '@org/core';
+import { JwtAuthGuard, RequirePermission, PermissionGuard, CurrentUser } from '@org/core';
 import { CreateStockAdjustmentUseCase } from '../../application/use-cases/stock/create-adjustment.use-case';
 import { ConfirmStockAdjustmentUseCase } from '../../application/use-cases/stock/confirm-adjustment.use-case';
 import type { IStockAdjustmentRepository } from '../../domain/repositories/stock-adjustment.repository.interface';
@@ -21,8 +21,11 @@ export class StockAdjustmentsController {
 
   @Get()
   @RequirePermission('inventory.adjustments.view')
-  findAll(@Query('warehouseId') warehouseId?: string) {
-    return this.adjustmentRepository.findAll(warehouseId);
+  findAll(
+    @CurrentUser('companyId') companyId: string,
+    @Query('warehouseId') warehouseId?: string,
+  ) {
+    return this.adjustmentRepository.findAll(companyId, warehouseId);
   }
 
   @Post()
@@ -33,7 +36,7 @@ export class StockAdjustmentsController {
 
   @Patch(':id/confirm')
   @RequirePermission('inventory.adjustments.confirm')
-  confirm(@Param('id') id: string) {
-    return this.confirmAdjustmentUseCase.execute(id);
+  confirm(@Param('id') id: string, @CurrentUser('companyId') companyId: string) {
+    return this.confirmAdjustmentUseCase.execute(id, companyId);
   }
 }

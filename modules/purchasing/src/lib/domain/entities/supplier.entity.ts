@@ -7,6 +7,7 @@ export class SupplierEntity {
     public address: string | null,
     public taxNumber: string | null,
     public isActive: boolean,
+    public readonly companyId: string,
   ) {}
 
   static create(data: {
@@ -16,11 +17,12 @@ export class SupplierEntity {
     phone?: string;
     address?: string;
     taxNumber?: string;
+    companyId: string;
   }): SupplierEntity {
     return new SupplierEntity(
       data.id, data.name, data.email ?? null,
       data.phone ?? null, data.address ?? null,
-      data.taxNumber ?? null, true,
+      data.taxNumber ?? null, true, data.companyId,
     );
   }
 

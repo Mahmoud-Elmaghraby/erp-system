@@ -7,8 +7,10 @@ import { UnitEntity } from '../../domain/entities/unit.entity';
 export class UnitRepository implements IUnitRepository {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(): Promise<UnitEntity[]> {
-    const units = await this.prisma.unitOfMeasure.findMany();
+  async findAll(companyId: string): Promise<UnitEntity[]> {
+    const units = await this.prisma.unitOfMeasure.findMany({
+      where: { companyId },
+    });
     return units.map(this.toEntity);
   }
 
@@ -19,7 +21,13 @@ export class UnitRepository implements IUnitRepository {
 
   async create(entity: UnitEntity): Promise<UnitEntity> {
     const unit = await this.prisma.unitOfMeasure.create({
-      data: { id: entity.id, name: entity.name, symbol: entity.symbol },
+      data: {
+        id: entity.id,
+        name: entity.name,
+        symbol: entity.symbol,
+        companyId: entity.companyId,
+        unitCode: entity.unitCode,
+      },
     });
     return this.toEntity(unit);
   }
@@ -27,8 +35,17 @@ export class UnitRepository implements IUnitRepository {
   async delete(id: string): Promise<void> {
     await this.prisma.unitOfMeasure.delete({ where: { id } });
   }
-
+async update(id: string, data: Partial<UnitEntity>): Promise<UnitEntity> {
+  const unit = await this.prisma.unitOfMeasure.update({
+    where: { id },
+    data: { name: data.name, symbol: data.symbol, unitCode: data.unitCode },
+  });
+  return this.toEntity(unit);
+}
   private toEntity(unit: any): UnitEntity {
-    return new UnitEntity(unit.id, unit.name, unit.symbol);
+    return new UnitEntity(
+      unit.id, unit.name, unit.symbol,
+      unit.companyId, unit.unitCode ?? null,
+    );
   }
 }

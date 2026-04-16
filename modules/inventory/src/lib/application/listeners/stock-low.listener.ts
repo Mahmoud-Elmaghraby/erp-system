@@ -26,7 +26,7 @@ export class StockLowListener {
           currentQuantity: event.currentQuantity,
           minStock: event.minStock,
         },
-        status: 'PENDING',
+        status: 'PENDING', // ✅ الـ Prisma هيتعامل معاه صح مع الـ Enum
       },
     });
   }

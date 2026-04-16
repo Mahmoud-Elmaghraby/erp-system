@@ -5,31 +5,23 @@ import { PrismaService } from '@org/core';
 export class StockValuationService {
   constructor(private prisma: PrismaService) {}
 
-  async getStockValue(warehouseId?: string): Promise<{
-    totalValue: number;
-    totalCost: number;
-    items: Array<{
-      productId: string;
-      productName: string;
-      quantity: number;
-      unitCost: number;
-      unitPrice: number;
-      totalCost: number;
-      totalValue: number;
-    }>;
-  }> {
+  async getStockValue(companyId: string, warehouseId?: string) {
     const stocks = await this.prisma.stock.findMany({
-      where: warehouseId ? { warehouseId } : {},
+      where: {
+        warehouse: { companyId },
+        ...(warehouseId && { warehouseId }),
+      },
       include: {
-        product: {
-          select: { id: true, name: true, price: true, cost: true },
-        },
+        product: { select: { id: true, name: true, price: true, cost: true } },
+        warehouse: { select: { id: true, name: true } },
       },
     });
 
     const items = stocks.map(s => ({
       productId: s.productId,
       productName: s.product.name,
+      warehouseId: s.warehouseId,
+      warehouseName: s.warehouse.name,
       quantity: Number(s.quantity),
       unitCost: Number(s.product.cost),
       unitPrice: Number(s.product.price),

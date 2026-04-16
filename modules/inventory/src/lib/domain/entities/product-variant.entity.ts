@@ -2,6 +2,7 @@ export class ProductVariantEntity {
   constructor(
     public readonly id: string,
     public readonly productId: string,
+    public readonly companyId: string,
     public name: string,
     public sku: string | null,
     public barcode: string | null,
@@ -14,6 +15,7 @@ export class ProductVariantEntity {
   static create(data: {
     id: string;
     productId: string;
+    companyId: string;
     name: string;
     sku?: string;
     barcode?: string;
@@ -22,7 +24,7 @@ export class ProductVariantEntity {
     attributes?: Record<string, string>;
   }): ProductVariantEntity {
     return new ProductVariantEntity(
-      data.id, data.productId, data.name,
+      data.id, data.productId, data.companyId, data.name,
       data.sku ?? null, data.barcode ?? null,
       data.price ?? 0, data.cost ?? 0,
       data.attributes ?? {}, true,

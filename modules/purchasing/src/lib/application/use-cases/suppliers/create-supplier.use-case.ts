@@ -12,8 +12,8 @@ export class CreateSupplierUseCase {
     private supplierRepository: ISupplierRepository,
   ) {}
 
-  async execute(dto: CreateSupplierDto): Promise<SupplierEntity> {
-    const supplier = SupplierEntity.create({ id: randomUUID(), ...dto });
+  async execute(dto: CreateSupplierDto, companyId: string): Promise<SupplierEntity> {
+    const supplier = SupplierEntity.create({ id: randomUUID(), ...dto, companyId });
     return this.supplierRepository.create(supplier);
   }
 }

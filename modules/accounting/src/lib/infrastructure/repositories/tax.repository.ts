@@ -11,7 +11,7 @@ export class TaxRepository implements ITaxRepository {
     const taxes = await this.prisma.tax.findMany({
       where: { companyId, isActive: true },
     });
-    return taxes.map(this.toEntity);
+    return taxes.map((t) => this.toEntity(t));
   }
 
   async findById(id: string): Promise<TaxEntity | null> {
@@ -25,28 +25,29 @@ export class TaxRepository implements ITaxRepository {
         companyId,
         isActive: true,
         OR: [
-          { scope: scope as TaxScope },       // ✅ cast للـ enum
-          { scope: 'BOTH' as TaxScope },
+          { scope: scope as TaxScope },
+          { scope: 'BOTH'  as TaxScope },
         ],
       },
     });
-    return taxes.map(this.toEntity);
+    return taxes.map((t) => this.toEntity(t));
   }
 
   async create(entity: TaxEntity): Promise<TaxEntity> {
     const tax = await this.prisma.tax.create({
       data: {
-        id: entity.id,
-        name: entity.name,
-        rate: entity.rate,
-        taxType: entity.taxType,             // ✅ type → taxType
-        scope: entity.scope,
-        isActive: entity.isActive,
-        companyId: entity.companyId,
-        accountId: entity.accountId,
-        etaType: entity.etaType,
-        etaSubtype: entity.etaSubtype,
-        zatcaType: entity.zatcaType,
+        id:               entity.id,
+        name:             entity.name,
+        rate:             entity.rate,
+        taxType:          entity.taxType,
+        scope:            entity.scope,
+        isActive:         entity.isActive,
+        companyId:        entity.companyId,
+        salesAccountId:   entity.salesAccountId    ?? null,
+        purchaseAccountId: entity.purchaseAccountId ?? null,
+        etaType:          entity.etaType,
+        etaSubtype:       entity.etaSubtype,
+        zatcaType:        entity.zatcaType,
       },
     });
     return this.toEntity(tax);
@@ -56,29 +57,34 @@ export class TaxRepository implements ITaxRepository {
     const tax = await this.prisma.tax.update({
       where: { id },
       data: {
-        name: data.name,
-        rate: data.rate,
-        taxType: data.taxType,               // ✅ type → taxType
-        scope: data.scope,
-        accountId: data.accountId,
-        etaType: data.etaType,
-        etaSubtype: data.etaSubtype,
-        zatcaType: data.zatcaType,
+        name:              data.name,
+        rate:              data.rate,
+        taxType:           data.taxType,
+        scope:             data.scope,
+        salesAccountId:    data.salesAccountId    ?? null,
+        purchaseAccountId: data.purchaseAccountId ?? null,
+        etaType:           data.etaType,
+        etaSubtype:        data.etaSubtype,
+        zatcaType:         data.zatcaType,
       },
     });
     return this.toEntity(tax);
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.tax.update({ where: { id }, data: { isActive: false } });
+    await this.prisma.tax.update({
+      where: { id },
+      data: { isActive: false },
+    });
   }
 
   private toEntity(t: any): TaxEntity {
     return new TaxEntity(
       t.id, t.name, Number(t.rate),
-      t.taxType,    // ✅ t.type → t.taxType
-      t.scope, t.isActive,
-      t.companyId, t.accountId,
+      t.taxType, t.scope, t.isActive,
+      t.companyId,
+      t.salesAccountId    ?? null,
+      t.purchaseAccountId ?? null,
       t.etaType, t.etaSubtype, t.zatcaType,
     );
   }

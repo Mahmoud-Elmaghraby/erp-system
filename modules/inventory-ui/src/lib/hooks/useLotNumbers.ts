@@ -4,7 +4,10 @@ import { message } from 'antd';
 
 export const useLotNumbers = (productId: string, warehouseId?: string) => useQuery({
   queryKey: ['lot-numbers', productId, warehouseId],
-  queryFn: () => inventoryApi.lotNumbers.getByProduct(productId, warehouseId),
+  queryFn: async () => {
+    const res = await inventoryApi.lotNumbers.getByProduct(productId, warehouseId) as any;
+    return res?.data ?? res ?? [];
+  },
   enabled: !!productId,
 });
 

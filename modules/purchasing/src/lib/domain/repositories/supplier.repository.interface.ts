@@ -1,7 +1,7 @@
 import type { SupplierEntity } from '../entities/supplier.entity';
 
 export interface ISupplierRepository {
-  findAll(): Promise<SupplierEntity[]>;
+  findAll(companyId: string): Promise<SupplierEntity[]>;
   findById(id: string): Promise<SupplierEntity | null>;
   create(supplier: SupplierEntity): Promise<SupplierEntity>;
   update(id: string, data: Partial<SupplierEntity>): Promise<SupplierEntity>;

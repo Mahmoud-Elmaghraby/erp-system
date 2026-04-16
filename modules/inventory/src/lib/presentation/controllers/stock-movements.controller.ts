@@ -1,6 +1,6 @@
 import { Controller, Get, Param, Query, UseGuards, Inject } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard, RequirePermission, PermissionGuard } from '@org/core';
+import { JwtAuthGuard, RequirePermission, PermissionGuard, CurrentUser } from '@org/core';
 import type { IStockMovementRepository } from '../../domain/repositories/stock-movement.repository.interface';
 import { STOCK_MOVEMENT_REPOSITORY } from '../../domain/repositories/stock-movement.repository.interface';
 
@@ -17,11 +17,12 @@ export class StockMovementsController {
   @Get()
   @RequirePermission('inventory.stock.view')
   findAll(
+    @CurrentUser('companyId') companyId: string,
     @Query('warehouseId') warehouseId?: string,
     @Query('productId') productId?: string,
     @Query('type') type?: string,
   ) {
-    return this.stockMovementRepository.findAll({ warehouseId, productId, type });
+    return this.stockMovementRepository.findAll({ companyId, warehouseId, productId, type });
   }
 
   @Get('warehouse/:warehouseId')

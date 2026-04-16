@@ -29,9 +29,15 @@ export class StockMovementRepository implements IStockMovementRepository {
     });
   }
 
-  async findAll(filters?: { warehouseId?: string; productId?: string; type?: string }): Promise<any[]> {
+  async findAll(filters?: {
+    companyId: string;
+    warehouseId?: string;
+    productId?: string;
+    type?: string;
+  }): Promise<any[]> {
     return this.prisma.stockMovement.findMany({
       where: {
+        companyId: filters?.companyId,
         ...(filters?.warehouseId && { warehouseId: filters.warehouseId }),
         ...(filters?.productId && { productId: filters.productId }),
         ...(filters?.type && { type: filters.type as any }),
@@ -53,6 +59,7 @@ export class StockMovementRepository implements IStockMovementRepository {
         quantity: entity.quantity,
         warehouseId: entity.warehouseId,
         productId: entity.productId,
+        companyId: entity.companyId,
         reason: entity.reason,
         reference: entity.reference,
         fromWarehouseId: entity.fromWarehouseId,
@@ -62,9 +69,9 @@ export class StockMovementRepository implements IStockMovementRepository {
     });
     return new StockMovementEntity(
       movement.id, movement.type as any, Number(movement.quantity),
-      movement.warehouseId, movement.productId, movement.reason,
-      movement.reference, movement.fromWarehouseId, movement.toWarehouseId,
-      movement.userId, movement.createdAt,
+      movement.warehouseId, movement.productId, movement.companyId,
+      movement.reason, movement.reference, movement.fromWarehouseId,
+      movement.toWarehouseId, movement.userId, movement.createdAt,
     );
   }
 }

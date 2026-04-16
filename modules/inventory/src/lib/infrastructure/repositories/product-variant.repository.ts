@@ -24,6 +24,7 @@ export class ProductVariantRepository implements IProductVariantRepository {
       data: {
         id: entity.id,
         productId: entity.productId,
+        companyId: entity.companyId,
         name: entity.name,
         sku: entity.sku,
         barcode: entity.barcode,
@@ -57,8 +58,8 @@ export class ProductVariantRepository implements IProductVariantRepository {
 
   private toEntity(v: any): ProductVariantEntity {
     return new ProductVariantEntity(
-      v.id, v.productId, v.name, v.sku, v.barcode,
-      Number(v.price), Number(v.cost),
+      v.id, v.productId, v.companyId, v.name,
+      v.sku, v.barcode, Number(v.price), Number(v.cost),
       v.attributes as Record<string, string>, v.isActive,
     );
   }

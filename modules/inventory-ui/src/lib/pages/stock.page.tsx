@@ -11,26 +11,24 @@ export default function StockPage() {
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>('');
   const [modalType, setModalType] = useState<'add' | 'remove' | 'transfer' | null>(null);
 
-  const { data: warehouses } = useWarehouses();
-  const { data: products } = useProducts();
+  const { data: warehousesData } = useWarehouses();
+  const { data: productsData } = useProducts();
+
+  const warehouses = Array.isArray(warehousesData) ? warehousesData : warehousesData?.data ?? [];
+  const products = Array.isArray(productsData) ? productsData : productsData?.data ?? [];
+
   const { data: stock, isLoading } = useStock(selectedWarehouse);
   const addMutation = useAddStock();
   const removeMutation = useRemoveStock();
   const transferMutation = useTransferStock();
 
   const openModal = (type: 'add' | 'remove' | 'transfer') => {
-    if (!selectedWarehouse) {
-      message.warning('اختر مخزن أولاً');
-      return;
-    }
+    if (!selectedWarehouse) { message.warning('اختر مخزن أولاً'); return; }
     setModalType(type);
   };
 
   const handleSubmit = (values: any) => {
-    if (!selectedWarehouse) {
-      message.warning('اختر مخزن أولاً');
-      return;
-    }
+    if (!selectedWarehouse) { message.warning('اختر مخزن أولاً'); return; }
     if (modalType === 'add') {
       addMutation.mutate({ ...values, warehouseId: selectedWarehouse }, {
         onSuccess: () => setModalType(null),
@@ -61,7 +59,7 @@ export default function StockPage() {
 
       <Select
         placeholder="اختر المخزن"
-        options={warehouses?.map((w: any) => ({ label: w.name, value: w.id }))}
+        options={warehouses.map((w: any) => ({ label: w.name, value: w.id }))}
         onChange={setSelectedWarehouse}
         style={{ width: 200, marginBottom: 16 }}
       />
@@ -73,8 +71,8 @@ export default function StockPage() {
           open={!!modalType}
           loading={isLoading2}
           type={modalType}
-          products={products || []}
-          warehouses={warehouses || []}
+          products={products}
+          warehouses={warehouses}
           currentWarehouseId={selectedWarehouse}
           onSubmit={handleSubmit}
           onCancel={() => setModalType(null)}

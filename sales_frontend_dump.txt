@@ -1,0 +1,1624 @@
+
+===== modules/sales-ui/src/index.ts =====
+export { salesRoutes } from './lib/routes';
+export { salesApi } from './lib/api/sales.api';
+export { default as CustomersPage } from './lib/pages/customers.page';
+export { default as OrdersPage } from './lib/pages/orders.page';
+export { default as OrderDetailPage } from './lib/pages/order-detail.page';
+export { default as QuotationsPage } from './lib/pages/quotations.page';
+export { default as InvoicesPage } from './lib/pages/invoices.page';
+export { default as DeliveriesPage } from './lib/pages/deliveries.page';
+export { default as SalesReturnsPage } from './lib/pages/sales-returns.page';
+===== modules/sales-ui/src/lib/api/sales.api.ts =====
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+const BRANCH_ID = 'main';
+
+export const salesApi = {
+
+  customers: {
+    getAll: async () => (await api.get('/customers')).data,
+    create: async (data: any) => (await api.post('/customers', data)).data,
+    update: async (id: string, data: any) => (await api.patch(`/customers/${id}`, data)).data,
+    delete: async (id: string) => (await api.delete(`/customers/${id}`)).data,
+  },
+  quotations: {
+    getAll: async () => (await api.get(`/quotations/branch/${BRANCH_ID}`)).data,
+    getById: async (id: string) => (await api.get(`/quotations/${id}`)).data,
+    create: async (data: any) => (await api.post('/quotations', data)).data,
+    update: async (id: string, data: any) => (await api.patch(`/quotations/${id}`, data)).data,
+    confirm: async (id: string) => (await api.patch(`/quotations/${id}/confirm`)).data,
+    delete: async (id: string) => (await api.delete(`/quotations/${id}`)).data,
+  },
+  orders: {
+    getAll: async () => (await api.get(`/orders/branch/${BRANCH_ID}`)).data,
+    getById: async (id: string) => (await api.get(`/orders/${id}`)).data,
+    create: async (data: any) => (await api.post('/orders', data)).data,
+    confirm: async (id: string) => (await api.patch(`/orders/${id}/confirm`)).data,
+  },
+  invoices: {
+    getAll: async () => (await api.get(`/invoices?branchId=${BRANCH_ID}`)).data,
+    getByOrder: async (orderId: string) => (await api.get(`/invoices?orderId=${orderId}`)).data,
+    getById: async (id: string) => (await api.get(`/invoices/${id}`)).data,
+    create: async (data: any) => (await api.post('/invoices', data)).data,
+    pay: async (id: string, data: { amount: number; paymentMethod: string }) =>
+      (await api.patch(`/invoices/${id}/pay`, data)).data,
+  },
+  deliveries: {
+    getAll: async () => (await api.get(`/deliveries?branchId=${BRANCH_ID}`)).data,
+    getByOrder: async (orderId: string) => (await api.get(`/deliveries/order/${orderId}`)).data,
+    getById: async (id: string) => (await api.get(`/deliveries/${id}`)).data,
+    create: async (data: any) => (await api.post('/deliveries', data)).data,
+    confirm: async (id: string) => (await api.patch(`/deliveries/${id}/confirm`)).data,
+  },
+  returns: {
+    getAll: async () => (await api.get(`/sales-returns?branchId=${BRANCH_ID}`)).data,
+    getByOrder: async (orderId: string) => (await api.get(`/sales-returns/order/${orderId}`)).data,
+    getById: async (id: string) => (await api.get(`/sales-returns/${id}`)).data,
+    create: async (data: any) => (await api.post('/sales-returns', data)).data,
+    confirm: async (id: string) => (await api.patch(`/sales-returns/${id}/confirm`)).data,
+  },
+};
+===== modules/sales-ui/src/lib/components/customers/customer-form.tsx =====
+import { Form, Input, Modal } from 'antd';
+
+interface Props {
+  open: boolean;
+  loading: boolean;
+  onSubmit: (values: any) => void;
+  onCancel: () => void;
+}
+
+export default function CustomerForm({ open, loading, onSubmit, onCancel }: Props) {
+  const [form] = Form.useForm();
+
+  const handleFinish = (values: any) => {
+    onSubmit(values);
+    form.resetFields();
+  };
+
+  return (
+    <Modal
+      title="إضافة عميل جديد"
+      open={open}
+      onCancel={onCancel}
+      onOk={() => form.submit()}
+      confirmLoading={loading}
+      okText="إضافة"
+      cancelText="إلغاء"
+    >
+      <Form form={form} layout="vertical" onFinish={handleFinish} dir="rtl">
+        <Form.Item label="الاسم" name="name" rules={[{ required: true, message: 'ادخل اسم العميل' }]}>
+          <Input />
+        </Form.Item>
+        <Form.Item label="البريد الإلكتروني" name="email">
+          <Input type="email" />
+        </Form.Item>
+        <Form.Item label="التليفون" name="phone">
+          <Input />
+        </Form.Item>
+        <Form.Item label="العنوان" name="address">
+          <Input />
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
+}
+===== modules/sales-ui/src/lib/components/customers/customer-table.tsx =====
+import { Table, Button, Space, Popconfirm,} from 'antd';
+import { DeleteOutlined } from '@ant-design/icons';
+
+interface Props {
+  data: any[];
+  loading: boolean;
+  onDelete: (id: string) => void;
+}
+
+export default function CustomerTable({ data, loading, onDelete }: Props) {
+  const columns = [
+    { title: 'الاسم', dataIndex: 'name', key: 'name' },
+    { title: 'البريد الإلكتروني', dataIndex: 'email', key: 'email' },
+    { title: 'التليفون', dataIndex: 'phone', key: 'phone' },
+    { title: 'العنوان', dataIndex: 'address', key: 'address' },
+    {
+      title: 'إجراءات',
+      key: 'actions',
+      render: (_: any, record: any) => (
+        <Space>
+          <Popconfirm
+            title="هل أنت متأكد من الحذف؟"
+            onConfirm={() => onDelete(record.id)}
+            okText="نعم"
+            cancelText="لا"
+          >
+            <Button danger icon={<DeleteOutlined />} size="small" />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  return <Table columns={columns} dataSource={data} rowKey="id" loading={loading} />;
+}
+===== modules/sales-ui/src/lib/components/invoices/invoice-table.tsx =====
+import { Table, Button, Space, Tag, InputNumber, Modal } from 'antd';
+import { DollarOutlined } from '@ant-design/icons';
+import { useState } from 'react';
+
+interface Props {
+  data: any[];
+  loading: boolean;
+  onPay: (id: string, amount: number) => void;
+}
+
+const statusColors: Record<string, string> = {
+  UNPAID: 'red',
+  PAID: 'green',
+  PARTIAL: 'orange',
+};
+
+const statusLabels: Record<string, string> = {
+  UNPAID: 'غير مدفوعة',
+  PAID: 'مدفوعة',
+  PARTIAL: 'مدفوعة جزئياً',
+};
+
+export default function InvoiceTable({ data, loading, onPay }: Props) {
+  const [payModal, setPayModal] = useState<{ open: boolean; id: string; amount: number }>({
+    open: false, id: '', amount: 0
+  });
+
+  const columns = [
+    { title: 'رقم الفاتورة', dataIndex: 'invoiceNumber', key: 'invoiceNumber' },
+    {
+      title: 'الحالة',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: string) => <Tag color={statusColors[status]}>{statusLabels[status]}</Tag>,
+    },
+    { title: 'الإجمالي', dataIndex: 'totalAmount', key: 'totalAmount',
+      render: (v: number) => `${Number(v).toFixed(2)} ج.م` },
+    { title: 'المدفوع', dataIndex: 'paidAmount', key: 'paidAmount',
+      render: (v: number) => `${Number(v).toFixed(2)} ج.م` },
+    {
+      title: 'إجراءات',
+      key: 'actions',
+      render: (_: any, record: any) => (
+        <Space>
+          {record.status !== 'PAID' && (
+            <Button
+              type="primary"
+              icon={<DollarOutlined />}
+              size="small"
+              onClick={() => setPayModal({ open: true, id: record.id, amount: 0 })}
+            >
+              دفع
+            </Button>
+          )}
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <>
+      <Table columns={columns} dataSource={data} rowKey="id" loading={loading} />
+      <Modal
+        title="تسجيل دفع"
+        open={payModal.open}
+        onCancel={() => setPayModal({ open: false, id: '', amount: 0 })}
+        onOk={() => { onPay(payModal.id, payModal.amount); setPayModal({ open: false, id: '', amount: 0 }); }}
+        okText="تأكيد"
+        cancelText="إلغاء"
+      >
+        <InputNumber
+          placeholder="المبلغ"
+          min={0}
+          style={{ width: '100%' }}
+          onChange={(v) => setPayModal(prev => ({ ...prev, amount: v || 0 }))}
+        />
+      </Modal>
+    </>
+  );
+}
+===== modules/sales-ui/src/lib/components/orders/order-form.tsx =====
+import { Form, Input, InputNumber, Modal, Select, Button, Space, Divider, Typography } from 'antd';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { useState } from 'react';
+
+const { Text } = Typography;
+
+interface Props {
+  open: boolean;
+  loading: boolean;
+  customers: any[];
+  products: any[];
+  branchId: string;
+  onSubmit: (values: any) => void;
+  onCancel: () => void;
+}
+
+export default function OrderForm({ open, loading, customers, products, branchId, onSubmit, onCancel }: Props) {
+  const [form] = Form.useForm();
+  const [total, setTotal] = useState(0);
+
+  const calculateTotal = () => {
+    const items = form.getFieldValue('items') || [];
+    const sum = items.reduce((acc: number, item: any) => {
+      const qty = Number(item?.quantity ?? 0);
+      const price = Number(item?.unitPrice ?? 0);
+      return acc + qty * price;
+    }, 0);
+    setTotal(sum);
+  };
+
+  const handleProductChange = (productId: string, name: number) => {
+    const product = products.find((p: any) => p.id === productId);
+    if (product?.salePrice) {
+      const items = form.getFieldValue('items');
+      items[name] = { ...items[name], unitPrice: Number(product.salePrice) };
+      form.setFieldsValue({ items });
+      calculateTotal();
+    }
+  };
+
+  const handleFinish = (values: any) => {
+    onSubmit({ ...values, branchId });
+    form.resetFields();
+    setTotal(0);
+  };
+
+  const handleCancel = () => {
+    form.resetFields();
+    setTotal(0);
+    onCancel();
+  };
+
+  return (
+    <Modal
+      title="إنشاء أمر بيع جديد"
+      open={open}
+      onCancel={handleCancel}
+      onOk={() => form.submit()}
+      confirmLoading={loading}
+      okText="إنشاء"
+      cancelText="إلغاء"
+      width={800}
+    >
+      <Form form={form} layout="vertical" onFinish={handleFinish} onValuesChange={calculateTotal}>
+        <Form.Item label="العميل" name="customerId">
+          <Select
+            allowClear
+            showSearch
+            placeholder="اختر العميل (اختياري)"
+            filterOption={(input, option) =>
+              (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
+            }
+            options={customers?.map((c: any) => ({ label: c.name, value: c.id }))}
+          />
+        </Form.Item>
+
+        <Form.Item label="ملاحظات" name="notes">
+          <Input.TextArea rows={2} placeholder="ملاحظات إضافية..." />
+        </Form.Item>
+
+        <Divider>بنود الأمر</Divider>
+
+        <Form.List name="items" initialValue={[{}]}>
+          {(fields, { add, remove }) => (
+            <>
+              {fields.map(({ key, name, ...rest }) => (
+                <Space key={key} align="baseline" style={{ display: 'flex', marginBottom: 8 }} wrap>
+                  <Form.Item
+                    {...rest}
+                    name={[name, 'productId']}
+                    label="المنتج"
+                    rules={[{ required: true, message: 'اختر منتج' }]}
+                  >
+                    <Select
+                      placeholder="اختر المنتج"
+                      style={{ width: 200 }}
+                      showSearch
+                      filterOption={(input, option) =>
+                        (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
+                      }
+                      options={products?.map((p: any) => ({ label: p.name, value: p.id }))}
+                      onChange={(val) => handleProductChange(val, name)}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    {...rest}
+                    name={[name, 'quantity']}
+                    label="الكمية"
+                    rules={[{ required: true, message: 'أدخل الكمية' }]}
+                  >
+                    <InputNumber placeholder="الكمية" min={1} style={{ width: 90 }} />
+                  </Form.Item>
+                  <Form.Item
+                    {...rest}
+                    name={[name, 'unitPrice']}
+                    label="سعر الوحدة"
+                    rules={[{ required: true, message: 'أدخل السعر' }]}
+                  >
+                    <InputNumber placeholder="السعر" min={0} precision={2} style={{ width: 110 }} />
+                  </Form.Item>
+                  <Form.Item {...rest} name={[name, 'discount']} label="خصم">
+                    <InputNumber placeholder="0" min={0} precision={2} style={{ width: 80 }} />
+                  </Form.Item>
+                  <Button
+                    danger
+                    icon={<DeleteOutlined />}
+                    onClick={() => { remove(name); calculateTotal(); }}
+                    style={{ marginTop: 8 }}
+                  />
+                </Space>
+              ))}
+              <Button type="dashed" onClick={() => add({})} icon={<PlusOutlined />} block>
+                إضافة بند
+              </Button>
+            </>
+          )}
+        </Form.List>
+
+        <Divider />
+        <div style={{ textAlign: 'left' }}>
+          <Text strong style={{ fontSize: 16 }}>
+            الإجمالي: {total.toFixed(2)} ج.م
+          </Text>
+        </div>
+      </Form>
+    </Modal>
+  );
+}
+===== modules/sales-ui/src/lib/components/orders/order-table.tsx =====
+import { Table, Button, Space, Tag } from 'antd';
+import { CheckOutlined, FileTextOutlined } from '@ant-design/icons';
+
+interface Props {
+  data: any[];
+  loading: boolean;
+  onConfirm: (id: string) => void;
+  onViewInvoices: (id: string) => void;
+}
+
+const statusColors: Record<string, string> = {
+  DRAFT: 'default',
+  CONFIRMED: 'blue',
+  DELIVERED: 'green',
+  CANCELLED: 'red',
+};
+
+const statusLabels: Record<string, string> = {
+  DRAFT: 'مسودة',
+  CONFIRMED: 'مؤكد',
+  DELIVERED: 'تم التسليم',
+  CANCELLED: 'ملغي',
+};
+
+export default function OrderTable({ data, loading, onConfirm, onViewInvoices }: Props) {
+  const columns = [
+    { title: 'رقم الأوردر', dataIndex: 'orderNumber', key: 'orderNumber' },
+    {
+      title: 'الحالة',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: string) => (
+        <Tag color={statusColors[status]}>{statusLabels[status]}</Tag>
+      ),
+    },
+    { 
+  title: 'الإجمالي', 
+  dataIndex: 'totalAmount', 
+  key: 'totalAmount',
+  render: (amount: any) => `${Number(amount).toFixed(2)} ج.م`
+},
+    { title: 'التاريخ', dataIndex: 'createdAt', key: 'createdAt',
+      render: (date: string) => new Date(date).toLocaleDateString('ar-EG') },
+    {
+      title: 'إجراءات',
+      key: 'actions',
+      render: (_: any, record: any) => (
+        <Space>
+          {record.status === 'DRAFT' && (
+            <Button
+              type="primary"
+              icon={<CheckOutlined />}
+              size="small"
+              onClick={() => onConfirm(record.id)}
+            >
+              تأكيد
+            </Button>
+          )}
+          <Button
+            icon={<FileTextOutlined />}
+            size="small"
+            onClick={() => onViewInvoices(record.id)}
+          >
+            الفواتير
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
+  return <Table columns={columns} dataSource={data} rowKey="id" loading={loading} />;
+}
+===== modules/sales-ui/src/lib/hooks/useCustomers.ts =====
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { salesApi } from '../api/sales.api';
+import { message } from 'antd';
+
+export const useCustomers = () => useQuery({
+  queryKey: ['customers'],
+  queryFn: salesApi.customers.getAll,
+});
+
+export const useCreateCustomer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: salesApi.customers.create,
+    onSuccess: () => {
+      message.success('تم إضافة العميل بنجاح');
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
+    onError: () => message.error('حدث خطأ'),
+  });
+};
+
+export const useDeleteCustomer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: salesApi.customers.delete,
+    onSuccess: () => {
+      message.success('تم حذف العميل');
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
+    onError: () => message.error('حدث خطأ'),
+  });
+};
+===== modules/sales-ui/src/lib/hooks/useDeliveries.ts =====
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { salesApi } from '../api/sales.api';
+
+export const useDeliveries = (orderId?: string) =>
+  useQuery({
+    queryKey: ['deliveries', orderId ?? 'all'],
+    queryFn: () => orderId
+      ? salesApi.deliveries.getByOrder(orderId)
+      : salesApi.deliveries.getAll(),
+  });
+
+export const useCreateDelivery = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: salesApi.deliveries.create,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['deliveries'] }),
+  });
+};
+
+export const useConfirmDelivery = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: salesApi.deliveries.confirm,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['deliveries'] }),
+  });
+};
+===== modules/sales-ui/src/lib/hooks/useInvoices.ts =====
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { salesApi } from '../api/sales.api';
+import { message } from 'antd';
+
+export const useInvoices = (orderId?: string) =>
+  useQuery({
+    queryKey: ['invoices', orderId ?? 'all'],
+    queryFn: () => orderId
+      ? salesApi.invoices.getByOrder(orderId)
+      : salesApi.invoices.getAll(),
+  });
+
+export const useCreateInvoice = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: salesApi.invoices.create,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['invoices'] }),
+    onError: () => message.error('حدث خطأ'),
+  });
+};
+
+export const usePayInvoice = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { amount: number; paymentMethod: string } }) =>
+      salesApi.invoices.pay(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['invoices'] }),
+    onError: () => message.error('حدث خطأ'),
+  });
+};
+===== modules/sales-ui/src/lib/hooks/useOrders.ts =====
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { salesApi } from '../api/sales.api';
+import { message } from 'antd';
+
+export const useOrders = () =>
+  useQuery({
+    queryKey: ['orders'],
+    queryFn: salesApi.orders.getAll,
+  });
+
+export const useCreateOrder = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: salesApi.orders.create,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['orders'] }),
+    onError: () => message.error('حدث خطأ'),
+  });
+};
+
+export const useConfirmOrder = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: salesApi.orders.confirm,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['orders'] }),
+    onError: () => message.error('حدث خطأ'),
+  });
+};
+===== modules/sales-ui/src/lib/hooks/useQuotations.ts =====
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { salesApi } from '../api/sales.api';
+
+export const useQuotations = () =>
+  useQuery({
+    queryKey: ['quotations'],
+    queryFn: salesApi.quotations.getAll,
+  });
+
+export const useCreateQuotation = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => salesApi.quotations.create({ ...data, branchId: 'main' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['quotations'] }),
+  });
+};
+
+export const useConfirmQuotation = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: salesApi.quotations.confirm,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['quotations'] });
+      qc.invalidateQueries({ queryKey: ['orders'] });
+    },
+  });
+};
+
+export const useDeleteQuotation = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: salesApi.quotations.delete,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['quotations'] }),
+  });
+};
+===== modules/sales-ui/src/lib/hooks/useSalesReturns.ts =====
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { salesApi } from '../api/sales.api';
+
+export const useSalesReturns = (orderId?: string) =>
+  useQuery({
+    queryKey: ['sales-returns', orderId ?? 'all'],
+    queryFn: () => orderId
+      ? salesApi.returns.getByOrder(orderId)
+      : salesApi.returns.getAll(),
+  });
+
+export const useCreateSalesReturn = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: salesApi.returns.create,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['sales-returns'] }),
+  });
+};
+
+export const useConfirmSalesReturn = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: salesApi.returns.confirm,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['sales-returns'] }),
+  });
+};
+===== modules/sales-ui/src/lib/pages/customers.page.tsx =====
+import { useState } from 'react';
+import { Button, Input, Space } from 'antd';
+import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { useCustomers, useCreateCustomer, useDeleteCustomer } from '../hooks/useCustomers';
+import CustomerTable from '../components/customers/customer-table';
+import CustomerForm from '../components/customers/customer-form';
+
+export default function CustomersPage() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const { data: customers, isLoading } = useCustomers();
+  const createMutation = useCreateCustomer();
+  const deleteMutation = useDeleteCustomer();
+
+  const filtered = (customers || []).filter((c: any) =>
+    !search ||
+    c.name?.toLowerCase().includes(search.toLowerCase()) ||
+    c.email?.toLowerCase().includes(search.toLowerCase()) ||
+    c.phone?.includes(search)
+  );
+
+  return (
+    <div style={{ padding: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+        <h2 style={{ margin: 0 }}>العملاء</h2>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalOpen(true)}>
+          إضافة عميل
+        </Button>
+      </div>
+
+      <Space style={{ marginBottom: 16 }}>
+        <Input
+          prefix={<SearchOutlined />}
+          placeholder="بحث بالاسم أو الإيميل أو الهاتف..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ width: 280 }}
+          allowClear
+        />
+      </Space>
+
+      <CustomerTable
+        data={filtered}
+        loading={isLoading}
+        onDelete={(id) => deleteMutation.mutate(id)}
+      />
+      <CustomerForm
+        open={isModalOpen}
+        loading={createMutation.isPending}
+        onSubmit={(values) => createMutation.mutate(values, { onSuccess: () => setIsModalOpen(false) })}
+        onCancel={() => setIsModalOpen(false)}
+      />
+    </div>
+  );
+}
+===== modules/sales-ui/src/lib/pages/deliveries.page.tsx =====
+import { useState } from 'react';
+import { Table, Tag, Button, Popconfirm, message, Space, Input, Select } from 'antd';
+import { CheckOutlined, SearchOutlined } from '@ant-design/icons';
+import { useDeliveries, useConfirmDelivery } from '../hooks/useDeliveries';
+
+const { Option } = Select;
+
+const statusColors: Record<string, string> = {
+  DRAFT: 'default', CONFIRMED: 'blue', DONE: 'green', CANCELLED: 'red',
+};
+const statusLabels: Record<string, string> = {
+  DRAFT: 'مسودة', CONFIRMED: 'مؤكد', DONE: 'مكتمل', CANCELLED: 'ملغي',
+};
+
+export default function DeliveriesPage() {
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const { data: deliveries, isLoading } = useDeliveries();
+  const confirmDelivery = useConfirmDelivery();
+
+  const filtered = (deliveries || []).filter((d: any) => {
+    const matchSearch = !search || d.deliveryNumber?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = !statusFilter || d.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  const columns = [
+    { title: 'رقم التسليم', dataIndex: 'deliveryNumber', key: 'deliveryNumber' },
+    {
+      title: 'الحالة', dataIndex: 'status', key: 'status',
+      render: (v: string) => <Tag color={statusColors[v]}>{statusLabels[v]}</Tag>,
+    },
+    {
+      title: 'تاريخ التسليم', dataIndex: 'deliveryDate', key: 'deliveryDate',
+      render: (v: string) => v ? new Date(v).toLocaleDateString('ar-EG') : '—',
+    },
+    { title: 'ملاحظات', dataIndex: 'notes', key: 'notes', render: (v: string) => v ?? '—' },
+    {
+      title: 'إجراءات', key: 'actions',
+      render: (_: any, record: any) => record.status === 'DRAFT' && (
+        <Popconfirm title="تأكيد التسليم؟" onConfirm={() =>
+          confirmDelivery.mutateAsync(record.id).then(() => message.success('تم التأكيد'))
+        }>
+          <Button icon={<CheckOutlined />} size="small" type="primary">تأكيد</Button>
+        </Popconfirm>
+      ),
+    },
+  ];
+
+  return (
+    <div style={{ padding: 24 }}>
+      <h2 style={{ marginBottom: 16 }}>التسليمات</h2>
+      <Space style={{ marginBottom: 16 }}>
+        <Input prefix={<SearchOutlined />} placeholder="بحث برقم التسليم..."
+          value={search} onChange={(e) => setSearch(e.target.value)}
+          style={{ width: 200 }} allowClear />
+        <Select placeholder="فلتر بالحالة" allowClear style={{ width: 150 }}
+          onChange={(v) => setStatusFilter(v)}>
+          <Option value="DRAFT">مسودة</Option>
+          <Option value="CONFIRMED">مؤكد</Option>
+          <Option value="DONE">مكتمل</Option>
+          <Option value="CANCELLED">ملغي</Option>
+        </Select>
+      </Space>
+      <Table columns={columns} dataSource={filtered} loading={isLoading} rowKey="id"
+        pagination={{ pageSize: 10 }} />
+    </div>
+  );
+}
+===== modules/sales-ui/src/lib/pages/invoices.page.tsx =====
+import { useState } from 'react';
+import { Table, Tag, Button, Modal, Form, InputNumber, Select, Space, Input, message } from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
+import { useInvoices, usePayInvoice } from '../hooks/useInvoices';
+
+const { Option } = Select;
+
+const statusColors: Record<string, string> = {
+  UNPAID: 'red', PAID: 'green', PARTIAL: 'orange', CANCELLED: 'default',
+};
+const statusLabels: Record<string, string> = {
+  UNPAID: 'غير مدفوع', PAID: 'مدفوع', PARTIAL: 'جزئي', CANCELLED: 'ملغي',
+};
+
+export default function InvoicesPage() {
+  const [payOpen, setPayOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [form] = Form.useForm();
+
+  const { data: invoices, isLoading } = useInvoices();
+  const payInvoice = usePayInvoice();
+
+  const handlePay = async () => {
+    const values = await form.validateFields();
+    await payInvoice.mutateAsync({ id: selectedInvoice.id, data: values });
+    message.success('تم تسجيل الدفع');
+    setPayOpen(false);
+    form.resetFields();
+  };
+
+  const filtered = (invoices || []).filter((i: any) => {
+    const matchSearch = !search || i.invoiceNumber?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = !statusFilter || i.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  const columns = [
+    { title: 'رقم الفاتورة', dataIndex: 'invoiceNumber', key: 'invoiceNumber' },
+    {
+      title: 'الحالة', dataIndex: 'status', key: 'status',
+      render: (v: string) => <Tag color={statusColors[v]}>{statusLabels[v]}</Tag>,
+    },
+    {
+      title: 'الإجمالي', dataIndex: 'totalAmount', key: 'totalAmount',
+      render: (v: number) => `${Number(v).toFixed(2)} ج.م`,
+    },
+    {
+      title: 'المدفوع', dataIndex: 'paidAmount', key: 'paidAmount',
+      render: (v: number) => `${Number(v).toFixed(2)} ج.م`,
+    },
+    {
+      title: 'المتبقي', key: 'remaining',
+      render: (_: any, r: any) =>
+        `${(Number(r.totalAmount) - Number(r.paidAmount)).toFixed(2)} ج.م`,
+    },
+    {
+      title: 'تاريخ الإصدار', dataIndex: 'dateTimeIssued', key: 'dateTimeIssued',
+      render: (v: string) => new Date(v).toLocaleDateString('ar-EG'),
+    },
+    {
+      title: 'إجراءات', key: 'actions',
+      render: (_: any, record: any) =>
+        record.status !== 'PAID' && record.status !== 'CANCELLED' && (
+          <Button size="small" type="primary"
+            onClick={() => { setSelectedInvoice(record); setPayOpen(true); }}>
+            تسجيل دفع
+          </Button>
+        ),
+    },
+  ];
+
+  return (
+    <div style={{ padding: 24 }}>
+      <h2 style={{ marginBottom: 16 }}>الفواتير</h2>
+
+      <Space style={{ marginBottom: 16 }}>
+        <Input
+          prefix={<SearchOutlined />}
+          placeholder="بحث برقم الفاتورة..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ width: 200 }}
+          allowClear
+        />
+        <Select placeholder="فلتر بالحالة" allowClear style={{ width: 150 }}
+          onChange={(v) => setStatusFilter(v)}>
+          <Option value="UNPAID">غير مدفوع</Option>
+          <Option value="PARTIAL">جزئي</Option>
+          <Option value="PAID">مدفوع</Option>
+          <Option value="CANCELLED">ملغي</Option>
+        </Select>
+      </Space>
+
+      <Table columns={columns} dataSource={filtered} loading={isLoading} rowKey="id"
+        pagination={{ pageSize: 10 }} />
+
+      <Modal title="تسجيل دفع" open={payOpen} onOk={handlePay}
+        onCancel={() => { setPayOpen(false); form.resetFields(); }}
+        confirmLoading={payInvoice.isPending} okText="دفع" cancelText="إلغاء">
+        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item name="amount" label="المبلغ" rules={[{ required: true, message: 'مطلوب' }]}>
+            <InputNumber
+              min={0} precision={2} style={{ width: '100%' }}
+              max={selectedInvoice
+                ? Number(selectedInvoice.totalAmount) - Number(selectedInvoice.paidAmount)
+                : undefined}
+            />
+          </Form.Item>
+          <Form.Item name="paymentMethod" label="طريقة الدفع" rules={[{ required: true, message: 'مطلوب' }]}>
+            <Select>
+              <Option value="CASH">نقدي</Option>
+              <Option value="BANK_TRANSFER">تحويل بنكي</Option>
+              <Option value="CHEQUE">شيك</Option>
+              <Option value="CARD">بطاقة</Option>
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
+  );
+}
+===== modules/sales-ui/src/lib/pages/order-detail.page.tsx =====
+import { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Card, Table, Button, Modal, Form, Input, InputNumber, Tabs, Tag, Popconfirm, message, Select, Descriptions, Space } from 'antd';
+import { PlusOutlined, CheckOutlined, ArrowRightOutlined } from '@ant-design/icons';
+import { useQuery } from '@tanstack/react-query';
+import { salesApi } from '../api/sales.api';
+import { useDeliveries, useCreateDelivery, useConfirmDelivery } from '../hooks/useDeliveries';
+import { useSalesReturns, useCreateSalesReturn, useConfirmSalesReturn } from '../hooks/useSalesReturns';
+import { useInvoices, useCreateInvoice, usePayInvoice } from '../hooks/useInvoices';
+
+const { Option } = Select;
+const WAREHOUSE_ID = 'main';
+const BRANCH_ID = 'main';
+
+const statusColors: Record<string, string> = {
+  DRAFT: 'default', CONFIRMED: 'blue', DELIVERED: 'green', CANCELLED: 'red',
+};
+const statusLabels: Record<string, string> = {
+  DRAFT: 'مسودة', CONFIRMED: 'مؤكد', DELIVERED: 'تم التسليم', CANCELLED: 'ملغي',
+};
+
+export default function OrderDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [deliveryOpen, setDeliveryOpen] = useState(false);
+  const [returnOpen, setReturnOpen] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [deliveryForm] = Form.useForm();
+  const [returnForm] = Form.useForm();
+  const [payForm] = Form.useForm();
+
+  const { data: order } = useQuery({
+    queryKey: ['orders', id],
+    queryFn: () => salesApi.orders.getById(id!),
+    enabled: !!id,
+  });
+
+  const { data: deliveries } = useDeliveries(id!);
+  const { data: returns } = useSalesReturns(id!);
+  const { data: invoices } = useInvoices(id!);
+
+  const createDelivery = useCreateDelivery();
+  const confirmDelivery = useConfirmDelivery();
+  const createReturn = useCreateSalesReturn();
+  const confirmReturn = useConfirmSalesReturn();
+  const createInvoice = useCreateInvoice();
+  const payInvoice = usePayInvoice();
+
+  const handleCreateDelivery = async () => {
+    const values = await deliveryForm.validateFields();
+    await createDelivery.mutateAsync({
+      orderId: id,
+      branchId: BRANCH_ID,
+      warehouseId: WAREHOUSE_ID,
+      items: order?.items?.map((i: any) => ({
+        productId: i.productId,
+        quantity: Number(i.quantity),
+      })) ?? [],
+      ...values,
+    });
+    message.success('تم إنشاء التسليم');
+    setDeliveryOpen(false);
+  };
+
+  const handleCreateReturn = async () => {
+    const values = await returnForm.validateFields();
+    await createReturn.mutateAsync({
+      orderId: id,
+      ...values,
+      items: order?.items?.map((i: any) => ({
+        productId: i.productId,
+        quantity: Number(i.quantity),
+        unitPrice: Number(i.unitPrice),
+      })) ?? [],
+    });
+    message.success('تم إنشاء المرتجع');
+    setReturnOpen(false);
+  };
+
+  const handlePay = async () => {
+    const values = await payForm.validateFields();
+    await payInvoice.mutateAsync({ id: selectedInvoice.id, data: values });
+    message.success('تم تسجيل الدفع');
+    setPayOpen(false);
+    payForm.resetFields();
+  };
+
+  // Items columns
+  const itemColumns = [
+    { title: 'المنتج', dataIndex: 'productId', key: 'productId' },
+    { title: 'الكمية', dataIndex: 'quantity', key: 'quantity',
+      render: (v: number) => Number(v) },
+    { title: 'سعر الوحدة', dataIndex: 'unitPrice', key: 'unitPrice',
+      render: (v: number) => `${Number(v).toFixed(2)} ج.م` },
+    { title: 'الإجمالي', dataIndex: 'total', key: 'total',
+      render: (v: number) => `${Number(v).toFixed(2)} ج.م` },
+  ];
+
+  const invoiceColumns = [
+    { title: 'الرقم', dataIndex: 'invoiceNumber', key: 'invoiceNumber' },
+    { title: 'الإجمالي', dataIndex: 'totalAmount', key: 'totalAmount',
+      render: (v: number) => `${Number(v).toFixed(2)} ج.م` },
+    { title: 'المدفوع', dataIndex: 'paidAmount', key: 'paidAmount',
+      render: (v: number) => `${Number(v).toFixed(2)} ج.م` },
+    { title: 'الحالة', dataIndex: 'status', key: 'status',
+      render: (v: string) => (
+        <Tag color={v === 'PAID' ? 'green' : v === 'PARTIAL' ? 'orange' : 'red'}>
+          {v === 'PAID' ? 'مدفوع' : v === 'PARTIAL' ? 'جزئي' : 'غير مدفوع'}
+        </Tag>
+      )},
+    { title: 'إجراءات', key: 'actions',
+      render: (_: any, record: any) => record.status !== 'PAID' && (
+        <Button size="small" type="primary"
+          onClick={() => { setSelectedInvoice(record); setPayOpen(true); }}>
+          دفع
+        </Button>
+      ),
+    },
+  ];
+
+  const deliveryColumns = [
+    { title: 'الرقم', dataIndex: 'deliveryNumber', key: 'deliveryNumber' },
+    { title: 'الحالة', dataIndex: 'status', key: 'status',
+      render: (v: string) => (
+        <Tag color={v === 'DONE' ? 'green' : v === 'CONFIRMED' ? 'blue' : 'default'}>
+          {v === 'DRAFT' ? 'مسودة' : v === 'CONFIRMED' ? 'مؤكد' : 'مكتمل'}
+        </Tag>
+      )},
+    { title: 'إجراءات', key: 'actions',
+      render: (_: any, record: any) => record.status === 'DRAFT' && (
+        <Popconfirm title="تأكيد التسليم؟" onConfirm={() =>
+          confirmDelivery.mutateAsync(record.id).then(() => message.success('تم التأكيد'))
+        }>
+          <Button icon={<CheckOutlined />} size="small" type="primary">تأكيد</Button>
+        </Popconfirm>
+      ),
+    },
+  ];
+
+  const returnColumns = [
+    { title: 'الرقم', dataIndex: 'returnNumber', key: 'returnNumber' },
+    { title: 'السبب', dataIndex: 'reason', key: 'reason' },
+    { title: 'الإجمالي', dataIndex: 'totalAmount', key: 'totalAmount',
+      render: (v: number) => `${Number(v).toFixed(2)} ج.م` },
+    { title: 'الحالة', dataIndex: 'status', key: 'status',
+      render: (v: string) => (
+        <Tag color={v === 'CONFIRMED' ? 'green' : v === 'CANCELLED' ? 'red' : 'default'}>
+          {v === 'DRAFT' ? 'مسودة' : v === 'CONFIRMED' ? 'مؤكد' : 'ملغي'}
+        </Tag>
+      )},
+    { title: 'إجراءات', key: 'actions',
+      render: (_: any, record: any) => record.status === 'DRAFT' && (
+        <Popconfirm title="تأكيد المرتجع؟" onConfirm={() =>
+          confirmReturn.mutateAsync(record.id).then(() => message.success('تم التأكيد'))
+        }>
+          <Button icon={<CheckOutlined />} size="small" type="primary">تأكيد</Button>
+        </Popconfirm>
+      ),
+    },
+  ];
+
+  return (
+    <div style={{ padding: 24 }}>
+      <Space style={{ marginBottom: 16 }}>
+        <Button icon={<ArrowRightOutlined />} onClick={() => navigate('/sales/orders')}>
+          رجوع
+        </Button>
+      </Space>
+
+      <Card style={{ marginBottom: 16 }}>
+        <Descriptions title={`أمر بيع: ${order?.orderNumber ?? ''}`} bordered column={3}>
+          <Descriptions.Item label="الحالة">
+            <Tag color={statusColors[order?.status]}>{statusLabels[order?.status]}</Tag>
+          </Descriptions.Item>
+          <Descriptions.Item label="الإجمالي">
+            {Number(order?.totalAmount ?? 0).toFixed(2)} ج.م
+          </Descriptions.Item>
+          <Descriptions.Item label="التاريخ">
+            {order?.createdAt ? new Date(order.createdAt).toLocaleDateString('ar-EG') : '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label="ملاحظات" span={3}>
+            {order?.notes ?? '—'}
+          </Descriptions.Item>
+        </Descriptions>
+      </Card>
+
+      <Tabs items={[
+        {
+          key: 'items',
+          label: `البنود (${order?.items?.length ?? 0})`,
+          children: (
+            <Table columns={itemColumns} dataSource={order?.items ?? []} rowKey="id" />
+          ),
+        },
+        {
+          key: 'invoices',
+          label: `الفواتير (${invoices?.length ?? 0})`,
+          children: (
+            <>
+              {order?.status === 'CONFIRMED' && (
+                <Button type="primary" icon={<PlusOutlined />} style={{ marginBottom: 12 }}
+                  onClick={() => createInvoice.mutateAsync({ orderId: id })
+                    .then(() => message.success('تم إنشاء الفاتورة'))}>
+                  إنشاء فاتورة
+                </Button>
+              )}
+              <Table columns={invoiceColumns} dataSource={invoices} rowKey="id" />
+            </>
+          ),
+        },
+        {
+          key: 'deliveries',
+          label: `التسليمات (${deliveries?.length ?? 0})`,
+          children: (
+            <>
+              {order?.status === 'CONFIRMED' && (
+                <Button type="primary" icon={<PlusOutlined />} style={{ marginBottom: 12 }}
+                  onClick={() => setDeliveryOpen(true)}>
+                  إنشاء تسليم
+                </Button>
+              )}
+              <Table columns={deliveryColumns} dataSource={deliveries} rowKey="id" />
+            </>
+          ),
+        },
+        {
+          key: 'returns',
+          label: `المرتجعات (${returns?.length ?? 0})`,
+          children: (
+            <>
+              {(order?.status === 'CONFIRMED' || order?.status === 'DELIVERED') && (
+                <Button type="primary" icon={<PlusOutlined />} style={{ marginBottom: 12 }}
+                  onClick={() => setReturnOpen(true)}>
+                  إنشاء مرتجع
+                </Button>
+              )}
+              <Table columns={returnColumns} dataSource={returns} rowKey="id" />
+            </>
+          ),
+        },
+      ]} />
+
+      {/* Delivery Modal */}
+      <Modal title="إنشاء تسليم" open={deliveryOpen} onOk={handleCreateDelivery}
+        onCancel={() => setDeliveryOpen(false)} okText="حفظ" cancelText="إلغاء">
+        <Form form={deliveryForm} layout="vertical">
+          <Form.Item name="deliveryDate" label="تاريخ التسليم">
+            <Input type="date" />
+          </Form.Item>
+          <Form.Item name="notes" label="ملاحظات">
+            <Input.TextArea rows={2} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Return Modal */}
+      <Modal title="إنشاء مرتجع" open={returnOpen} onOk={handleCreateReturn}
+        onCancel={() => setReturnOpen(false)} okText="حفظ" cancelText="إلغاء">
+        <Form form={returnForm} layout="vertical">
+          <Form.Item name="reason" label="السبب" rules={[{ required: true, message: 'مطلوب' }]}>
+            <Input placeholder="سبب الإرجاع" />
+          </Form.Item>
+          <Form.Item name="notes" label="ملاحظات">
+            <Input.TextArea rows={2} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Pay Modal */}
+      <Modal title="تسجيل دفع" open={payOpen} onOk={handlePay}
+        onCancel={() => { setPayOpen(false); payForm.resetFields(); }}
+        okText="دفع" cancelText="إلغاء">
+        <Form form={payForm} layout="vertical">
+          <Form.Item name="amount" label="المبلغ" rules={[{ required: true, message: 'مطلوب' }]}>
+            <InputNumber min={0} precision={2} style={{ width: '100%' }}
+              max={selectedInvoice
+                ? Number(selectedInvoice.totalAmount) - Number(selectedInvoice.paidAmount)
+                : undefined} />
+          </Form.Item>
+          <Form.Item name="paymentMethod" label="طريقة الدفع" rules={[{ required: true, message: 'مطلوب' }]}>
+            <Select>
+              <Option value="CASH">نقدي</Option>
+              <Option value="BANK_TRANSFER">تحويل بنكي</Option>
+              <Option value="CHEQUE">شيك</Option>
+              <Option value="CARD">بطاقة</Option>
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
+  );
+}
+===== modules/sales-ui/src/lib/pages/orders.page.tsx =====
+import { useState } from 'react';
+import { Button, Input, Select, Space, Tag, Table, Popconfirm, message } from 'antd';
+import { PlusOutlined, SearchOutlined, EyeOutlined, CheckOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import { useOrders, useCreateOrder, useConfirmOrder } from '../hooks/useOrders';
+import { useCustomers } from '../hooks/useCustomers';
+import { useProducts } from '@org/inventory-ui';
+import OrderForm from '../components/orders/order-form';
+
+const { Option } = Select;
+const BRANCH_ID = 'main';
+
+const statusColors: Record<string, string> = {
+  DRAFT: 'default', CONFIRMED: 'blue', DELIVERED: 'green', CANCELLED: 'red',
+};
+const statusLabels: Record<string, string> = {
+  DRAFT: 'مسودة', CONFIRMED: 'مؤكد', DELIVERED: 'تم التسليم', CANCELLED: 'ملغي',
+};
+
+export default function OrdersPage() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const { data: orders, isLoading } = useOrders();
+  const { data: customers } = useCustomers();
+  const { data: products } = useProducts();
+  const createMutation = useCreateOrder();
+  const confirmMutation = useConfirmOrder();
+
+  const filtered = (orders || []).filter((o: any) => {
+    const matchSearch = !search || o.orderNumber?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = !statusFilter || o.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  const columns = [
+    { title: 'رقم الأمر', dataIndex: 'orderNumber', key: 'orderNumber' },
+    {
+      title: 'الحالة', dataIndex: 'status', key: 'status',
+      render: (v: string) => <Tag color={statusColors[v]}>{statusLabels[v]}</Tag>,
+    },
+    {
+      title: 'الإجمالي', dataIndex: 'totalAmount', key: 'totalAmount',
+      render: (v: number) => `${Number(v).toFixed(2)} ج.م`,
+    },
+    {
+      title: 'التاريخ', dataIndex: 'createdAt', key: 'createdAt',
+      render: (v: string) => new Date(v).toLocaleDateString('ar-EG'),
+    },
+    {
+      title: 'إجراءات', key: 'actions',
+      render: (_: any, record: any) => (
+        <Space>
+          {record.status === 'DRAFT' && (
+            <Popconfirm title="تأكيد الأمر؟" onConfirm={() =>
+              confirmMutation.mutate(record.id, { onSuccess: () => message.success('تم التأكيد') })
+            }>
+              <Button icon={<CheckOutlined />} size="small" type="primary">تأكيد</Button>
+            </Popconfirm>
+          )}
+          <Button icon={<EyeOutlined />} size="small"
+            onClick={() => navigate(`/sales/orders/${record.id}`)}>
+            التفاصيل
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <div style={{ padding: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+        <h2 style={{ margin: 0 }}>أوامر البيع</h2>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalOpen(true)}>
+          أمر بيع جديد
+        </Button>
+      </div>
+
+      <Space style={{ marginBottom: 16 }}>
+        <Input
+          prefix={<SearchOutlined />}
+          placeholder="بحث برقم الأمر..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ width: 200 }}
+          allowClear
+        />
+        <Select
+          placeholder="فلتر بالحالة"
+          allowClear
+          style={{ width: 150 }}
+          onChange={(v) => setStatusFilter(v)}
+        >
+          <Option value="DRAFT">مسودة</Option>
+          <Option value="CONFIRMED">مؤكد</Option>
+          <Option value="DELIVERED">تم التسليم</Option>
+          <Option value="CANCELLED">ملغي</Option>
+        </Select>
+      </Space>
+
+      <Table
+        columns={columns}
+        dataSource={filtered}
+        loading={isLoading}
+        rowKey="id"
+        pagination={{ pageSize: 10 }}
+      />
+
+      <OrderForm
+        open={isModalOpen}
+        loading={createMutation.isPending}
+        customers={customers || []}
+        products={products || []}
+        branchId={BRANCH_ID}
+        onSubmit={(values) => createMutation.mutate(values, { onSuccess: () => setIsModalOpen(false) })}
+        onCancel={() => setIsModalOpen(false)}
+      />
+    </div>
+  );
+}
+===== modules/sales-ui/src/lib/pages/quotations.page.tsx =====
+import { useState } from 'react';
+import { Table, Button, Modal, Form, Input, InputNumber, Space, Popconfirm, message, Tag, Select, Divider, Typography } from 'antd';
+import { PlusOutlined, CheckOutlined, DeleteOutlined, SearchOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import { useQuotations, useCreateQuotation, useConfirmQuotation, useDeleteQuotation } from '../hooks/useQuotations';
+import { useCustomers } from '../hooks/useCustomers';
+import { useProducts } from '@org/inventory-ui';
+
+const { Option } = Select;
+const { Text } = Typography;
+
+const statusColors: Record<string, string> = {
+  DRAFT: 'default', SENT: 'blue', CONFIRMED: 'green', CANCELLED: 'red', EXPIRED: 'orange',
+};
+const statusLabels: Record<string, string> = {
+  DRAFT: 'مسودة', SENT: 'مرسل', CONFIRMED: 'مؤكد', CANCELLED: 'ملغي', EXPIRED: 'منتهي',
+};
+
+export default function QuotationsPage() {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
+  const [form] = Form.useForm();
+
+  const { data: quotations, isLoading } = useQuotations();
+  const { data: customers } = useCustomers();
+  const { data: products } = useProducts();
+  const createQuotation = useCreateQuotation();
+  const confirmQuotation = useConfirmQuotation();
+  const deleteQuotation = useDeleteQuotation();
+
+  const calculateTotal = () => {
+    const items = form.getFieldValue('items') || [];
+    const discount = Number(form.getFieldValue('discountAmount') ?? 0);
+    const sum = items.reduce((acc: number, item: any) => {
+      return acc + Number(item?.quantity ?? 0) * Number(item?.unitPrice ?? 0) - Number(item?.discount ?? 0);
+    }, 0);
+    setTotal(Math.max(0, sum - discount));
+  };
+
+  const handleProductChange = (productId: string, name: number) => {
+    const product = products?.find((p: any) => p.id === productId);
+    if (product?.salePrice) {
+      const items = form.getFieldValue('items');
+      items[name] = { ...items[name], unitPrice: Number(product.salePrice) };
+      form.setFieldsValue({ items });
+      calculateTotal();
+    }
+  };
+
+  const handleSubmit = async () => {
+    const values = await form.validateFields();
+    await createQuotation.mutateAsync(values);
+    message.success('تم إنشاء عرض السعر');
+    setOpen(false);
+    form.resetFields();
+    setTotal(0);
+  };
+
+  const filtered = (quotations || []).filter((q: any) => {
+    const matchSearch = !search || q.quotationNumber?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = !statusFilter || q.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  const columns = [
+    { title: 'الرقم', dataIndex: 'quotationNumber', key: 'quotationNumber' },
+    {
+      title: 'العميل', dataIndex: 'customer', key: 'customer',
+      render: (c: any) => c?.name ?? '—',
+    },
+    {
+      title: 'الحالة', dataIndex: 'status', key: 'status',
+      render: (v: string) => <Tag color={statusColors[v]}>{statusLabels[v]}</Tag>,
+    },
+    {
+      title: 'الإجمالي', dataIndex: 'totalAmount', key: 'totalAmount',
+      render: (v: number) => `${Number(v).toFixed(2)} ج.م`,
+    },
+    {
+      title: 'صالح حتى', dataIndex: 'validUntil', key: 'validUntil',
+      render: (v: string) => v ? new Date(v).toLocaleDateString('ar-EG') : '—',
+    },
+    {
+      title: 'إجراءات', key: 'actions',
+      render: (_: any, record: any) => (
+        <Space>
+          {record.status === 'DRAFT' && (
+            <Popconfirm title="تأكيد وتحويل لأمر بيع؟"
+              onConfirm={() => confirmQuotation.mutateAsync(record.id)
+                .then(() => message.success('تم التأكيد وإنشاء أمر بيع'))}>
+              <Button icon={<CheckOutlined />} size="small" type="primary">تأكيد</Button>
+            </Popconfirm>
+          )}
+          {record.status === 'DRAFT' && (
+            <Popconfirm title="هل أنت متأكد من الحذف؟"
+              onConfirm={() => deleteQuotation.mutateAsync(record.id)
+                .then(() => message.success('تم الحذف'))}>
+              <Button icon={<DeleteOutlined />} size="small" danger />
+            </Popconfirm>
+          )}
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <div style={{ padding: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+        <h2 style={{ margin: 0 }}>عروض الأسعار</h2>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>
+          عرض سعر جديد
+        </Button>
+      </div>
+
+      <Space style={{ marginBottom: 16 }}>
+        <Input
+          prefix={<SearchOutlined />}
+          placeholder="بحث برقم العرض..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ width: 200 }}
+          allowClear
+        />
+        <Select placeholder="فلتر بالحالة" allowClear style={{ width: 150 }}
+          onChange={(v) => setStatusFilter(v)}>
+          <Option value="DRAFT">مسودة</Option>
+          <Option value="SENT">مرسل</Option>
+          <Option value="CONFIRMED">مؤكد</Option>
+          <Option value="CANCELLED">ملغي</Option>
+          <Option value="EXPIRED">منتهي</Option>
+        </Select>
+      </Space>
+
+      <Table columns={columns} dataSource={filtered} loading={isLoading} rowKey="id"
+        pagination={{ pageSize: 10 }} />
+
+      <Modal
+        title="عرض سعر جديد"
+        open={open}
+        onOk={handleSubmit}
+        onCancel={() => { setOpen(false); form.resetFields(); setTotal(0); }}
+        confirmLoading={createQuotation.isPending}
+        okText="حفظ" cancelText="إلغاء" width={850}
+      >
+        <Form form={form} layout="vertical" style={{ marginTop: 16 }} onValuesChange={calculateTotal}>
+          <Form.Item name="customerId" label="العميل">
+            <Select allowClear showSearch placeholder="اختر العميل"
+              filterOption={(input, option) =>
+                (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
+              }
+              options={customers?.map((c: any) => ({ label: c.name, value: c.id }))} />
+          </Form.Item>
+          <Space style={{ width: '100%' }} size="middle">
+            <Form.Item name="currency" label="العملة" initialValue="EGP" style={{ flex: 1 }}>
+              <Select>
+                <Option value="EGP">جنيه مصري (EGP)</Option>
+                <Option value="USD">دولار أمريكي (USD)</Option>
+                <Option value="EUR">يورو (EUR)</Option>
+              </Select>
+            </Form.Item>
+            <Form.Item name="validUntil" label="صالح حتى" style={{ flex: 1 }}>
+              <Input type="date" />
+            </Form.Item>
+            <Form.Item name="discountAmount" label="خصم كلي" style={{ flex: 1 }}>
+              <InputNumber min={0} precision={2} style={{ width: '100%' }} />
+            </Form.Item>
+          </Space>
+          <Form.Item name="notes" label="ملاحظات">
+            <Input.TextArea rows={2} />
+          </Form.Item>
+
+          <Divider>البنود</Divider>
+
+          <Form.List name="items" initialValue={[{}]}>
+            {(fields, { add, remove }) => (
+              <>
+                {fields.map(({ key, name, ...rest }) => (
+                  <Space key={key} align="baseline" style={{ display: 'flex', marginBottom: 8 }} wrap>
+                    <Form.Item {...rest} name={[name, 'productId']} label="المنتج"
+                      rules={[{ required: true, message: 'مطلوب' }]}>
+                      <Select placeholder="اختر المنتج" style={{ width: 190 }} showSearch
+                        filterOption={(input, option) =>
+                          (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
+                        }
+                        options={products?.map((p: any) => ({ label: p.name, value: p.id }))}
+                        onChange={(val) => handleProductChange(val, name)} />
+                    </Form.Item>
+                    <Form.Item {...rest} name={[name, 'quantity']} label="الكمية"
+                      rules={[{ required: true, message: 'مطلوب' }]}>
+                      <InputNumber min={1} style={{ width: 80 }} />
+                    </Form.Item>
+                    <Form.Item {...rest} name={[name, 'unitPrice']} label="السعر"
+                      rules={[{ required: true, message: 'مطلوب' }]}>
+                      <InputNumber min={0} precision={2} style={{ width: 100 }} />
+                    </Form.Item>
+                    <Form.Item {...rest} name={[name, 'discount']} label="خصم">
+                      <InputNumber min={0} precision={2} style={{ width: 80 }} />
+                    </Form.Item>
+                    <MinusCircleOutlined
+                      onClick={() => { remove(name); calculateTotal(); }}
+                      style={{ color: 'red', marginTop: 8 }} />
+                  </Space>
+                ))}
+                <Button type="dashed" onClick={() => add({})} icon={<PlusOutlined />} block>
+                  إضافة بند
+                </Button>
+              </>
+            )}
+          </Form.List>
+
+          <Divider />
+          <div style={{ textAlign: 'left' }}>
+            <Text strong style={{ fontSize: 16 }}>
+              الإجمالي: {total.toFixed(2)} ج.م
+            </Text>
+          </div>
+        </Form>
+      </Modal>
+    </div>
+  );
+}
+===== modules/sales-ui/src/lib/pages/sales-returns.page.tsx =====
+import { useState } from 'react';
+import { Table, Tag, Button, Popconfirm, message, Space, Input, Select } from 'antd';
+import { CheckOutlined, SearchOutlined } from '@ant-design/icons';
+import { useSalesReturns, useConfirmSalesReturn } from '../hooks/useSalesReturns';
+
+const { Option } = Select;
+
+const statusColors: Record<string, string> = {
+  DRAFT: 'default', CONFIRMED: 'green', CANCELLED: 'red',
+};
+const statusLabels: Record<string, string> = {
+  DRAFT: 'مسودة', CONFIRMED: 'مؤكد', CANCELLED: 'ملغي',
+};
+
+export default function SalesReturnsPage() {
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const { data: returns, isLoading } = useSalesReturns();
+  const confirmReturn = useConfirmSalesReturn();
+
+  const filtered = (returns || []).filter((r: any) => {
+    const matchSearch = !search || r.returnNumber?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = !statusFilter || r.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  const columns = [
+    { title: 'رقم المرتجع', dataIndex: 'returnNumber', key: 'returnNumber' },
+    { title: 'السبب', dataIndex: 'reason', key: 'reason' },
+    {
+      title: 'الإجمالي', dataIndex: 'totalAmount', key: 'totalAmount',
+      render: (v: number) => `${Number(v).toFixed(2)} ج.م`,
+    },
+    {
+      title: 'الحالة', dataIndex: 'status', key: 'status',
+      render: (v: string) => <Tag color={statusColors[v]}>{statusLabels[v]}</Tag>,
+    },
+    {
+      title: 'التاريخ', dataIndex: 'createdAt', key: 'createdAt',
+      render: (v: string) => new Date(v).toLocaleDateString('ar-EG'),
+    },
+    {
+      title: 'إجراءات', key: 'actions',
+      render: (_: any, record: any) => record.status === 'DRAFT' && (
+        <Popconfirm title="تأكيد المرتجع؟" onConfirm={() =>
+          confirmReturn.mutateAsync(record.id).then(() => message.success('تم التأكيد'))
+        }>
+          <Button icon={<CheckOutlined />} size="small" type="primary">تأكيد</Button>
+        </Popconfirm>
+      ),
+    },
+  ];
+
+  return (
+    <div style={{ padding: 24 }}>
+      <h2 style={{ marginBottom: 16 }}>المرتجعات</h2>
+      <Space style={{ marginBottom: 16 }}>
+        <Input prefix={<SearchOutlined />} placeholder="بحث برقم المرتجع..."
+          value={search} onChange={(e) => setSearch(e.target.value)}
+          style={{ width: 200 }} allowClear />
+        <Select placeholder="فلتر بالحالة" allowClear style={{ width: 150 }}
+          onChange={(v) => setStatusFilter(v)}>
+          <Option value="DRAFT">مسودة</Option>
+          <Option value="CONFIRMED">مؤكد</Option>
+          <Option value="CANCELLED">ملغي</Option>
+        </Select>
+      </Space>
+      <Table columns={columns} dataSource={filtered} loading={isLoading} rowKey="id"
+        pagination={{ pageSize: 10 }} />
+    </div>
+  );
+}
+===== modules/sales-ui/src/lib/routes.tsx =====
+import type { RouteObject } from 'react-router-dom';
+import CustomersPage from './pages/customers.page';
+import OrdersPage from './pages/orders.page';
+import OrderDetailPage from './pages/order-detail.page';
+import QuotationsPage from './pages/quotations.page';
+import InvoicesPage from './pages/invoices.page';
+import DeliveriesPage from './pages/deliveries.page';
+import SalesReturnsPage from './pages/sales-returns.page';
+
+export const salesRoutes: RouteObject[] = [
+  {
+    path: 'sales',
+    children: [
+      { path: 'quotations', element: <QuotationsPage /> },
+      { path: 'orders', element: <OrdersPage /> },
+      { path: 'orders/:id', element: <OrderDetailPage /> },
+      { path: 'invoices', element: <InvoicesPage /> },
+      { path: 'deliveries', element: <DeliveriesPage /> },
+      { path: 'returns', element: <SalesReturnsPage /> },
+      { path: 'customers', element: <CustomersPage /> },
+    ],
+  },
+];

@@ -1,24 +1,44 @@
-import { Table, Button, Space, Popconfirm } from 'antd';
-import { DeleteOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Popconfirm, Tag } from 'antd';
+import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
 
 interface Props {
   data: any[];
   loading: boolean;
-  onDelete?: (id: string) => void;
+  onEdit: (record: any) => void;
+  onDelete: (id: string) => void;
 }
 
-export default function WarehouseTable({ data, loading, onDelete }: Props) {
+export default function WarehouseTable({ data, loading, onEdit, onDelete }: Props) {
   const columns = [
     { title: 'الاسم', dataIndex: 'name', key: 'name' },
-    { title: 'العنوان', dataIndex: 'address', key: 'address' },
+    {
+      title: 'العنوان',
+      dataIndex: 'address',
+      key: 'address',
+      render: (v: string) => v || <span style={{ color: '#999' }}>—</span>,
+    },
+    {
+      title: 'الحالة',
+      dataIndex: 'isActive',
+      key: 'isActive',
+      render: (v: boolean) => <Tag color={v ? 'green' : 'red'}>{v ? 'نشط' : 'معطل'}</Tag>,
+    },
     {
       title: 'إجراءات',
       key: 'actions',
       render: (_: any, record: any) => (
         <Space>
+          <Button
+            icon={<EditOutlined />}
+            size="small"
+            onClick={() => onEdit(record)}
+          >
+            تعديل
+          </Button>
           <Popconfirm
-            title="هل أنت متأكد من الحذف؟"
-            onConfirm={() => onDelete?.(record.id)}
+            title="هل أنت متأكد من حذف المخزن؟"
+            description="سيتم حذف المخزن وكل المخزون المرتبط به."
+            onConfirm={() => onDelete(record.id)}
             okText="نعم"
             cancelText="لا"
           >
@@ -29,5 +49,13 @@ export default function WarehouseTable({ data, loading, onDelete }: Props) {
     },
   ];
 
-  return <Table columns={columns} dataSource={data} rowKey="id" loading={loading} />;
+  return (
+    <Table
+      columns={columns}
+      dataSource={data}
+      rowKey="id"
+      loading={loading}
+      pagination={{ pageSize: 20 }}
+    />
+  );
 }

@@ -1,4 +1,8 @@
-export type AccountType = 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE' | 'COGS';
+export type AccountType =
+  | 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE'
+  | 'EXPENSE' | 'COGS' | 'BANK' | 'CASH' | 'RECEIVABLE' | 'PAYABLE';
+
+export type NormalBalance = 'DEBIT' | 'CREDIT';
 
 export class ChartOfAccountEntity {
   constructor(
@@ -6,6 +10,10 @@ export class ChartOfAccountEntity {
     public code: string,
     public name: string,
     public type: AccountType,
+    public normalBalance: NormalBalance,
+    public level: number,
+    public isGroup: boolean,
+    public parentId: string | null,
     public isActive: boolean,
     public readonly companyId: string,
   ) {}
@@ -15,10 +23,20 @@ export class ChartOfAccountEntity {
     code: string;
     name: string;
     type: AccountType;
+    normalBalance: NormalBalance;
+    level?: number;
+    isGroup?: boolean;
+    parentId?: string | null;
     companyId: string;
   }): ChartOfAccountEntity {
     return new ChartOfAccountEntity(
-      data.id, data.code, data.name, data.type, true, data.companyId,
+      data.id, data.code, data.name, data.type,
+      data.normalBalance,
+      data.level ?? 1,
+      data.isGroup ?? false,
+      data.parentId ?? null,
+      true,
+      data.companyId,
     );
   }
 

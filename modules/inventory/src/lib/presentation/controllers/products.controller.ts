@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Inject } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard, RequirePermission, PermissionGuard } from '@org/core';
+import { JwtAuthGuard, RequirePermission, PermissionGuard, CurrentUser } from '@org/core';
 import { CreateProductUseCase } from '../../application/use-cases/products/create-product.use-case';
 import { UpdateProductUseCase } from '../../application/use-cases/products/update-product.use-case';
 import type { IProductRepository } from '../../domain/repositories/product.repository.interface';
@@ -9,6 +9,7 @@ import { CreateProductDto, UpdateProductDto } from '../../application/dtos/produ
 import { ProductEntity } from '../../domain/entities/product.entity';
 import { PrismaService } from '@org/core';
 import { randomUUID } from 'crypto';
+
 const serializeProduct = (product: ProductEntity) => ({
   id: product.id,
   name: product.name,
@@ -21,6 +22,7 @@ const serializeProduct = (product: ProductEntity) => ({
   categoryId: product.categoryId,
   unitOfMeasureId: product.unitOfMeasureId,
   isActive: product.isActive,
+  companyId: product.companyId,
 });
 
 @ApiTags('Products')
@@ -38,8 +40,8 @@ export class ProductsController {
 
   @Get()
   @RequirePermission('inventory.products.view')
-  async findAll() {
-    const products = await this.productRepository.findAll();
+  async findAll(@CurrentUser('companyId') companyId: string) {
+    const products = await this.productRepository.findAll(companyId);
     return products.map(serializeProduct);
   }
 
@@ -52,29 +54,28 @@ export class ProductsController {
 
   @Post()
   @RequirePermission('inventory.products.create')
-  async create(@Body() dto: CreateProductDto) {
-    const product = await this.createProductUseCase.execute(dto);
+  async create(@Body() dto: CreateProductDto, @CurrentUser('companyId') companyId: string) {
+    const product = await this.createProductUseCase.execute(dto, companyId);
     return serializeProduct(product);
   }
 
- @Patch(':id')
-@RequirePermission('inventory.products.edit')
-async update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
-  const product = await this.updateProductUseCase.execute(id, dto);
-  
-  if (dto.price !== undefined || dto.cost !== undefined) {
-    await this.prisma.productPriceHistory.create({
-      data: {
-        id: randomUUID(),
-        productId: id,
-        price: product.price.getAmount(),
-        cost: product.cost.getAmount(),
-      },
-    });
+  @Patch(':id')
+  @RequirePermission('inventory.products.edit')
+  async update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
+    const product = await this.updateProductUseCase.execute(id, dto);
+    if (dto.price !== undefined || dto.cost !== undefined) {
+      await this.prisma.productPriceHistory.create({
+        data: {
+          id: randomUUID(),
+          productId: id,
+          price: product.price.getAmount(),
+          cost: product.cost.getAmount(),
+        },
+      });
+    }
+    return serializeProduct(product);
   }
-  
-  return serializeProduct(product);
-}
+
   @Delete(':id')
   @RequirePermission('inventory.products.delete')
   remove(@Param('id') id: string) {

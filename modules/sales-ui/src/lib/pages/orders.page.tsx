@@ -1,53 +1,78 @@
 import { useState } from 'react';
-import { Button } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
-import { useOrders, useCreateOrder, useConfirmOrder } from '../hooks/useOrders';
+import { Button, Input, Select, Space } from 'antd';
+import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { useOrders, useCreateOrder, useConfirmOrder, useCancelOrder } from '../hooks/useOrders';
 import { useCustomers } from '../hooks/useCustomers';
-import OrderTable from '../components/orders/order-table';
+import { useProducts } from '@org/inventory-ui'; // تأكد إن المسار ده سليم في الـ Monorepo
 import OrderForm from '../components/orders/order-form';
-import InvoicesPage from './invoices.page';
+import OrderTable from '../components/orders/order-table';
 
-const BRANCH_ID = 'main';
+const { Option } = Select;
 
 export default function OrdersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const { data: orders, isLoading } = useOrders(BRANCH_ID);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+
+  const { data: orders, isLoading } = useOrders();
   const { data: customers } = useCustomers();
+  const { data: products } = useProducts();
+  
   const createMutation = useCreateOrder();
   const confirmMutation = useConfirmOrder();
+  const cancelMutation = useCancelOrder();
 
-  if (selectedOrderId) {
-    return (
-      <div dir="rtl">
-        <Button onClick={() => setSelectedOrderId(null)} style={{ marginBottom: 16 }}>
-          رجوع للأوردرات
-        </Button>
-        <InvoicesPage orderId={selectedOrderId} />
-      </div>
-    );
-  }
+  // فلترة البيانات
+  const filteredOrders = (orders as any[] ?? []).filter((o: any) => {
+    const matchSearch = !search || o.orderNumber?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = !statusFilter || o.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
 
   return (
-    <div dir="rtl">
+    <div style={{ padding: 24 }} dir="rtl">
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h2>الأوردرات</h2>
+        <h2 style={{ margin: 0 }}>أوامر البيع</h2>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalOpen(true)}>
-          أوردر جديد
+          أمر بيع جديد
         </Button>
       </div>
-      <OrderTable
-        data={orders || []}
+
+      <Space style={{ marginBottom: 16 }}>
+        <Input
+          prefix={<SearchOutlined />}
+          placeholder="بحث برقم الأمر..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ width: 220 }}
+          allowClear
+        />
+        <Select 
+          placeholder="فلتر بالحالة" 
+          allowClear 
+          style={{ width: 160 }}
+          onChange={(v) => setStatusFilter(v)}
+        >
+          <Option value="DRAFT">مسودة</Option>
+          <Option value="CONFIRMED">مؤكد</Option>
+          <Option value="DELIVERED">تم التسليم</Option>
+          <Option value="CANCELLED">ملغي</Option>
+        </Select>
+      </Space>
+
+      {/* ✅ استخدام الـ Table النضيف بعد الـ Refactor */}
+      <OrderTable 
+        data={filteredOrders}
         loading={isLoading}
         onConfirm={(id) => confirmMutation.mutate(id)}
-        onViewInvoices={(id) => setSelectedOrderId(id)}
+        onCancel={(id) => cancelMutation.mutate(id)}
       />
+
       <OrderForm
         open={isModalOpen}
         loading={createMutation.isPending}
-        customers={customers || []}
-        products={[]}
-        branchId={BRANCH_ID}
+        customers={customers as any[] ?? []}
+        products={products as any[] ?? []}
         onSubmit={(values) => createMutation.mutate(values, { onSuccess: () => setIsModalOpen(false) })}
         onCancel={() => setIsModalOpen(false)}
       />

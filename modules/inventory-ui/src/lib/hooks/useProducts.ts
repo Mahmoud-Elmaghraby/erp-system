@@ -2,12 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inventoryApi } from '../api/inventory.api';
 import { message } from 'antd';
 
-export const useProducts = () => {
-  return useQuery({
-    queryKey: ['products'],
-    queryFn: inventoryApi.products.getAll,
-  });
-};
+export const useProducts = () => useQuery({
+  queryKey: ['products'],
+  queryFn: async () => {
+    const res = await inventoryApi.products.getAll() as any;
+    return res?.data ?? res ?? [];
+  },
+});
 
 export const useCreateProduct = () => {
   const queryClient = useQueryClient();
@@ -15,6 +16,19 @@ export const useCreateProduct = () => {
     mutationFn: inventoryApi.products.create,
     onSuccess: () => {
       message.success('تم إضافة المنتج بنجاح');
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+    onError: () => message.error('حدث خطأ'),
+  });
+};
+
+export const useUpdateProduct = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      inventoryApi.products.update(id, data),
+    onSuccess: () => {
+      message.success('تم تعديل المنتج بنجاح');
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },
     onError: () => message.error('حدث خطأ'),

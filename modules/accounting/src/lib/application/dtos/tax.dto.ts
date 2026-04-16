@@ -1,22 +1,31 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsString, IsNotEmpty, IsOptional, IsNumber, IsUUID } from 'class-validator';
+
 export class CreateTaxDto {
-  name!: string;
-  rate!: number;
-  taxType?: 'PERCENTAGE' | 'FIXED' | 'NONE';
-  scope?: 'SALES' | 'PURCHASES' | 'BOTH';
-  companyId!: string;
-  accountId?: string;
-  etaType?: string;
-  etaSubtype?: string;
-  zatcaType?: string;
+  @ApiProperty() @IsString() @IsNotEmpty() name!: string;
+  @ApiProperty() @IsNumber() rate!: number;
+
+  @ApiPropertyOptional({ enum: ['PERCENTAGE', 'FIXED', 'NONE'] })
+  @IsString() @IsOptional() taxType?: 'PERCENTAGE' | 'FIXED' | 'NONE';
+
+  @ApiPropertyOptional({ enum: ['SALES', 'PURCHASES', 'BOTH'] })
+  @IsString() @IsOptional() scope?: 'SALES' | 'PURCHASES' | 'BOTH';
+
+  @ApiPropertyOptional() @IsUUID() @IsOptional() salesAccountId?:    string;
+  @ApiPropertyOptional() @IsUUID() @IsOptional() purchaseAccountId?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() etaType?:    string;
+  @ApiPropertyOptional() @IsString() @IsOptional() etaSubtype?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional() zatcaType?:  string;
 }
 
 export class UpdateTaxDto {
-  name?: string;
-  rate?: number;
-  taxType?: 'PERCENTAGE' | 'FIXED' | 'NONE';
-  scope?: 'SALES' | 'PURCHASES' | 'BOTH';
-  accountId?: string;
-  etaType?: string;
-  etaSubtype?: string;
-  zatcaType?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional()  name?: string;
+  @ApiPropertyOptional() @IsNumber() @IsOptional()  rate?: number;
+  @ApiPropertyOptional() @IsString() @IsOptional()  taxType?: 'PERCENTAGE' | 'FIXED' | 'NONE';
+  @ApiPropertyOptional() @IsString() @IsOptional()  scope?: 'SALES' | 'PURCHASES' | 'BOTH';
+  @ApiPropertyOptional() @IsUUID() @IsOptional()    salesAccountId?:    string;
+  @ApiPropertyOptional() @IsUUID() @IsOptional()    purchaseAccountId?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional()  etaType?:    string;
+  @ApiPropertyOptional() @IsString() @IsOptional()  etaSubtype?: string;
+  @ApiPropertyOptional() @IsString() @IsOptional()  zatcaType?:  string;
 }

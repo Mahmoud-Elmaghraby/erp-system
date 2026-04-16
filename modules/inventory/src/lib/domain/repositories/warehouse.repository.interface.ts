@@ -1,7 +1,7 @@
 import { WarehouseEntity } from '../entities/warehouse.entity';
 
 export interface IWarehouseRepository {
-  findAll(branchId: string): Promise<WarehouseEntity[]>;
+  findAll(companyId: string): Promise<WarehouseEntity[]>;
   findById(id: string): Promise<WarehouseEntity | null>;
   create(warehouse: WarehouseEntity): Promise<WarehouseEntity>;
   update(id: string, data: Partial<WarehouseEntity>): Promise<WarehouseEntity>;

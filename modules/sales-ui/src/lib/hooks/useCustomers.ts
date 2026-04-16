@@ -4,7 +4,10 @@ import { message } from 'antd';
 
 export const useCustomers = () => useQuery({
   queryKey: ['customers'],
-  queryFn: salesApi.customers.getAll,
+  queryFn: async () => {
+    const res = await salesApi.customers.getAll() as any;
+    return res?.data ?? res ?? [];
+  },
 });
 
 export const useCreateCustomer = () => {
@@ -13,6 +16,19 @@ export const useCreateCustomer = () => {
     mutationFn: salesApi.customers.create,
     onSuccess: () => {
       message.success('تم إضافة العميل بنجاح');
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
+    onError: () => message.error('حدث خطأ'),
+  });
+};
+
+export const useUpdateCustomer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      salesApi.customers.update(id, data),
+    onSuccess: () => {
+      message.success('تم تعديل العميل بنجاح');
       queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
     onError: () => message.error('حدث خطأ'),

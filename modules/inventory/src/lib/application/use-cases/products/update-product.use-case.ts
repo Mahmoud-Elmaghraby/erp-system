@@ -8,19 +8,34 @@ import { UpdateProductDto } from '../../dtos/product.dto';
 export class UpdateProductUseCase {
   constructor(
     @Inject(PRODUCT_REPOSITORY)
-    private productRepository: IProductRepository,
+    private readonly productRepository: IProductRepository,
   ) {}
 
   async execute(id: string, dto: UpdateProductDto) {
-    const product = await this.productRepository.findById(id);
-    if (!product) throw new NotFoundException('Product not found');
 
-    return this.productRepository.update(id, {
+    const product = await this.productRepository.findById(id);
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    product.updateDetails({
       name: dto.name,
       description: dto.description,
-      price: dto.price !== undefined ? Money.create(dto.price) : undefined,
-      cost: dto.cost !== undefined ? Money.create(dto.cost) : undefined,
+      barcode: dto.barcode,
+      sku: dto.sku,
       categoryId: dto.categoryId,
+      unitOfMeasureId: dto.unitOfMeasureId,
     });
+
+    if (dto.price !== undefined) {
+      product.updatePrice(Money.create(dto.price));
+    }
+
+    if (dto.cost !== undefined) {
+      product.updateCost(Money.create(dto.cost));
+    }
+
+    return this.productRepository.save(product);
   }
 }

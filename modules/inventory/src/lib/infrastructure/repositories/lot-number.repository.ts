@@ -33,6 +33,7 @@ export class LotNumberRepository implements ILotNumberRepository {
         warehouseId: entity.warehouseId,
         quantity: entity.quantity,
         notes: entity.notes,
+        expiryDate: entity.expiryDate,
       },
     });
     return this.toEntity(lot);
@@ -49,7 +50,7 @@ export class LotNumberRepository implements ILotNumberRepository {
   private toEntity(l: any): LotNumberEntity {
     return new LotNumberEntity(
       l.id, l.lotNumber, l.productId, l.warehouseId,
-      Number(l.quantity), l.receivedDate, l.notes,
+      Number(l.quantity), l.receivedDate, l.notes, l.expiryDate ?? null,
     );
   }
 }

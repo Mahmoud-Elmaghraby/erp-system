@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Inject } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard, RequirePermission, PermissionGuard } from '@org/core';
+import { JwtAuthGuard, RequirePermission, PermissionGuard, CurrentUser } from '@org/core';
 import type { IReorderingRuleRepository } from '../../domain/repositories/reordering-rule.repository.interface';
 import { REORDERING_RULE_REPOSITORY } from '../../domain/repositories/reordering-rule.repository.interface';
 import { ReorderingRuleEntity } from '../../domain/entities/reordering-rule.entity';
@@ -19,8 +19,11 @@ export class ReorderingRulesController {
 
   @Get()
   @RequirePermission('inventory.reordering.view')
-  findAll(@Query('warehouseId') warehouseId?: string) {
-    return this.reorderingRuleRepository.findAll(warehouseId);
+  findAll(
+    @CurrentUser('companyId') companyId: string,
+    @Query('warehouseId') warehouseId?: string,
+  ) {
+    return this.reorderingRuleRepository.findAll(companyId, warehouseId);
   }
 
   @Post()

@@ -4,7 +4,10 @@ import { message } from 'antd';
 
 export const useAdjustments = (warehouseId?: string) => useQuery({
   queryKey: ['adjustments', warehouseId],
-  queryFn: () => inventoryApi.adjustments.getAll(warehouseId),
+  queryFn: async () => {
+    const res = await inventoryApi.adjustments.getAll(warehouseId) as any;
+    return res?.data ?? res ?? [];
+  },
 });
 
 export const useCreateAdjustment = () => {

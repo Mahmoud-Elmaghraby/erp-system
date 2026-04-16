@@ -1,14 +1,14 @@
-import { Module } from '@nestjs/common';
-import { AuthModule } from './auth/auth.module';
-import { CompaniesModule } from './companies/companies.module';
-import { BranchesModule } from './branches/branches.module';
-import { RbacModule } from './rbac/rbac.module';
-import { UsersModule } from './users/users.module';
-import { RedisModule } from './redis/redis.module';
-import { OutboxModule } from './outbox/outbox.module';
-import { ConfigModule } from './config/config.module';
-import { CurrencyModule } from './currency/currency.module';
-import { SettingsModule } from './settings/settings.module';
+import { Module } from "@nestjs/common";
+import { CompaniesModule } from "./companies/companies.module";
+import { OutboxModule } from "./infrastructure/outbox/outbox.module";
+import { RedisModule } from "./infrastructure/redis/redis.module";
+import { AuthModule } from "./modules/auth/auth.module";
+import { BranchesModule } from "./modules/branches/branches.module";
+import { CurrencyModule } from "./modules/currency/currency.module";
+import { RbacModule } from "./modules/rbac/rbac.module";
+import { SettingsModule } from "./modules/settings/settings.module";
+import { UsersModule } from "./modules/users/users.module";
+
 
 @Module({
   imports: [
@@ -19,7 +19,6 @@ import { SettingsModule } from './settings/settings.module';
     RbacModule,
     UsersModule,
     OutboxModule,
-    ConfigModule,
     CurrencyModule,
     SettingsModule,
   ],
@@ -31,9 +30,8 @@ import { SettingsModule } from './settings/settings.module';
     RbacModule,
     UsersModule,
     OutboxModule,
-    ConfigModule,
     CurrencyModule,
     SettingsModule,
   ],
 })
-export class OrgCoreModule {}
+export class CoreModule {}

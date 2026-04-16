@@ -1,4 +1,4 @@
-export type SerialNumberStatus = 'IN_STOCK' | 'SOLD' | 'RETURNED' | 'DAMAGED';
+export type SerialNumberStatus = 'IN_STOCK' | 'SOLD' | 'RETURNED' | 'DEFECTIVE';
 
 export class SerialNumberEntity {
   constructor(
@@ -25,5 +25,5 @@ export class SerialNumberEntity {
 
   sell(): void { this.status = 'SOLD'; }
   return(): void { this.status = 'RETURNED'; }
-  damage(): void { this.status = 'DAMAGED'; }
+  defect(): void { this.status = 'DEFECTIVE'; }
 }

@@ -23,6 +23,7 @@ export class PurchaseReceivedListener {
   async handlePurchaseReceived(payload: {
     purchaseId: string;
     warehouseId: string;
+    companyId: string;
     items: Array<{ productId: string; quantity: number; unitCost: number }>;
   }) {
     this.logger.log(`Processing purchase received: ${payload.purchaseId}`);
@@ -42,12 +43,11 @@ export class PurchaseReceivedListener {
             quantity: item.quantity,
             warehouseId: payload.warehouseId,
             productId: item.productId,
+            companyId: payload.companyId,
             reason: 'مشتريات',
             reference: payload.purchaseId,
           }),
         );
-
-        this.logger.log(`Stock added for product ${item.productId} by ${item.quantity}`);
       } catch (error) {
         this.logger.error(`Failed to add stock for product ${item.productId}`, error);
       }

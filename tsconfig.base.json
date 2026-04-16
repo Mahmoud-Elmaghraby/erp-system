@@ -19,15 +19,17 @@
     "types": ["node"],
     "customConditions": ["@org/source"],
     "paths": {
-      "@org/core": ["./core/src/index.ts"],
-      "@org/inventory": ["./modules/inventory/src/index.ts"],
-      "@org/inventory-ui": ["./modules/inventory-ui/src/index.ts"],
-      "@org/sales": ["./modules/sales/src/index.ts"],
-      "@org/sales-ui": ["./modules/sales-ui/src/index.ts"],
-      "@org/purchasing": ["./modules/purchasing/src/index.ts"],
-      "@org/purchasing-ui": ["./modules/purchasing-ui/src/index.ts"],
-      "@org/accounting": ["./modules/accounting/src/index.ts"],
-      "@org/accounting-ui": ["./modules/accounting-ui/src/index.ts"]
-    }
+  "@org/core": ["./core/src/index.ts"],
+  "@org/api": ["./frontend/src/core/api/axios.config.ts"],
+  "@org/core-api": ["./frontend/src/core/api/core.api.ts"],
+  "@org/inventory": ["./modules/inventory/src/index.ts"],
+  "@org/inventory-ui": ["./modules/inventory-ui/src/index.ts"],
+  "@org/sales": ["./modules/sales/src/index.ts"],
+  "@org/sales-ui": ["./modules/sales-ui/src/index.ts"],
+  "@org/purchasing": ["./modules/purchasing/src/index.ts"],
+  "@org/purchasing-ui": ["./modules/purchasing-ui/src/index.ts"],
+  "@org/accounting": ["./modules/accounting/src/index.ts"],
+  "@org/accounting-ui": ["./modules/accounting-ui/src/index.ts"]
+}
   }
 }

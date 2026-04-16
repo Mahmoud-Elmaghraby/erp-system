@@ -24,6 +24,7 @@ export class OrderConfirmedListener {
   async handleOrderConfirmed(payload: {
     orderId: string;
     branchId: string;
+    companyId: string;
     items: Array<{ productId: string; quantity: number }>;
   }) {
     this.logger.log(`Processing order confirmed: ${payload.orderId}`);
@@ -48,12 +49,11 @@ export class OrderConfirmedListener {
             quantity: item.quantity,
             warehouseId: stock.warehouseId,
             productId: item.productId,
+            companyId: payload.companyId,
             reason: 'مبيعات',
             reference: payload.orderId,
           }),
         );
-
-        this.logger.log(`Stock reduced for product ${item.productId} by ${item.quantity}`);
       } catch (error) {
         this.logger.error(`Failed to reduce stock for product ${item.productId}`, error);
       }

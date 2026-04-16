@@ -12,7 +12,7 @@ export class ChartOfAccountRepository implements IChartOfAccountRepository {
       where: { companyId, isActive: true },
       orderBy: { code: 'asc' },
     });
-    return accounts.map(this.toEntity);
+    return accounts.map((a) => this.toEntity(a));
   }
 
   async findById(id: string): Promise<ChartOfAccountEntity | null> {
@@ -30,12 +30,16 @@ export class ChartOfAccountRepository implements IChartOfAccountRepository {
   async create(entity: ChartOfAccountEntity): Promise<ChartOfAccountEntity> {
     const account = await this.prisma.chartOfAccount.create({
       data: {
-        id: entity.id,
-        code: entity.code,
-        name: entity.name,
-        type: entity.type,
-        isActive: entity.isActive,
-        companyId: entity.companyId,
+        id:            entity.id,
+        code:          entity.code,
+        name:          entity.name,
+        type:          entity.type,
+        normalBalance: entity.normalBalance,
+        level:         entity.level,
+        isGroup:       entity.isGroup,
+        parentId:      entity.parentId ?? null,
+        isActive:      entity.isActive,
+        companyId:     entity.companyId,
       },
     });
     return this.toEntity(account);
@@ -44,16 +48,35 @@ export class ChartOfAccountRepository implements IChartOfAccountRepository {
   async update(id: string, data: Partial<ChartOfAccountEntity>): Promise<ChartOfAccountEntity> {
     const account = await this.prisma.chartOfAccount.update({
       where: { id },
-      data: { name: data.name, type: data.type },
+      data: {
+        name:          data.name,
+        type:          data.type,
+        normalBalance: data.normalBalance,
+        level:         data.level,
+        isGroup:       data.isGroup,
+        parentId:      data.parentId,
+        isActive:      data.isActive,
+      },
     });
     return this.toEntity(account);
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.chartOfAccount.update({ where: { id }, data: { isActive: false } });
+    await this.prisma.chartOfAccount.update({
+      where: { id },
+      data: { isActive: false },
+    });
   }
 
   private toEntity(a: any): ChartOfAccountEntity {
-    return new ChartOfAccountEntity(a.id, a.code, a.name, a.type, a.isActive, a.companyId);
+    return new ChartOfAccountEntity(
+      a.id, a.code, a.name, a.type,
+      a.normalBalance,
+      a.level,
+      a.isGroup,
+      a.parentId ?? null,
+      a.isActive,
+      a.companyId,
+    );
   }
 }

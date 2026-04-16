@@ -20,29 +20,25 @@ export class ConfirmOrderUseCase {
 
     order.confirm();
 
-    await this.prisma.$transaction(async (tx) => {
-      await this.orderRepository.update(orderId, { status: 'CONFIRMED' });
-      await this.outboxService.publish(
-        'order.confirmed',
-        {
-          orderId: order.id,
-          branchId: order.branchId,
-          items: order.items.map((i) => ({
-            productId: i.productId,
-            quantity: i.quantity,
-          })),
-        },
-        tx,
-      );
-    });
+    const branch = await this.prisma.branch.findUnique({ where: { id: order.branchId } });
+    if (!branch) throw new NotFoundException('Branch not found');
+    const companyId = branch.companyId;
 
-    this.eventEmitter.emit('order.confirmed', {
+    const eventPayload = {
       orderId: order.id,
       branchId: order.branchId,
+      companyId,
       items: order.items.map((i) => ({
         productId: i.productId,
         quantity: i.quantity,
       })),
+    };
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.orderRepository.update(orderId, { status: 'CONFIRMED' });
+      await this.outboxService.publish('order.confirmed', eventPayload, tx);
     });
+
+    this.eventEmitter.emit('order.confirmed', eventPayload);
   }
 }

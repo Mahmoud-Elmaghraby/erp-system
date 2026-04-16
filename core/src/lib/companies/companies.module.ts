@@ -1,9 +1,14 @@
+
+import { RbacModule } from '../modules/rbac/rbac.module';
+import { CompaniesController } from '../modules/companies/companies.controller';
+import { CompaniesService } from '../modules/companies/companies.service';
+import { PrismaService } from '../infrastructure/prisma/prisma.service';
 import { Module } from '@nestjs/common';
-import { CompaniesService } from './companies.service';
-import { CompaniesController } from './companies.controller';
-import { PrismaService } from '../prisma.service';
+
+
 
 @Module({
+  imports: [RbacModule],
   controllers: [CompaniesController],
   providers: [CompaniesService, PrismaService],
   exports: [CompaniesService],

@@ -12,8 +12,8 @@ export class CreateUnitUseCase {
     private unitRepository: IUnitRepository,
   ) {}
 
-  async execute(dto: CreateUnitDto): Promise<UnitEntity> {
-    const unit = UnitEntity.create({ id: randomUUID(), ...dto });
+  async execute(dto: CreateUnitDto, companyId: string): Promise<UnitEntity> {
+    const unit = UnitEntity.create({ id: randomUUID(), ...dto, companyId });
     return this.unitRepository.create(unit);
   }
 }

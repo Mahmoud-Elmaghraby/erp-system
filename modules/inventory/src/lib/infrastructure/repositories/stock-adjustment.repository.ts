@@ -7,9 +7,12 @@ import { StockAdjustmentEntity } from '../../domain/entities/stock-adjustment.en
 export class StockAdjustmentRepository implements IStockAdjustmentRepository {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(warehouseId?: string): Promise<any[]> {
+  async findAll(companyId: string, warehouseId?: string): Promise<any[]> {
     return this.prisma.stockAdjustment.findMany({
-      where: warehouseId ? { warehouseId } : {},
+      where: {
+        warehouse: { companyId },
+        ...(warehouseId && { warehouseId }),
+      },
       include: {
         warehouse: { select: { id: true, name: true } },
         items: {
@@ -57,7 +60,7 @@ export class StockAdjustmentRepository implements IStockAdjustmentRepository {
   async update(id: string, data: Partial<StockAdjustmentEntity>): Promise<StockAdjustmentEntity> {
     const adj = await this.prisma.stockAdjustment.update({
       where: { id },
-      data: { status: data.status },
+      data: { status: data.status as any },
       include: { items: true },
     });
     return this.toEntity(adj);

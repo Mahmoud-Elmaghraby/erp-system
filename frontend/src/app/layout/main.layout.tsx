@@ -12,9 +12,10 @@ import {
   ShoppingCartOutlined,
   SettingOutlined,
   ShoppingOutlined,
-  AccountBookOutlined, // ✅
+  AccountBookOutlined,
+  SafetyOutlined,
 } from '@ant-design/icons';
-import { authStore } from '../../core/auth/auth.store';
+import { useAuth } from '../context/AuthContext';
 
 const { Header, Sider, Content } = Layout;
 
@@ -46,8 +47,11 @@ const menuItems = [
     icon: <ShoppingCartOutlined />,
     label: 'المبيعات',
     children: [
+      { key: '/sales/quotations', label: 'عروض الأسعار' },
       { key: '/sales/orders', label: 'أوامر البيع' },
-      { key: '/sales/invoices', label: 'فواتير البيع' },
+      { key: '/sales/invoices', label: 'الفواتير' },
+      { key: '/sales/deliveries', label: 'التسليمات' },
+      { key: '/sales/returns', label: 'المرتجعات' },
       { key: '/sales/customers', label: 'العملاء' },
     ],
   },
@@ -60,20 +64,34 @@ const menuItems = [
       { key: '/purchasing/suppliers', label: 'الموردين' },
     ],
   },
-  {
-    key: '/accounting',                          // ✅
-    icon: <AccountBookOutlined />,
-    label: 'المحاسبة',
-    children: [
-      { key: '/accounting/taxes', label: 'الضرائب' },
-      { key: '/accounting/payment-terms', label: 'شروط الدفع' },
-      { key: '/accounting/chart-of-accounts', label: 'دليل الحسابات' },
-    ],
-  },
+{
+  key: '/accounting',
+  icon: <AccountBookOutlined />,
+  label: 'المحاسبة',
+  children: [
+    { key: '/accounting/fiscal-years',      label: 'السنوات المالية' },
+    { key: '/accounting/taxes',             label: 'الضرائب' },
+    { key: '/accounting/payment-terms',     label: 'شروط الدفع' },
+    { key: '/accounting/chart-of-accounts', label: 'دليل الحسابات' },
+    { key: '/accounting/journals',          label: 'دفاتر اليومية' },
+    { key: '/accounting/journal-entries',   label: 'القيود المحاسبية' },
+    { key: '/accounting/settings',          label: 'إعدادات المحاسبة' },
+  ],
+},
   {
     key: '/branches',
     icon: <ShopOutlined />,
     label: 'الفروع',
+  },
+  {
+    key: '/users',
+    icon: <UserOutlined />,
+    label: 'المستخدمون',
+  },
+  {
+    key: '/roles',
+    icon: <SafetyOutlined />,
+    label: 'الأدوار والصلاحيات',
   },
   {
     key: '/settings',
@@ -92,9 +110,10 @@ export default function MainLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   const handleLogout = async () => {
-    await authStore.logout();
+    await logout();
     navigate('/login');
   };
 
@@ -116,7 +135,15 @@ export default function MainLayout() {
         style={{ background: '#001529' }}
         width={220}
       >
-        <div style={{ height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: collapsed ? 14 : 18, fontWeight: 'bold' }}>
+        <div style={{
+          height: 64,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'white',
+          fontSize: collapsed ? 14 : 18,
+          fontWeight: 'bold',
+        }}>
           {collapsed ? 'ERP' : 'نظام ERP'}
         </div>
         <Menu
@@ -129,7 +156,14 @@ export default function MainLayout() {
         />
       </Sider>
       <Layout>
-        <Header style={{ background: '#fff', padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
+        <Header style={{
+          background: '#fff',
+          padding: '0 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
+        }}>
           <Button
             type="text"
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
@@ -138,7 +172,7 @@ export default function MainLayout() {
           <Dropdown menu={{ items: userMenuItems }} placement="bottomLeft">
             <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Avatar icon={<UserOutlined />} />
-              <span>مدير النظام</span>
+              <span>{user?.email ?? 'مدير النظام'}</span>
             </div>
           </Dropdown>
         </Header>

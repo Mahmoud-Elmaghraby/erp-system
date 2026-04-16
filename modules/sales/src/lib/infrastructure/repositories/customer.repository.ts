@@ -7,8 +7,11 @@ import { CustomerEntity } from '../../domain/entities/customer.entity';
 export class CustomerRepository implements ICustomerRepository {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(): Promise<CustomerEntity[]> {
-    const customers = await this.prisma.customer.findMany({ where: { isActive: true } });
+  async findAll(companyId: string): Promise<CustomerEntity[]> {
+    const customers = await this.prisma.customer.findMany({
+      where: { isActive: true, companyId },
+      orderBy: { createdAt: 'desc' },
+    });
     return customers.map(this.toEntity);
   }
 
@@ -20,8 +23,17 @@ export class CustomerRepository implements ICustomerRepository {
   async create(entity: CustomerEntity): Promise<CustomerEntity> {
     const customer = await this.prisma.customer.create({
       data: {
-        id: entity.id, name: entity.name, email: entity.email,
-        phone: entity.phone, address: entity.address, isActive: entity.isActive,
+        id: entity.id,
+        name: entity.name,
+        email: entity.email,
+        phone: entity.phone,
+        address: entity.address,
+        isActive: entity.isActive,
+        companyId: entity.companyId,
+        taxRegNumber: entity.taxRegNumber,
+        commercialReg: entity.commercialReg,
+        country: entity.country,
+        buyerType: entity.buyerType,
       },
     });
     return this.toEntity(customer);
@@ -30,7 +42,16 @@ export class CustomerRepository implements ICustomerRepository {
   async update(id: string, data: Partial<CustomerEntity>): Promise<CustomerEntity> {
     const customer = await this.prisma.customer.update({
       where: { id },
-      data: { name: data.name, email: data.email, phone: data.phone, address: data.address },
+      data: {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        address: data.address,
+        taxRegNumber: data.taxRegNumber,
+        commercialReg: data.commercialReg,
+        country: data.country,
+        buyerType: data.buyerType,
+      },
     });
     return this.toEntity(customer);
   }
@@ -40,6 +61,13 @@ export class CustomerRepository implements ICustomerRepository {
   }
 
   private toEntity(c: any): CustomerEntity {
-    return new CustomerEntity(c.id, c.name, c.email, c.phone, c.address, c.isActive);
+    return new CustomerEntity(
+      c.id, c.name, c.email, c.phone, c.address,
+      c.isActive, c.companyId,
+      c.taxRegNumber ?? null,
+      c.commercialReg ?? null,
+      c.country ?? 'EG',
+      c.buyerType ?? 'B',
+    );
   }
 }

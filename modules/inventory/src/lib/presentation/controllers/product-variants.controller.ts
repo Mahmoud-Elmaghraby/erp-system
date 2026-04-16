@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Inject } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard, RequirePermission, PermissionGuard } from '@org/core';
+import { JwtAuthGuard, RequirePermission, PermissionGuard, CurrentUser } from '@org/core';
 import type { IProductVariantRepository } from '../../domain/repositories/product-variant.repository.interface';
 import { PRODUCT_VARIANT_REPOSITORY } from '../../domain/repositories/product-variant.repository.interface';
 import { ProductVariantEntity } from '../../domain/entities/product-variant.entity';
@@ -25,8 +25,8 @@ export class ProductVariantsController {
 
   @Post()
   @RequirePermission('inventory.products.create')
-  create(@Body() dto: CreateProductVariantDto) {
-    const variant = ProductVariantEntity.create({ id: randomUUID(), ...dto });
+  create(@Body() dto: CreateProductVariantDto, @CurrentUser('companyId') companyId: string) {
+    const variant = ProductVariantEntity.create({ id: randomUUID(), ...dto, companyId });
     return this.variantRepository.create(variant);
   }
 

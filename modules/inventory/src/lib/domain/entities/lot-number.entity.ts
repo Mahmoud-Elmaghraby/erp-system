@@ -7,6 +7,7 @@ export class LotNumberEntity {
     public quantity: number,
     public readonly receivedDate: Date,
     public readonly notes: string | null,
+    public readonly expiryDate: Date | null,
   ) {}
 
   static create(data: {
@@ -16,11 +17,13 @@ export class LotNumberEntity {
     warehouseId: string;
     quantity: number;
     notes?: string;
+    expiryDate?: string;
   }): LotNumberEntity {
     return new LotNumberEntity(
       data.id, data.lotNumber, data.productId,
       data.warehouseId, data.quantity, new Date(),
       data.notes ?? null,
+      data.expiryDate ? new Date(data.expiryDate) : null,
     );
   }
 }

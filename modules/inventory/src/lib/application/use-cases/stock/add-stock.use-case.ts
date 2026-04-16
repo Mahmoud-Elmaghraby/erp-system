@@ -20,7 +20,7 @@ export class AddStockUseCase {
     private eventEmitter: EventEmitter2,
   ) {}
 
-  async execute(dto: AddStockDto) {
+  async execute(dto: AddStockDto, companyId: string) {
     const stock = await this.stockRepository.upsert(dto.warehouseId, dto.productId, dto.quantity);
 
     await this.stockMovementRepository.create(
@@ -30,6 +30,7 @@ export class AddStockUseCase {
         quantity: dto.quantity,
         warehouseId: dto.warehouseId,
         productId: dto.productId,
+        companyId,
         reason: dto.reason,
       }),
     );

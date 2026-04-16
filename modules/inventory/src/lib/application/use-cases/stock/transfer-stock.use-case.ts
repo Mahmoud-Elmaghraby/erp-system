@@ -20,7 +20,7 @@ export class TransferStockUseCase {
     private eventEmitter: EventEmitter2,
   ) {}
 
-  async execute(dto: TransferStockDto) {
+  async execute(dto: TransferStockDto, companyId: string) {
     const fromStock = await this.stockRepository.findByWarehouseAndProduct(
       dto.fromWarehouseId, dto.productId
     );
@@ -37,6 +37,7 @@ export class TransferStockUseCase {
         quantity: dto.quantity,
         warehouseId: dto.fromWarehouseId,
         productId: dto.productId,
+        companyId,
         fromWarehouseId: dto.fromWarehouseId,
         toWarehouseId: dto.toWarehouseId,
       }),

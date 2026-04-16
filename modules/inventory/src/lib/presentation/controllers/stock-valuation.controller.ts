@@ -1,6 +1,6 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard, RequirePermission, PermissionGuard } from '@org/core';
+import { JwtAuthGuard, RequirePermission, PermissionGuard, CurrentUser } from '@org/core';
 import { StockValuationService } from '../../application/services/stock-valuation.service';
 
 @ApiTags('Stock Valuation')
@@ -12,7 +12,10 @@ export class StockValuationController {
 
   @Get()
   @RequirePermission('inventory.stock.view')
-  getStockValue(@Query('warehouseId') warehouseId?: string) {
-    return this.stockValuationService.getStockValue(warehouseId);
+  getStockValue(
+    @CurrentUser('companyId') companyId: string,
+    @Query('warehouseId') warehouseId?: string,
+  ) {
+    return this.stockValuationService.getStockValue(companyId, warehouseId);
   }
 }

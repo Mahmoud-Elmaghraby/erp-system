@@ -17,7 +17,7 @@ export class ConfirmStockAdjustmentUseCase {
     private prisma: PrismaService,
   ) {}
 
-  async execute(id: string): Promise<void> {
+  async execute(id: string, companyId: string): Promise<void> {
     const adjustment = await this.adjustmentRepository.findById(id);
     if (!adjustment) throw new NotFoundException('Adjustment not found');
 
@@ -46,6 +46,7 @@ export class ConfirmStockAdjustmentUseCase {
               quantity: Math.abs(item.difference),
               warehouseId: adjustment.warehouseId,
               productId: item.productId,
+              companyId,
               reason: adjustment.reason,
               reference: id,
             }),

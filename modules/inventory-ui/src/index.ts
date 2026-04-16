@@ -12,3 +12,4 @@ export { default as InventorySettingsPage } from './lib/pages/settings.page';
 export { default as ProductDetailPage } from './lib/pages/product-detail.page';
 export { default as TraceabilityPage } from './lib/pages/traceability.page';
 export { default as StockValuationPage } from './lib/pages/stock-valuation.page';
+export { useProducts } from './lib/hooks/useProducts';

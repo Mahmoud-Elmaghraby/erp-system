@@ -7,9 +7,13 @@ import { ReorderingRuleEntity } from '../../domain/entities/reordering-rule.enti
 export class ReorderingRuleRepository implements IReorderingRuleRepository {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(warehouseId?: string): Promise<ReorderingRuleEntity[]> {
+  async findAll(companyId: string, warehouseId?: string): Promise<ReorderingRuleEntity[]> {
     const rules = await this.prisma.reorderingRule.findMany({
-      where: { ...(warehouseId && { warehouseId }), isActive: true },
+      where: {
+        warehouse: { companyId },
+        ...(warehouseId && { warehouseId }),
+        isActive: true,
+      },
       include: {
         product: { select: { id: true, name: true, barcode: true } },
         warehouse: { select: { id: true, name: true } },

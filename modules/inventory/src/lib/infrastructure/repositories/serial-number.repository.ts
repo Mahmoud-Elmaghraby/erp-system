@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@org/core';
 import type { ISerialNumberRepository } from '../../domain/repositories/serial-number.repository.interface';
-import { SerialNumberEntity } from '../../domain/entities/serial-number.entity';
+import { SerialNumberEntity, SerialNumberStatus } from '../../domain/entities/serial-number.entity';
 
 @Injectable()
 export class SerialNumberRepository implements ISerialNumberRepository {
@@ -24,10 +24,9 @@ export class SerialNumberRepository implements ISerialNumberRepository {
     return serial ? this.toEntity(serial) : null;
   }
 
-  async findByStatus(status: string, warehouseId?: string): Promise<SerialNumberEntity[]> {
+  async findByStatus(status: SerialNumberStatus, warehouseId?: string): Promise<SerialNumberEntity[]> {
     const serials = await this.prisma.serialNumber.findMany({
-      where: { status, ...(warehouseId && { warehouseId }) },
-      include: {
+where: { status: status as any, ...(warehouseId && { warehouseId }) },      include: {
         product: { select: { id: true, name: true } },
         warehouse: { select: { id: true, name: true } },
       },
@@ -42,17 +41,17 @@ export class SerialNumberRepository implements ISerialNumberRepository {
         serialNumber: e.serialNumber,
         productId: e.productId,
         warehouseId: e.warehouseId,
-        status: e.status,
+        status: e.status as any,
         notes: e.notes,
       })),
     });
     return entities;
   }
 
-  async updateStatus(id: string, status: string): Promise<SerialNumberEntity> {
+  async updateStatus(id: string, status: SerialNumberStatus): Promise<SerialNumberEntity> {
     const serial = await this.prisma.serialNumber.update({
       where: { id },
-      data: { status },
+      data: { status: status as any },
     });
     return this.toEntity(serial);
   }
@@ -60,7 +59,7 @@ export class SerialNumberRepository implements ISerialNumberRepository {
   private toEntity(s: any): SerialNumberEntity {
     return new SerialNumberEntity(
       s.id, s.serialNumber, s.productId, s.warehouseId,
-      s.status as any, s.notes,
+      s.status as SerialNumberStatus, s.notes,
     );
   }
 }

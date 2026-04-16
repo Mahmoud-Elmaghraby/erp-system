@@ -4,7 +4,10 @@ import { message } from 'antd';
 
 export const useReorderingRules = (warehouseId?: string) => useQuery({
   queryKey: ['reordering-rules', warehouseId],
-  queryFn: () => inventoryApi.reorderingRules.getAll(warehouseId),
+  queryFn: async () => {
+    const res = await inventoryApi.reorderingRules.getAll(warehouseId) as any;
+    return res?.data ?? res ?? [];
+  },
 });
 
 export const useUpsertReorderingRule = () => {

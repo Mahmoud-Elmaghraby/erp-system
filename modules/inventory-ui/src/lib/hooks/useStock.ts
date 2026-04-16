@@ -2,13 +2,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inventoryApi } from '../api/inventory.api';
 import { message } from 'antd';
 
-export const useStock = (warehouseId?: string) => {
-  return useQuery({
-    queryKey: ['stock', warehouseId],
-    queryFn: () => inventoryApi.stock.getByWarehouse(warehouseId!),
-    enabled: !!warehouseId,
-  });
-};
+export const useStock = (warehouseId?: string) => useQuery({
+  queryKey: ['stock', warehouseId],
+  queryFn: async () => {
+    const res = await inventoryApi.stock.getByWarehouse(warehouseId!) as any;
+    return res?.data ?? res ?? [];
+  },
+  enabled: !!warehouseId,
+});
 
 export const useAddStock = () => {
   const queryClient = useQueryClient();

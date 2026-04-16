@@ -10,8 +10,12 @@ export default function StockMovementsPage() {
   const [productId, setProductId] = useState<string>('');
   const [type, setType] = useState<string>('');
 
-  const { data: warehouses } = useWarehouses();
-  const { data: products } = useProducts();
+  const { data: warehousesData } = useWarehouses();
+  const { data: productsData } = useProducts();
+
+  const warehouses = Array.isArray(warehousesData) ? warehousesData : warehousesData?.data ?? [];
+  const products = Array.isArray(productsData) ? productsData : productsData?.data ?? [];
+
   const { data: movements, isLoading } = useStockMovements({
     warehouseId: warehouseId || undefined,
     productId: productId || undefined,
@@ -23,20 +27,19 @@ export default function StockMovementsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
         <h2>سجل حركات المخزون</h2>
       </div>
-
       <Space style={{ marginBottom: 16 }} wrap>
         <Select
           placeholder="كل المخازن"
           allowClear
           style={{ width: 180 }}
-          options={warehouses?.map((w: any) => ({ label: w.name, value: w.id }))}
+          options={warehouses.map((w: any) => ({ label: w.name, value: w.id }))}
           onChange={(v) => setWarehouseId(v || '')}
         />
         <Select
           placeholder="كل المنتجات"
           allowClear
           style={{ width: 180 }}
-          options={products?.map((p: any) => ({ label: p.name, value: p.id }))}
+          options={products.map((p: any) => ({ label: p.name, value: p.id }))}
           onChange={(v) => setProductId(v || '')}
         />
         <Select
@@ -52,7 +55,6 @@ export default function StockMovementsPage() {
           onChange={(v) => setType(v || '')}
         />
       </Space>
-
       <StockMovementsTable data={movements || []} loading={isLoading} />
     </div>
   );

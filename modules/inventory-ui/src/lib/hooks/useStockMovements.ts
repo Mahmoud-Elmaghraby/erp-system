@@ -5,25 +5,28 @@ export const useStockMovements = (filters?: {
   warehouseId?: string;
   productId?: string;
   type?: string;
-}) => {
-  return useQuery({
-    queryKey: ['stock-movements', filters],
-    queryFn: () => inventoryApi.stockMovements.getAll(filters),
-  });
-};
+}) => useQuery({
+  queryKey: ['stock-movements', filters],
+  queryFn: async () => {
+    const res = await inventoryApi.stockMovements.getAll(filters) as any;
+    return res?.data ?? res ?? [];
+  },
+});
 
-export const useStockMovementsByWarehouse = (warehouseId: string) => {
-  return useQuery({
-    queryKey: ['stock-movements', 'warehouse', warehouseId],
-    queryFn: () => inventoryApi.stockMovements.getByWarehouse(warehouseId),
-    enabled: !!warehouseId,
-  });
-};
+export const useStockMovementsByWarehouse = (warehouseId: string) => useQuery({
+  queryKey: ['stock-movements', 'warehouse', warehouseId],
+  queryFn: async () => {
+    const res = await inventoryApi.stockMovements.getByWarehouse(warehouseId) as any;
+    return res?.data ?? res ?? [];
+  },
+  enabled: !!warehouseId,
+});
 
-export const useStockMovementsByProduct = (productId: string) => {
-  return useQuery({
-    queryKey: ['stock-movements', 'product', productId],
-    queryFn: () => inventoryApi.stockMovements.getByProduct(productId),
-    enabled: !!productId,
-  });
-};
+export const useStockMovementsByProduct = (productId: string) => useQuery({
+  queryKey: ['stock-movements', 'product', productId],
+  queryFn: async () => {
+    const res = await inventoryApi.stockMovements.getByProduct(productId) as any;
+    return res?.data ?? res ?? [];
+  },
+  enabled: !!productId,
+});

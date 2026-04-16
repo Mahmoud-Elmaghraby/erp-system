@@ -1,17 +1,17 @@
 import { useEffect } from 'react';
-import { Form, Switch, Select, InputNumber, Button, Card,  } from 'antd';
+import { Form, Switch, Select, InputNumber, Button, Card, Spin } from 'antd';
 import { useInventorySettings, useUpdateInventorySettings } from '../hooks/useInventorySettings';
-
-const COMPANY_ID = 'default';
 
 export default function InventorySettingsPage() {
   const [form] = Form.useForm();
-  const { data: settings,  } = useInventorySettings(COMPANY_ID);
-  const updateMutation = useUpdateInventorySettings(COMPANY_ID);
+  const { data: settings, isLoading } = useInventorySettings();
+  const updateMutation = useUpdateInventorySettings();
 
   useEffect(() => {
     if (settings) form.setFieldsValue(settings);
   }, [settings, form]);
+
+  if (isLoading) return <Spin size="large" style={{ display: 'block', margin: '50px auto' }} />;
 
   return (
     <div dir="rtl">
@@ -65,12 +65,7 @@ export default function InventorySettingsPage() {
           </Form.Item>
         </Card>
 
-        <Button
-          type="primary"
-          htmlType="submit"
-          loading={updateMutation.isPending}
-          size="large"
-        >
+        <Button type="primary" htmlType="submit" loading={updateMutation.isPending} size="large">
           حفظ الإعدادات
         </Button>
       </Form>

@@ -1,25 +1,58 @@
-import { Table, Button, Space, Popconfirm,} from 'antd';
-import { DeleteOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Popconfirm, Tag } from 'antd';
+import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
 
 interface Props {
   data: any[];
   loading: boolean;
+  onEdit: (record: any) => void;
   onDelete: (id: string) => void;
 }
 
-export default function CustomerTable({ data, loading, onDelete }: Props) {
+export default function CustomerTable({ data, loading, onEdit, onDelete }: Props) {
   const columns = [
     { title: 'الاسم', dataIndex: 'name', key: 'name' },
-    { title: 'البريد الإلكتروني', dataIndex: 'email', key: 'email' },
-    { title: 'التليفون', dataIndex: 'phone', key: 'phone' },
-    { title: 'العنوان', dataIndex: 'address', key: 'address' },
+    {
+      title: 'البريد الإلكتروني',
+      dataIndex: 'email',
+      key: 'email',
+      render: (v: string) => v || <span style={{ color: '#999' }}>—</span>,
+    },
+    {
+      title: 'التليفون',
+      dataIndex: 'phone',
+      key: 'phone',
+      render: (v: string) => v || <span style={{ color: '#999' }}>—</span>,
+    },
+    {
+      title: 'العنوان',
+      dataIndex: 'address',
+      key: 'address',
+      render: (v: string) => v || <span style={{ color: '#999' }}>—</span>,
+    },
+    {
+      title: 'نوع المشتري',
+      dataIndex: 'buyerType',
+      key: 'buyerType',
+      render: (v: string) => v === 'B'
+        ? <Tag color="blue">شركة</Tag>
+        : <Tag color="green">فرد</Tag>,
+    },
+    {
+      title: 'الدولة',
+      dataIndex: 'country',
+      key: 'country',
+      render: (v: string) => v || 'EG',
+    },
     {
       title: 'إجراءات',
       key: 'actions',
       render: (_: any, record: any) => (
         <Space>
+          <Button icon={<EditOutlined />} size="small" onClick={() => onEdit(record)}>
+            تعديل
+          </Button>
           <Popconfirm
-            title="هل أنت متأكد من الحذف؟"
+            title="هل أنت متأكد من حذف العميل؟"
             onConfirm={() => onDelete(record.id)}
             okText="نعم"
             cancelText="لا"
@@ -31,5 +64,13 @@ export default function CustomerTable({ data, loading, onDelete }: Props) {
     },
   ];
 
-  return <Table columns={columns} dataSource={data} rowKey="id" loading={loading} />;
+  return (
+    <Table
+      columns={columns}
+      dataSource={data}
+      rowKey="id"
+      loading={loading}
+      pagination={{ pageSize: 20, showTotal: (total) => `إجمالي: ${total} عميل` }}
+    />
+  );
 }

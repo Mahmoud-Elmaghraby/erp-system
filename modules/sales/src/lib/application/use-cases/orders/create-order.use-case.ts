@@ -4,6 +4,7 @@ import { ORDER_REPOSITORY } from '../../../domain/repositories/order.repository.
 import { OrderEntity } from '../../../domain/entities/order.entity';
 import { OrderItem } from '../../../domain/entities/order-item.entity';
 import { CreateOrderDto } from '../../dtos/order.dto';
+import { DocumentSequenceService, PrismaService } from '@org/core';
 import { randomUUID } from 'crypto';
 
 @Injectable()
@@ -11,12 +12,19 @@ export class CreateOrderUseCase {
   constructor(
     @Inject(ORDER_REPOSITORY)
     private orderRepository: IOrderRepository,
+    private documentSequenceService: DocumentSequenceService,
+    private prisma: PrismaService,
   ) {}
 
   async execute(dto: CreateOrderDto): Promise<OrderEntity> {
-    const orderId = randomUUID();
-    const orderNumber = `ORD-${Date.now()}`;
+    const branch = await this.prisma.branch.findUnique({ where: { id: dto.branchId } });
+    if (!branch) throw new Error('Branch not found');
 
+    const orderNumber = await this.documentSequenceService.getNextNumber(
+      branch.companyId, 'sales', 'order', 'SO'
+    );
+
+    const orderId = randomUUID();
     const order = OrderEntity.create({
       id: orderId,
       orderNumber,

@@ -8,20 +8,33 @@ import { OrderItem } from '../../domain/entities/order-item.entity';
 export class OrderRepository implements IOrderRepository {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(branchId: string): Promise<OrderEntity[]> {
+  async findAll(companyId: string): Promise<OrderEntity[]> {
+    const branches = await this.prisma.branch.findMany({
+      where: { companyId },
+      select: { id: true },
+    });
+    const branchIds = branches.map(b => b.id);
+
     const orders = await this.prisma.salesOrder.findMany({
-      where: { branchId },
-      include: { items: true },
+      where: { branchId: { in: branchIds } },
+      include: {
+        items: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
-    return orders.map(this.toEntity);
+    
+    // إصلاح مشكلة الـ scope الخاصة بـ this
+    return orders.map((order) => this.toEntity(order));
   }
 
   async findById(id: string): Promise<OrderEntity | null> {
     const order = await this.prisma.salesOrder.findUnique({
       where: { id },
-      include: { items: true, customer: true },
+      include: {
+        items: true,
+      },
     });
+
     return order ? this.toEntity(order) : null;
   }
 
@@ -41,13 +54,14 @@ export class OrderRepository implements IOrderRepository {
             productId: item.productId,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
-            subtotal: item.unitPrice * item.quantity, // ✅ مضاف
+            subtotal: item.unitPrice * item.quantity,
             total: item.total,
           })),
         },
       },
       include: { items: true },
     });
+    
     return this.toEntity(order);
   }
 
@@ -57,20 +71,32 @@ export class OrderRepository implements IOrderRepository {
       data: { status: data.status, totalAmount: data.totalAmount },
       include: { items: true },
     });
+    
     return this.toEntity(order);
   }
 
   private toEntity(o: any): OrderEntity {
-    const order = new OrderEntity(
-      o.id, o.orderNumber, o.status, o.branchId,
-      o.customerId, o.notes, Number(o.totalAmount), [],
-    );
-    order.items = (o.items || []).map((i: any) =>
+    const items = (o.items || []).map((i: any) =>
       new OrderItem(
-        i.id, i.orderId, i.productId,
-        Number(i.quantity), Number(i.unitPrice), Number(i.total)
+        i.id,
+        i.orderId,
+        i.productId,
+        Number(i.quantity),
+        Number(i.unitPrice),
+        Number(i.total)
       )
     );
-    return order;
+
+    // تم حذف جملة الـ return المكررة
+    return new OrderEntity(
+      o.id,
+      o.orderNumber,
+      o.status,
+      o.branchId,
+      o.customerId,
+      o.notes,
+      Number(o.totalAmount),
+      items
+    );
   }
 }

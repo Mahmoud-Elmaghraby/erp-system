@@ -1,8 +1,10 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import type { IStockRepository } from '../../../domain/repositories/stock.repository.interface';
 import { STOCK_REPOSITORY } from '../../../domain/repositories/stock.repository.interface';
 import type { IStockMovementRepository } from '../../../domain/repositories/stock-movement.repository.interface';
 import { STOCK_MOVEMENT_REPOSITORY } from '../../../domain/repositories/stock-movement.repository.interface';
+import type { IInventorySettingsRepository } from '../../../domain/repositories/inventory-settings.repository.interface';
+import { INVENTORY_SETTINGS_REPOSITORY } from '../../../domain/repositories/inventory-settings.repository.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { StockUpdatedEvent } from '../../../domain/events/stock-updated.event';
 import { StockLowEvent } from '../../../domain/events/stock-low.event';
@@ -18,15 +20,33 @@ export class RemoveStockUseCase {
     private stockRepository: IStockRepository,
     @Inject(STOCK_MOVEMENT_REPOSITORY)
     private stockMovementRepository: IStockMovementRepository,
+    @Inject(INVENTORY_SETTINGS_REPOSITORY)
+    private inventorySettingsRepository: IInventorySettingsRepository,
     private eventEmitter: EventEmitter2,
   ) {}
 
-  async execute(dto: RemoveStockDto) {
-    const stock = await this.stockRepository.findByWarehouseAndProduct(dto.warehouseId, dto.productId);
-    if (!stock) throw new NotFoundException('Stock not found');
+  async execute(dto: RemoveStockDto, companyId: string) {
+    const stock = await this.stockRepository.findByWarehouseAndProduct(
+      dto.warehouseId, dto.productId
+    );
 
-    stock.removeQuantity(Quantity.create(dto.quantity));
-    const updated = await this.stockRepository.update(stock.id, stock.quantity.getValue());
+    const settings = await this.inventorySettingsRepository.findByCompany(companyId);
+    const allowNegative = settings?.allowNegativeStock ?? false;
+
+    if (!stock) {
+      if (!allowNegative) throw new NotFoundException('Stock not found');
+      // لو السماح بالسالب — اعمل stock بقيمة سالبة
+      await this.stockRepository.upsert(dto.warehouseId, dto.productId, -dto.quantity);
+    } else {
+      const currentQty = stock.quantity.getValue();
+      if (!allowNegative && currentQty < dto.quantity) {
+        throw new BadRequestException(
+          `الكمية غير كافية. المتاح: ${currentQty}, المطلوب: ${dto.quantity}`
+        );
+      }
+      stock.removeQuantity(Quantity.create(dto.quantity));
+      await this.stockRepository.update(stock.id, stock.quantity.getValue());
+    }
 
     await this.stockMovementRepository.create(
       StockMovementEntity.create({
@@ -35,6 +55,7 @@ export class RemoveStockUseCase {
         quantity: dto.quantity,
         warehouseId: dto.warehouseId,
         productId: dto.productId,
+        companyId,
         reason: dto.reason,
       }),
     );
@@ -43,7 +64,11 @@ export class RemoveStockUseCase {
       dto.warehouseId, dto.productId, dto.quantity, 'OUT'
     ));
 
-    if (updated.isBelowMinStock()) {
+    const updated = await this.stockRepository.findByWarehouseAndProduct(
+      dto.warehouseId, dto.productId
+    );
+
+    if (updated?.isBelowMinStock()) {
       this.eventEmitter.emit('stock.low', new StockLowEvent(
         dto.warehouseId, dto.productId,
         updated.quantity.getValue(), updated.minStock.getValue(),

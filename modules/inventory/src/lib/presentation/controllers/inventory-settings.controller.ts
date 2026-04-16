@@ -1,6 +1,6 @@
-import { Controller, Get, Put, Body, Param, UseGuards, Inject } from '@nestjs/common';
+import { Controller, Get, Put, Body, UseGuards, Inject } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard, RequirePermission, PermissionGuard } from '@org/core';
+import { JwtAuthGuard, RequirePermission, PermissionGuard, CurrentUser } from '@org/core';
 import type { IInventorySettingsRepository } from '../../domain/repositories/inventory-settings.repository.interface';
 import { INVENTORY_SETTINGS_REPOSITORY } from '../../domain/repositories/inventory-settings.repository.interface';
 import { InventorySettingsEntity } from '../../domain/entities/inventory-settings.entity';
@@ -17,9 +17,9 @@ export class InventorySettingsController {
     private settingsRepository: IInventorySettingsRepository,
   ) {}
 
-  @Get(':companyId')
+  @Get()
   @RequirePermission('inventory.settings.view')
-  async getSettings(@Param('companyId') companyId: string) {
+  async getSettings(@CurrentUser('companyId') companyId: string) {
     const settings = await this.settingsRepository.findByCompany(companyId);
     if (!settings) {
       return InventorySettingsEntity.create({ id: randomUUID(), companyId });
@@ -27,10 +27,10 @@ export class InventorySettingsController {
     return settings;
   }
 
-  @Put(':companyId')
+  @Put()
   @RequirePermission('inventory.settings.edit')
   async updateSettings(
-    @Param('companyId') companyId: string,
+    @CurrentUser('companyId') companyId: string,
     @Body() dto: UpdateInventorySettingsDto,
   ) {
     let settings = await this.settingsRepository.findByCompany(companyId);

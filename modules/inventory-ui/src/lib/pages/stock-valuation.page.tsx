@@ -8,18 +8,24 @@ export default function StockValuationPage() {
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>('');
   const { data: warehouses } = useWarehouses();
 
-  const { data: valuation, isLoading } = useQuery({
+  const { data: valuationRes, isLoading } = useQuery({
     queryKey: ['stock-valuation', selectedWarehouse],
-    queryFn: () => inventoryApi.valuation.get(selectedWarehouse || undefined),
+    queryFn: async () => {
+      const res = await inventoryApi.valuation.get(selectedWarehouse || undefined) as any;
+      return res?.data ?? res;
+    },
   });
+
+  const valuation = valuationRes;
 
   const columns = [
     { title: 'المنتج', dataIndex: 'productName', key: 'productName' },
+    { title: 'المخزن', dataIndex: 'warehouseName', key: 'warehouseName' },
     { title: 'الكمية', dataIndex: 'quantity', key: 'quantity' },
-    { title: 'سعر الوحدة', dataIndex: 'unitPrice', key: 'unitPrice', render: (v: number) => `${v.toFixed(2)} ج.م` },
-    { title: 'تكلفة الوحدة', dataIndex: 'unitCost', key: 'unitCost', render: (v: number) => `${v.toFixed(2)} ج.م` },
-    { title: 'إجمالي القيمة', dataIndex: 'totalValue', key: 'totalValue', render: (v: number) => `${v.toFixed(2)} ج.م` },
-    { title: 'إجمالي التكلفة', dataIndex: 'totalCost', key: 'totalCost', render: (v: number) => `${v.toFixed(2)} ج.م` },
+    { title: 'سعر الوحدة', dataIndex: 'unitPrice', key: 'unitPrice', render: (v: number) => `${Number(v).toFixed(2)} ج.م` },
+    { title: 'تكلفة الوحدة', dataIndex: 'unitCost', key: 'unitCost', render: (v: number) => `${Number(v).toFixed(2)} ج.م` },
+    { title: 'إجمالي القيمة', dataIndex: 'totalValue', key: 'totalValue', render: (v: number) => `${Number(v).toFixed(2)} ج.م` },
+    { title: 'إجمالي التكلفة', dataIndex: 'totalCost', key: 'totalCost', render: (v: number) => `${Number(v).toFixed(2)} ج.م` },
   ];
 
   return (
@@ -30,7 +36,7 @@ export default function StockValuationPage() {
         placeholder="كل المخازن"
         allowClear
         style={{ width: 200, marginBottom: 16 }}
-        options={warehouses?.map((w: any) => ({ label: w.name, value: w.id }))}
+        options={(warehouses as any[] ?? []).map((w: any) => ({ label: w.name, value: w.id }))}
         onChange={(v) => setSelectedWarehouse(v || '')}
       />
 
@@ -41,7 +47,7 @@ export default function StockValuationPage() {
               title="إجمالي قيمة المخزون (بسعر البيع)"
               value={valuation?.totalValue?.toFixed(2) || 0}
               suffix="ج.م"
-              valueStyle={{ color: '#3f8600' }}
+              styles={{ content: { color: '#3f8600' } }}
             />
           </Card>
         </Col>
@@ -51,7 +57,7 @@ export default function StockValuationPage() {
               title="إجمالي تكلفة المخزون"
               value={valuation?.totalCost?.toFixed(2) || 0}
               suffix="ج.م"
-              valueStyle={{ color: '#cf1322' }}
+              styles={{ content: { color: '#cf1322' } }}
             />
           </Card>
         </Col>
@@ -62,12 +68,12 @@ export default function StockValuationPage() {
         dataSource={valuation?.items || []}
         rowKey="productId"
         loading={isLoading}
-        summary={(data) => (
+        summary={() => (
           <Table.Summary fixed>
             <Table.Summary.Row>
-              <Table.Summary.Cell index={0} colSpan={4}><strong>الإجمالي</strong></Table.Summary.Cell>
-              <Table.Summary.Cell index={4}><strong>{valuation?.totalValue?.toFixed(2)} ج.م</strong></Table.Summary.Cell>
-              <Table.Summary.Cell index={5}><strong>{valuation?.totalCost?.toFixed(2)} ج.م</strong></Table.Summary.Cell>
+              <Table.Summary.Cell index={0} colSpan={5}><strong>الإجمالي</strong></Table.Summary.Cell>
+              <Table.Summary.Cell index={5}><strong>{Number(valuation?.totalValue || 0).toFixed(2)} ج.م</strong></Table.Summary.Cell>
+              <Table.Summary.Cell index={6}><strong>{Number(valuation?.totalCost || 0).toFixed(2)} ج.م</strong></Table.Summary.Cell>
             </Table.Summary.Row>
           </Table.Summary>
         )}

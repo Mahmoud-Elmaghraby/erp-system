@@ -7,9 +7,10 @@ import { WarehouseEntity } from '../../domain/entities/warehouse.entity';
 export class WarehouseRepository implements IWarehouseRepository {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(branchId: string): Promise<WarehouseEntity[]> {
-    const where = branchId ? { branchId, isActive: true } : { isActive: true };
-    const warehouses = await this.prisma.warehouse.findMany({ where });
+  async findAll(companyId: string): Promise<WarehouseEntity[]> {
+    const warehouses = await this.prisma.warehouse.findMany({
+      where: { companyId, isActive: true },
+    });
     return warehouses.map(this.toEntity);
   }
 
@@ -25,7 +26,8 @@ export class WarehouseRepository implements IWarehouseRepository {
         name: entity.name,
         address: entity.address,
         isActive: entity.isActive,
-        branchId: entity.branchId || await this.getDefaultBranchId(),
+        branchId: entity.branchId,
+        companyId: entity.companyId,
       },
     });
     return this.toEntity(warehouse);
@@ -43,19 +45,9 @@ export class WarehouseRepository implements IWarehouseRepository {
     await this.prisma.warehouse.update({ where: { id }, data: { isActive: false } });
   }
 
-  private async getDefaultBranchId(): Promise<string> {
-    const branch = await this.prisma.branch.findFirst();
-    if (!branch) throw new Error('No branch found');
-    return branch.id;
-  }
-
-  private toEntity(warehouse: any): WarehouseEntity {
+  private toEntity(w: any): WarehouseEntity {
     return new WarehouseEntity(
-      warehouse.id,
-      warehouse.name,
-      warehouse.address,
-      warehouse.branchId,
-      warehouse.isActive,
+      w.id, w.name, w.address, w.branchId, w.companyId, w.isActive,
     );
   }
 }

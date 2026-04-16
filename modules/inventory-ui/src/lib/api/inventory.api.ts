@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  baseURL: `${import.meta.env['VITE_API_URL'] || 'http://localhost:3000/api'}/inventory`,
 });
 
 api.interceptors.request.use((config) => {
@@ -10,128 +10,133 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('erp_user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const inventoryApi = {
   products: {
-    getAll: async () => (await api.get('/products')).data,
-    create: async (data: {
-      name: string;
-      description?: string;
-      barcode?: string;
-      sku?: string;
-      price?: number;
-      cost?: number;
-    }) => (await api.post('/products', data)).data,
-    delete: async (id: string) => (await api.delete(`/products/${id}`)).data,
+    getAll: () => api.get('/products').then(r => r.data),
+    getOne: (id: string) => api.get(`/products/${id}`).then(r => r.data),
+    create: (data: any) => api.post('/products', data).then(r => r.data),
+    update: (id: string, data: any) => api.patch(`/products/${id}`, data).then(r => r.data),
+    delete: (id: string) => api.delete(`/products/${id}`).then(r => r.data),
   },
- warehouses: {
-    getAll: async (branchId?: string) => {
-      const url = branchId ? `/warehouses/branch/${branchId}` : '/warehouses';
-      return (await api.get(url)).data;
-    },
-    create: async (data: { name: string; branchId?: string; address?: string }) =>
-      (await api.post('/warehouses', data)).data,
+
+  warehouses: {
+    getAll: () => api.get('/warehouses').then(r => r.data),
+    getOne: (id: string) => api.get(`/warehouses/${id}`).then(r => r.data),
+    create: (data: any) => api.post('/warehouses', data).then(r => r.data),
+    update: (id: string, data: any) => api.patch(`/warehouses/${id}`, data).then(r => r.data),
+    delete: (id: string) => api.delete(`/warehouses/${id}`).then(r => r.data),
   },
+
   stock: {
-    getByWarehouse: async (warehouseId: string) =>
-      (await api.get(`/stock/warehouse/${warehouseId}`)).data,
-    add: async (data: { warehouseId: string; productId: string; quantity: number; reason?: string }) =>
-      (await api.post('/stock/add', data)).data,
-    remove: async (data: { warehouseId: string; productId: string; quantity: number; reason?: string }) =>
-      (await api.post('/stock/remove', data)).data,
-    transfer: async (data: { fromWarehouseId: string; toWarehouseId: string; productId: string; quantity: number }) =>
-      (await api.post('/stock/transfer', data)).data,
+    getByWarehouse: (warehouseId: string) =>
+      api.get(`/stock/warehouse/${warehouseId}`).then(r => r.data),
+    add: (data: any) => api.post('/stock/add', data).then(r => r.data),
+    remove: (data: any) => api.post('/stock/remove', data).then(r => r.data),
+    transfer: (data: any) => api.post('/stock/transfer', data).then(r => r.data),
   },
 
   categories: {
-    getAll: async () => (await api.get('/categories')).data,
-    create: async (data: { name: string; parentId?: string }) =>
-      (await api.post('/categories', data)).data,
-    delete: async (id: string) => (await api.delete(`/categories/${id}`)).data,
-  },
-  units: {
-    getAll: async () => (await api.get('/units')).data,
-    create: async (data: { name: string; symbol: string }) =>
-      (await api.post('/units', data)).data,
-    delete: async (id: string) => (await api.delete(`/units/${id}`)).data,
+    getAll: () => api.get('/categories').then(r => r.data),
+    create: (data: any) => api.post('/categories', data).then(r => r.data),
+    delete: (id: string) => api.delete(`/categories/${id}`).then(r => r.data),
   },
 
+  units: {
+    getAll: () => api.get('/units').then(r => r.data),
+    create: (data: any) => api.post('/units', data).then(r => r.data),
+    update: (id: string, data: any) => api.patch(`/units/${id}`, data).then(r => r.data),
+    delete: (id: string) => api.delete(`/units/${id}`).then(r => r.data),
+  },
 
   stockMovements: {
-    getAll: async (filters?: { warehouseId?: string; productId?: string; type?: string }) => {
+    getAll: (filters?: { warehouseId?: string; productId?: string; type?: string }) => {
       const params = new URLSearchParams();
       if (filters?.warehouseId) params.append('warehouseId', filters.warehouseId);
       if (filters?.productId) params.append('productId', filters.productId);
       if (filters?.type) params.append('type', filters.type);
-      return (await api.get(`/stock-movements?${params.toString()}`)).data;
+      return api.get(`/stock-movements?${params.toString()}`).then(r => r.data);
     },
-    getByWarehouse: async (warehouseId: string) =>
-      (await api.get(`/stock-movements/warehouse/${warehouseId}`)).data,
-    getByProduct: async (productId: string) =>
-      (await api.get(`/stock-movements/product/${productId}`)).data,
+    getByWarehouse: (warehouseId: string) =>
+      api.get(`/stock-movements/warehouse/${warehouseId}`).then(r => r.data),
+    getByProduct: (productId: string) =>
+      api.get(`/stock-movements/product/${productId}`).then(r => r.data),
   },
 
   settings: {
-    get: async (companyId: string) =>
-      (await api.get(`/inventory-settings/${companyId}`)).data,
-    update: async (companyId: string, data: any) =>
-      (await api.put(`/inventory-settings/${companyId}`, data)).data,
+    get: () => api.get('/inventory-settings').then(r => r.data),
+    update: (data: any) => api.put('/inventory-settings', data).then(r => r.data),
   },
-
 
   adjustments: {
-    getAll: async (warehouseId?: string) => {
+    getAll: (warehouseId?: string) => {
       const params = warehouseId ? `?warehouseId=${warehouseId}` : '';
-      return (await api.get(`/stock-adjustments${params}`)).data;
+      return api.get(`/stock-adjustments${params}`).then(r => r.data);
     },
-    create: async (data: any) => (await api.post('/stock-adjustments', data)).data,
-    confirm: async (id: string) => (await api.patch(`/stock-adjustments/${id}/confirm`)).data,
+    create: (data: any) => api.post('/stock-adjustments', data).then(r => r.data),
+    confirm: (id: string) => api.patch(`/stock-adjustments/${id}/confirm`).then(r => r.data),
   },
+
   reorderingRules: {
-    getAll: async (warehouseId?: string) => {
+    getAll: (warehouseId?: string) => {
       const params = warehouseId ? `?warehouseId=${warehouseId}` : '';
-      return (await api.get(`/reordering-rules${params}`)).data;
+      return api.get(`/reordering-rules${params}`).then(r => r.data);
     },
-    upsert: async (data: any) => (await api.post('/reordering-rules', data)).data,
-    delete: async (id: string) => (await api.delete(`/reordering-rules/${id}`)).data,
+    upsert: (data: any) => api.post('/reordering-rules', data).then(r => r.data),
+    delete: (id: string) => api.delete(`/reordering-rules/${id}`).then(r => r.data),
   },
 
   variants: {
-    getByProduct: async (productId: string) =>
-      (await api.get(`/product-variants/product/${productId}`)).data,
-    create: async (data: any) => (await api.post('/product-variants', data)).data,
-    update: async (id: string, data: any) => (await api.patch(`/product-variants/${id}`, data)).data,
-    delete: async (id: string) => (await api.delete(`/product-variants/${id}`)).data,
+    getByProduct: (productId: string) =>
+      api.get(`/product-variants/product/${productId}`).then(r => r.data),
+    create: (data: any) => api.post('/product-variants', data).then(r => r.data),
+    update: (id: string, data: any) =>
+      api.patch(`/product-variants/${id}`, data).then(r => r.data),
+    delete: (id: string) => api.delete(`/product-variants/${id}`).then(r => r.data),
   },
+
   priceHistory: {
-    getByProduct: async (productId: string) =>
-      (await api.get(`/product-price-history/${productId}`)).data,
+    getByProduct: (productId: string) =>
+      api.get(`/product-price-history/${productId}`).then(r => r.data),
   },
 
   lotNumbers: {
-    getByProduct: async (productId: string, warehouseId?: string) => {
+    getByProduct: (productId: string, warehouseId?: string) => {
       const params = warehouseId ? `?warehouseId=${warehouseId}` : '';
-      return (await api.get(`/lot-numbers/product/${productId}${params}`)).data;
+      return api.get(`/lot-numbers/product/${productId}${params}`).then(r => r.data);
     },
-    search: async (lotNumber: string) =>
-      (await api.get(`/lot-numbers/search/${lotNumber}`)).data,
-    create: async (data: any) => (await api.post('/lot-numbers', data)).data,
+    search: (lotNumber: string) =>
+      api.get(`/lot-numbers/search/${lotNumber}`).then(r => r.data),
+    create: (data: any) => api.post('/lot-numbers', data).then(r => r.data),
   },
+
   serialNumbers: {
-    getByProduct: async (productId: string, warehouseId?: string) => {
+    getByProduct: (productId: string, warehouseId?: string) => {
       const params = warehouseId ? `?warehouseId=${warehouseId}` : '';
-      return (await api.get(`/serial-numbers/product/${productId}${params}`)).data;
+      return api.get(`/serial-numbers/product/${productId}${params}`).then(r => r.data);
     },
-    search: async (serialNumber: string) =>
-      (await api.get(`/serial-numbers/search/${serialNumber}`)).data,
-    createMany: async (data: any) => (await api.post('/serial-numbers', data)).data,
-    updateStatus: async (id: string, status: string) =>
-      (await api.patch(`/serial-numbers/${id}/status`, { status })).data,
+    search: (serialNumber: string) =>
+      api.get(`/serial-numbers/search/${serialNumber}`).then(r => r.data),
+    createMany: (data: any) => api.post('/serial-numbers', data).then(r => r.data),
+    updateStatus: (id: string, status: string) =>
+      api.patch(`/serial-numbers/${id}/status`, { status }).then(r => r.data),
   },
+
   valuation: {
-    get: async (warehouseId?: string) => {
+    get: (warehouseId?: string) => {
       const params = warehouseId ? `?warehouseId=${warehouseId}` : '';
-      return (await api.get(`/stock-valuation${params}`)).data;
+      return api.get(`/stock-valuation${params}`).then(r => r.data);
     },
   },
 };
-

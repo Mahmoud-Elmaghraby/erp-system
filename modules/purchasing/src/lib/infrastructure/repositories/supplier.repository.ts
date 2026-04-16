@@ -7,8 +7,10 @@ import { SupplierEntity } from '../../domain/entities/supplier.entity';
 export class SupplierRepository implements ISupplierRepository {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(): Promise<SupplierEntity[]> {
-    const suppliers = await this.prisma.supplier.findMany({ where: { isActive: true } });
+  async findAll(companyId: string): Promise<SupplierEntity[]> {
+    const suppliers = await this.prisma.supplier.findMany({
+      where: { isActive: true, companyId },
+    });
     return suppliers.map(this.toEntity);
   }
 
@@ -20,10 +22,14 @@ export class SupplierRepository implements ISupplierRepository {
   async create(entity: SupplierEntity): Promise<SupplierEntity> {
     const supplier = await this.prisma.supplier.create({
       data: {
-        id: entity.id, name: entity.name, email: entity.email,
-        phone: entity.phone, address: entity.address,
-        taxRegNumber: entity.taxNumber, // ✅ taxNumber → taxRegNumber
+        id: entity.id,
+        name: entity.name,
+        email: entity.email,
+        phone: entity.phone,
+        address: entity.address,
+        taxRegNumber: entity.taxNumber,
         isActive: entity.isActive,
+        companyId: entity.companyId,
       },
     });
     return this.toEntity(supplier);
@@ -44,8 +50,7 @@ export class SupplierRepository implements ISupplierRepository {
   private toEntity(s: any): SupplierEntity {
     return new SupplierEntity(
       s.id, s.name, s.email, s.phone, s.address,
-      s.taxRegNumber, // ✅ s.taxNumber → s.taxRegNumber
-      s.isActive
+      s.taxRegNumber, s.isActive, s.companyId,
     );
   }
 }
