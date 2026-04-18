@@ -53,6 +53,7 @@ const menuItems = [
       { key: '/sales/deliveries', label: 'التسليمات' },
       { key: '/sales/returns', label: 'المرتجعات' },
       { key: '/sales/customers', label: 'العملاء' },
+      { key: '/sales/settings', label: 'اعدادات المبيعات' },
     ],
   },
   {

@@ -6,6 +6,8 @@ import QuotationsPage from './pages/quotations.page';
 import InvoicesPage from './pages/invoices.page';
 import DeliveriesPage from './pages/deliveries.page';
 import SalesReturnsPage from './pages/sales-returns.page';
+import SalesSettingsPage from './pages/sales-settings.page';
+import InvoiceSettingsPage from './pages/invoice-settings.page';
 
 export const salesRoutes: RouteObject[] = [
   {
@@ -19,6 +21,8 @@ export const salesRoutes: RouteObject[] = [
       { path: 'deliveries', element: <DeliveriesPage /> },
       { path: 'returns', element: <SalesReturnsPage /> },
       { path: 'customers', element: <CustomersPage /> },
+      { path: 'settings', element: <SalesSettingsPage /> },
+      { path: 'settings/invoices', element: <InvoiceSettingsPage /> },
     ],
   },
 ];

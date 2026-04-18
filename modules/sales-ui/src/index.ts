@@ -9,6 +9,8 @@ export { default as QuotationsPage } from './lib/pages/quotations.page';
 export { default as InvoicesPage } from './lib/pages/invoices.page';
 export { default as DeliveriesPage } from './lib/pages/deliveries.page';
 export { default as SalesReturnsPage } from './lib/pages/sales-returns.page';
+export { default as SalesSettingsPage } from './lib/pages/sales-settings.page';
+export { default as InvoiceSettingsPage } from './lib/pages/invoice-settings.page';
 
 // Hooks
 export { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer } from './lib/hooks/useCustomers';
