@@ -6,11 +6,12 @@ export { default as CustomersPage } from './lib/pages/customers.page';
 export { default as OrdersPage } from './lib/pages/orders.page';
 export { default as OrderDetailPage } from './lib/pages/order-detail.page';
 export { default as QuotationsPage } from './lib/pages/quotations.page';
-export { default as InvoicesPage } from './lib/pages/invoices.page';
+export { default as InvoicesPage } from './lib/pages/sales-settings/invoices-settings/invoices.page';
 export { default as DeliveriesPage } from './lib/pages/deliveries.page';
 export { default as SalesReturnsPage } from './lib/pages/sales-returns.page';
 export { default as SalesSettingsPage } from './lib/pages/sales-settings.page';
-export { default as InvoiceSettingsPage } from './lib/pages/invoice-settings.page';
+export { default as InvoiceSettingsPage } from './lib/pages/sales-settings/invoices-settings/invoice-settings.page';
+export { default as InvoiceDesignsPage } from './lib/pages/sales-settings/invoices-settings/invoice-designs.page';
 
 // Hooks
 export { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer } from './lib/hooks/useCustomers';

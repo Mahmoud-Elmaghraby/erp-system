@@ -3,11 +3,12 @@ import CustomersPage from './pages/customers.page';
 import OrdersPage from './pages/orders.page';
 import OrderDetailPage from './pages/order-detail.page';
 import QuotationsPage from './pages/quotations.page';
-import InvoicesPage from './pages/invoices.page';
+import InvoicesPage from './pages/sales-settings/invoices-settings/invoices.page';
 import DeliveriesPage from './pages/deliveries.page';
 import SalesReturnsPage from './pages/sales-returns.page';
 import SalesSettingsPage from './pages/sales-settings.page';
-import InvoiceSettingsPage from './pages/invoice-settings.page';
+import InvoiceSettingsPage from './pages/sales-settings/invoices-settings/invoice-settings.page';
+import InvoiceDesignsPage from './pages/sales-settings/invoices-settings/invoice-designs.page';
 
 export const salesRoutes: RouteObject[] = [
   {
@@ -23,6 +24,7 @@ export const salesRoutes: RouteObject[] = [
       { path: 'customers', element: <CustomersPage /> },
       { path: 'settings', element: <SalesSettingsPage /> },
       { path: 'settings/invoices', element: <InvoiceSettingsPage /> },
+      { path: 'settings/designs', element: <InvoiceDesignsPage /> },
     ],
   },
 ];

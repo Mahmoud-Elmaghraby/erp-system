@@ -41,6 +41,7 @@ const invoicesAndPayments: SettingsCard[] = [
     icon: <SnippetsOutlined />,
     title: 'تصميمات الفواتير وعروض الأسعار',
     description: 'صمم وخصص نماذج عرض وطباعة مستندات المبيعات المختلفة.',
+    path: '/sales/settings/designs',
   },
   {
     key: 'invoice-custom-fields',

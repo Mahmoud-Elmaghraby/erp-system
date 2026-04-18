@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Table, Tag, Button, Modal, Form, InputNumber, Select, Space, Input, Popconfirm } from 'antd';
 import { SearchOutlined, CloseOutlined } from '@ant-design/icons';
-import { useInvoices, usePayInvoice, useCancelInvoice } from '../hooks/useInvoices';
+import { useInvoices, usePayInvoice, useCancelInvoice } from '../../../hooks/useInvoices';
 
 const { Option } = Select;
 
