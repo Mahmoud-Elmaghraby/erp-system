@@ -3,7 +3,8 @@ import CustomersPage from './pages/customers.page';
 import OrdersPage from './pages/orders.page';
 import OrderDetailPage from './pages/order-detail.page';
 import QuotationsPage from './pages/quotations.page';
-import InvoicesPage from './pages/sales-settings/invoices-settings/invoices.page';
+import InvoicesPage from './pages/invoices/invoices.page';
+import CreateInvoicePage from './pages/invoices/create-invoice.page';
 import DeliveriesPage from './pages/deliveries.page';
 import SalesReturnsPage from './pages/sales-returns.page';
 import SalesSettingsPage from './pages/sales-settings.page';
@@ -19,6 +20,7 @@ export const salesRoutes: RouteObject[] = [
       { path: 'orders', element: <OrdersPage /> },
       { path: 'orders/:id', element: <OrderDetailPage /> },
       { path: 'invoices', element: <InvoicesPage /> },
+      { path: 'invoices/create', element: <CreateInvoicePage /> },
       { path: 'deliveries', element: <DeliveriesPage /> },
       { path: 'returns', element: <SalesReturnsPage /> },
       { path: 'customers', element: <CustomersPage /> },
