@@ -1,0 +1,350 @@
+.
+├── AGENTS.md
+├── backend
+│   ├── eslint.config.mjs
+│   ├── jest.config.cts
+│   ├── package.json
+│   ├── src
+│   │   ├── app
+│   │   │   ├── app.controller.spec.ts
+│   │   │   ├── app.controller.ts
+│   │   │   ├── app.module.ts
+│   │   │   ├── app.service.spec.ts
+│   │   │   ├── app.service.ts
+│   │   │   └── health.controller.ts
+│   │   ├── assets
+│   │   ├── main.ts
+│   │   └── seeds
+│   │       └── seed.ts
+│   ├── tsconfig.app.json
+│   ├── tsconfig.json
+│   ├── tsconfig.spec.json
+│   └── webpack.config.js
+├── backend-e2e
+│   ├── eslint.config.mjs
+│   ├── jest.config.cts
+│   ├── package.json
+│   ├── src
+│   │   ├── backend
+│   │   │   └── backend.spec.ts
+│   │   └── support
+│   │       ├── global-setup.ts
+│   │       ├── global-teardown.ts
+│   │       └── test-setup.ts
+│   └── tsconfig.json
+├── CLAUDE.md
+├── core
+│   ├── eslint.config.mjs
+│   ├── jest.config.cts
+│   ├── package.json
+│   ├── README.md
+│   ├── src
+│   │   ├── index.ts
+│   │   └── lib
+│   │       ├── companies
+│   │       │   └── companies.module.ts
+│   │       ├── core.module.ts
+│   │       ├── infrastructure
+│   │       │   ├── outbox
+│   │       │   ├── prisma
+│   │       │   └── redis
+│   │       ├── modules
+│   │       │   ├── auth
+│   │       │   ├── branches
+│   │       │   ├── companies
+│   │       │   ├── currency
+│   │       │   ├── rbac
+│   │       │   ├── settings
+│   │       │   └── users
+│   │       └── shared
+│   │           ├── common
+│   │           ├── filters
+│   │           └── interceptors
+│   ├── tsconfig.json
+│   ├── tsconfig.lib.json
+│   └── tsconfig.spec.json
+├── docker-compose.yml
+├── entities_dump.txt
+├── eslint.config.mjs
+├── frontend
+│   ├── eslint.config.mjs
+│   ├── index.html
+│   ├── package.json
+│   ├── public
+│   │   └── favicon.ico
+│   ├── src
+│   │   ├── app
+│   │   │   ├── app.module.css
+│   │   │   ├── app.spec.tsx
+│   │   │   ├── app.tsx
+│   │   │   ├── context
+│   │   │   │   └── AuthContext.tsx
+│   │   │   ├── layout
+│   │   │   │   └── main.layout.tsx
+│   │   │   ├── nx-welcome.tsx
+│   │   │   └── router
+│   │   │       ├── app.router.tsx
+│   │   │       └── protected.route.tsx
+│   │   ├── assets
+│   │   ├── core
+│   │   │   ├── api
+│   │   │   │   ├── axios.config.ts
+│   │   │   │   └── core.api.ts
+│   │   │   ├── auth
+│   │   │   │   └── auth.api.ts
+│   │   │   └── hooks
+│   │   │       ├── use-branches.hook.ts
+│   │   │       ├── use-login.hook.ts
+│   │   │       ├── use-rbac.hook.ts
+│   │   │       └── use-users.hook.ts
+│   │   ├── main.tsx
+│   │   ├── pages
+│   │   │   ├── branches.page.tsx
+│   │   │   ├── dashboard
+│   │   │   ├── login
+│   │   │   │   └── login.page.tsx
+│   │   │   ├── roles.page.tsx
+│   │   │   ├── settings
+│   │   │   │   ├── currencies.page.tsx
+│   │   │   │   ├── document-sequences.page.tsx
+│   │   │   │   ├── general-settings.page.tsx
+│   │   │   │   └── settings.page.tsx
+│   │   │   └── users.page.tsx
+│   │   └── styles.css
+│   ├── tsconfig.app.json
+│   ├── tsconfig.json
+│   ├── tsconfig.spec.json
+│   └── vite.config.mts
+├── generated
+│   └── prisma
+│       ├── client.d.ts
+│       ├── client.js
+│       ├── default.d.ts
+│       ├── default.js
+│       ├── edge.d.ts
+│       ├── edge.js
+│       ├── index-browser.js
+│       ├── index.d.ts
+│       ├── index.js
+│       ├── package.json
+│       ├── query_compiler_fast_bg.js
+│       ├── query_compiler_fast_bg.wasm
+│       ├── query_compiler_fast_bg.wasm-base64.js
+│       ├── runtime
+│       │   ├── client.d.ts
+│       │   ├── client.js
+│       │   ├── index-browser.d.ts
+│       │   ├── index-browser.js
+│       │   └── wasm-compiler-edge.js
+│       ├── wasm-edge-light-loader.mjs
+│       └── wasm-worker-loader.mjs
+├── jest.config.ts
+├── jest.preset.js
+├── modules
+│   ├── accounting
+│   │   ├── eslint.config.mjs
+│   │   ├── jest.config.cts
+│   │   ├── package.json
+│   │   ├── README.md
+│   │   ├── src
+│   │   │   ├── index.ts
+│   │   │   └── lib
+│   │   │       ├── accounting.module.ts
+│   │   │       ├── accounting.settings.ts
+│   │   │       ├── application
+│   │   │       ├── domain
+│   │   │       ├── infrastructure
+│   │   │       └── presentation
+│   │   ├── tsconfig.json
+│   │   ├── tsconfig.lib.json
+│   │   └── tsconfig.spec.json
+│   ├── accounting-ui
+│   │   ├── eslint.config.mjs
+│   │   ├── package.json
+│   │   ├── README.md
+│   │   ├── src
+│   │   │   ├── index.ts
+│   │   │   └── lib
+│   │   │       ├── accounting-ui.module.css
+│   │   │       ├── accounting-ui.tsx
+│   │   │       ├── api
+│   │   │       ├── hooks
+│   │   │       ├── pages
+│   │   │       └── routes.tsx
+│   │   ├── tsconfig.json
+│   │   ├── tsconfig.lib.json
+│   │   └── vite.config.mts
+│   ├── hr
+│   │   ├── eslint.config.mjs
+│   │   ├── jest.config.cts
+│   │   ├── package.json
+│   │   ├── README.md
+│   │   ├── src
+│   │   │   ├── index.ts
+│   │   │   └── lib
+│   │   │       └── hr.module.ts
+│   │   ├── tsconfig.json
+│   │   ├── tsconfig.lib.json
+│   │   └── tsconfig.spec.json
+│   ├── inventory
+│   │   ├── eslint.config.mjs
+│   │   ├── jest.config.cts
+│   │   ├── package.json
+│   │   ├── README.md
+│   │   ├── src
+│   │   │   ├── index.ts
+│   │   │   └── lib
+│   │   │       ├── application
+│   │   │       ├── domain
+│   │   │       ├── infrastructure
+│   │   │       ├── inventory.module.ts
+│   │   │       ├── inventory.settings.ts
+│   │   │       └── presentation
+│   │   ├── tsconfig.json
+│   │   ├── tsconfig.lib.json
+│   │   └── tsconfig.spec.json
+│   ├── inventory-ui
+│   │   ├── eslint.config.mjs
+│   │   ├── package.json
+│   │   ├── README.md
+│   │   ├── src
+│   │   │   ├── index.ts
+│   │   │   └── lib
+│   │   │       ├── api
+│   │   │       ├── components
+│   │   │       ├── hooks
+│   │   │       ├── pages
+│   │   │       └── routes.tsx
+│   │   ├── tsconfig.json
+│   │   ├── tsconfig.lib.json
+│   │   ├── tsconfig.spec.json
+│   │   └── vite.config.mts
+│   ├── manufacturing
+│   │   ├── eslint.config.mjs
+│   │   ├── jest.config.cts
+│   │   ├── package.json
+│   │   ├── README.md
+│   │   ├── src
+│   │   │   ├── index.ts
+│   │   │   └── lib
+│   │   │       └── manufacturing.module.ts
+│   │   ├── tsconfig.json
+│   │   ├── tsconfig.lib.json
+│   │   └── tsconfig.spec.json
+│   ├── prisma
+│   │   └── schema.prisma
+│   ├── projects
+│   │   ├── eslint.config.mjs
+│   │   ├── jest.config.cts
+│   │   ├── package.json
+│   │   ├── README.md
+│   │   ├── src
+│   │   │   ├── index.ts
+│   │   │   └── lib
+│   │   │       └── projects.module.ts
+│   │   ├── tsconfig.json
+│   │   ├── tsconfig.lib.json
+│   │   └── tsconfig.spec.json
+│   ├── purchasing
+│   │   ├── eslint.config.mjs
+│   │   ├── jest.config.cts
+│   │   ├── package.json
+│   │   ├── README.md
+│   │   ├── src
+│   │   │   ├── index.ts
+│   │   │   └── lib
+│   │   │       ├── application
+│   │   │       ├── domain
+│   │   │       ├── infrastructure
+│   │   │       ├── presentation
+│   │   │       ├── purchasing.module.ts
+│   │   │       └── purchasing.settings.ts
+│   │   ├── tsconfig.json
+│   │   ├── tsconfig.lib.json
+│   │   └── tsconfig.spec.json
+│   ├── purchasing-ui
+│   │   ├── eslint.config.mjs
+│   │   ├── package.json
+│   │   ├── README.md
+│   │   ├── src
+│   │   │   ├── index.ts
+│   │   │   └── lib
+│   │   │       ├── api
+│   │   │       ├── components
+│   │   │       ├── hooks
+│   │   │       ├── pages
+│   │   │       ├── purchasing-ui.module.css
+│   │   │       ├── purchasing-ui.tsx
+│   │   │       └── routes.tsx
+│   │   ├── tsconfig.json
+│   │   ├── tsconfig.lib.json
+│   │   └── vite.config.mts
+│   ├── sales
+│   │   ├── eslint.config.mjs
+│   │   ├── jest.config.cts
+│   │   ├── package.json
+│   │   ├── README.md
+│   │   ├── src
+│   │   │   ├── index.ts
+│   │   │   └── lib
+│   │   │       ├── application
+│   │   │       ├── domain
+│   │   │       ├── infrastructure
+│   │   │       ├── presentation
+│   │   │       └── sales.module.ts
+│   │   ├── tsconfig.json
+│   │   ├── tsconfig.lib.json
+│   │   └── tsconfig.spec.json
+│   └── sales-ui
+│       ├── eslint.config.mjs
+│       ├── package.json
+│       ├── README.md
+│       ├── src
+│       │   ├── index.ts
+│       │   └── lib
+│       │       ├── api
+│       │       ├── components
+│       │       ├── hooks
+│       │       ├── pages
+│       │       └── routes.tsx
+│       ├── tsconfig.json
+│       ├── tsconfig.lib.json
+│       ├── tsconfig.spec.json
+│       └── vite.config.mts
+├── nx.json
+├── opencode.json
+├── package.json
+├── package-lock.json
+├── packages
+├── prisma
+│   └── migrations
+│       ├── 20260413095127_add_fiscal_year_and_accounting_fixes
+│       │   └── migration.sql
+│       ├── 20260413234108_add_company_isolation_and_enums
+│       │   └── migration.sql
+│       ├── 20260413235544_inventory_company_isolation
+│       │   └── migration.sql
+│       └── migration_lock.toml
+├── prisma.config.ts
+├── project-structure.txt
+├── README.md
+├── sales_backend_dump.txt
+├── sales_frontend_dump.txt
+├── sales_schema.txt
+├── shared-kernel
+│   ├── eslint.config.mjs
+│   ├── jest.config.cts
+│   ├── package.json
+│   ├── README.md
+│   ├── src
+│   │   ├── index.ts
+│   │   └── lib
+│   │       └── shared-kernel.module.ts
+│   ├── tsconfig.json
+│   ├── tsconfig.lib.json
+│   └── tsconfig.spec.json
+├── tsconfig.base.json
+├── tsconfig.json
+└── vitest.workspace.ts
+
+124 directories, 224 files

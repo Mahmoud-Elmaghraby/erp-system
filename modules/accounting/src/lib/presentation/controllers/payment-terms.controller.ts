@@ -4,8 +4,8 @@ import { JwtAuthGuard, RequirePermission, PermissionGuard } from '@org/core';
 import type { IPaymentTermRepository } from '../../domain/repositories/payment-term.repository.interface';
 import { PAYMENT_TERM_REPOSITORY } from '../../domain/repositories/payment-term.repository.interface';
 import { PaymentTermEntity } from '../../domain/entities/payment-term.entity';
-import { CreatePaymentTermDto, UpdatePaymentTermDto } from '../../application/dtos/payment-term.dto';
 import { randomUUID } from 'crypto';
+import { CreatePaymentTermDto, UpdatePaymentTermDto } from '../../application/dtos/payment-term.dto';
 
 @ApiTags('Payment Terms')
 @ApiBearerAuth()

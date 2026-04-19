@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  output   = "../../generated/prisma"
 }
 
 datasource db {
@@ -1370,37 +1370,58 @@ enum FiscalPeriodStatus {
 }
 
 model ChartOfAccount {
-  id            String        @id @default(uuid())
-  code          String
-  name          String
-  type          AccountType
-  normalBalance NormalBalance // DEBIT أو CREDIT — مهم للتقارير
-  level         Int           @default(1) // 1=رئيسي, 2=فرعي, 3=تفصيلي
-  isGroup       Boolean       @default(false) // حساب تجميعي — مش بيتحرك عليه مباشرة
-  isActive      Boolean       @default(true)
-  companyId     String
+  id   String @id @default(uuid())
+  code String
+  name String
 
-  // Tree Structure
-  parentId String?
-  parent   ChartOfAccount?  @relation("AccountTree", fields: [parentId], references: [id])
-  children ChartOfAccount[] @relation("AccountTree")
+  category AccountCategory
+  role     AccountRole?
 
-  journalItems JournalItem[]
+  normalBalance NormalBalance
+
+  isGroup  Boolean @default(false)
+  isActive Boolean @default(true)
+
+  companyId String
+
+  parentId     String?
+  parent       ChartOfAccount?  @relation("AccountTree", fields: [parentId], references: [id])
+  children     ChartOfAccount[] @relation("AccountTree")
+  journalItems JournalItem[] // مهم جداً
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // unique per company مش globally
   @@unique([companyId, code])
-  @@index([companyId, type])
-  @@index([companyId, isActive])
-  @@map("chart_of_accounts")
+  @@index([companyId])
+  @@schema("accounting")
+}
+
+enum AccountCategory {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+
   @@schema("accounting")
 }
 
 enum NormalBalance {
   DEBIT
   CREDIT
+
+  @@schema("accounting")
+}
+
+enum AccountRole {
+  CASH
+  BANK
+  RECEIVABLE
+  PAYABLE
+  INVENTORY
+  COGS
+  TAX
 
   @@schema("accounting")
 }
@@ -1510,30 +1531,32 @@ enum JournalEntrySource {
 
 model JournalItem {
   id   String @id @default(uuid())
-  name String // وصف البند
+  name String
 
   // المبالغ بالعملة الأساسية
   debit  Decimal @default(0) @db.Decimal(18, 4)
   credit Decimal @default(0) @db.Decimal(18, 4)
 
-  // المبالغ بالعملة الأجنبية (لو مختلفة عن الأساسية)
+  // العملة الأجنبية
   amountCurrency Decimal? @db.Decimal(18, 4)
   currencyId     String?
 
-  // Partner — مهم لـ AR/AP aging report
-  partnerType PartnerType? // CUSTOMER أو SUPPLIER
-  partnerId   String? // id العميل أو المورد
+  // Partner
+  partnerType PartnerType?
+  partnerId   String?
 
-  // Reconciliation — هل الـ item اتسدد؟
+  // Reconciliation
   reconciled    Boolean   @default(false)
   reconcileDate DateTime?
   reconcileRef  String?
 
-  // Due Date — للـ aging report
+  // Due Date
   dueDate DateTime?
 
-  entryId   String
-  entry     JournalEntry   @relation(fields: [entryId], references: [id])
+  // Relations
+  entryId String
+  entry   JournalEntry @relation(fields: [entryId], references: [id])
+
   accountId String
   account   ChartOfAccount @relation(fields: [accountId], references: [id])
 

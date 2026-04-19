@@ -4,8 +4,8 @@ import { JwtAuthGuard, RequirePermission, PermissionGuard } from '@org/core';
 import type { IJournalRepository } from '../../domain/repositories/journal.repository.interface';
 import { JOURNAL_REPOSITORY } from '../../domain/repositories/journal.repository.interface';
 import { JournalEntity } from '../../domain/entities/journal.entity';
-import { CreateJournalDto, UpdateJournalDto } from '../../application/dtos/journal.dto';
 import { randomUUID } from 'crypto';
+import { CreateJournalDto, UpdateJournalDto } from '../../application/dtos/journal.dto';
 
 @ApiTags('Journals')
 @ApiBearerAuth()

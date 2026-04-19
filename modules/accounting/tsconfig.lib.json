@@ -15,7 +15,7 @@
     "strictBindCallApply": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/lib/application/dtos"],
   "references": [
     {
       "path": "../../core/tsconfig.lib.json"

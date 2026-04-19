@@ -1,0 +1,1798 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["core", "inventory", "sales", "purchasing", "accounting", "logistics", "public"]
+}
+
+// ===== CORE SCHEMA =====
+
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Core
+  branches Branch[]
+  users    User[]
+  roles    Role[]
+
+  // Inventory
+  products        Product[]
+  categories      Category[]
+  units           UnitOfMeasure[]
+  warehouses      Warehouse[]
+  stockMovements  StockMovement[]
+  productVariants ProductVariant[]
+
+  // Sales
+  customers Customer[]
+
+  // Purchasing
+  suppliers Supplier[]
+
+  @@map("companies")
+  @@schema("core")
+}
+
+model Branch {
+  id        String   @id @default(uuid())
+  name      String
+  address   String?
+  phone     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companyId  String
+  company    Company     @relation(fields: [companyId], references: [id])
+  users      User[]
+  warehouses Warehouse[]
+
+  @@map("branches")
+  @@schema("core")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  companyId String
+  company   Company    @relation(fields: [companyId], references: [id])
+  branchId  String?
+  branch    Branch?    @relation(fields: [branchId], references: [id])
+  userRoles UserRole[]
+
+  @@map("users")
+  @@schema("core")
+}
+
+model Role {
+  id              String           @id @default(uuid())
+  name            String
+  description     String?
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  companyId       String? // nullable للـ system roles
+  company         Company?         @relation(fields: [companyId], references: [id])
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+  @@schema("core")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  module      String
+  createdAt   DateTime @default(now())
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+  @@schema("core")
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSED
+  FAILED
+
+  @@schema("core")
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+  @@schema("core")
+}
+
+model RolePermission {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  roleId       String
+  role         Role       @relation(fields: [roleId], references: [id])
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+  @@schema("core")
+}
+
+model OutboxEvent {
+  id          String       @id @default(uuid())
+  eventType   String
+  payload     Json
+  status      OutboxStatus @default(PENDING) // ✅
+  attempts    Int          @default(0)
+  processedAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("outbox_events")
+  @@schema("core")
+}
+
+enum AdjustmentStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+
+  @@schema("inventory")
+}
+
+model CompanySettings {
+  id        String @id @default(uuid())
+  companyId String @unique
+
+  // General
+  defaultCurrency    String  @default("EGP")
+  fiscalYearStart    Int     @default(1)
+  taxIncludedInPrice Boolean @default(false)
+
+  // Document Prefixes
+  salesOrderPrefix    String @default("SO")
+  purchaseOrderPrefix String @default("PO")
+  invoicePrefix       String @default("INV")
+  receiptPrefix       String @default("REC")
+  billPrefix          String @default("BILL")
+  quotationPrefix     String @default("QUO")
+  rfqPrefix           String @default("RFQ")
+  deliveryPrefix      String @default("DEL")
+  returnPrefix        String @default("RET")
+  shipmentPrefix      String @default("SHP")
+
+  // Company Info for E-Invoice
+  country       String  @default("EG")
+  taxRegNumber  String?
+  commercialReg String?
+  activityCode  String?
+
+  // ETA (Egypt)
+  etaEnabled      Boolean @default(false)
+  etaClientId     String?
+  etaClientSecret String?
+  etaEnvironment  String  @default("sandbox")
+
+  // ZATCA (Saudi Arabia)
+  zatcaEnabled     Boolean @default(false)
+  zatcaCSID        String?
+  zatcaEnvironment String  @default("sandbox")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("company_settings")
+  @@schema("core")
+}
+
+model Currency {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  symbol    String
+  isActive  Boolean  @default(true)
+  isBase    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  exchangeRates ExchangeRate[]
+
+  @@map("currencies")
+  @@schema("core")
+}
+
+model ExchangeRate {
+  id   String   @id @default(uuid())
+  rate Decimal
+  date DateTime @default(now())
+
+  currencyId String
+  currency   Currency @relation(fields: [currencyId], references: [id])
+
+  @@map("exchange_rates")
+  @@schema("core")
+}
+
+model DocumentSequence {
+  id         String @id @default(uuid())
+  module     String
+  docType    String
+  prefix     String
+  padding    Int    @default(5)
+  nextNumber Int    @default(1)
+  companyId  String
+
+  @@unique([companyId, module, docType])
+  @@map("document_sequences")
+  @@schema("core")
+}
+
+model SalesSettings {
+  id        String @id @default(uuid())
+  companyId String @unique
+
+  // Features
+  taxEnabled         Boolean @default(false)
+  multiCurrency      Boolean @default(false)
+  allowDiscounts     Boolean @default(true)
+  maxDiscountPercent Decimal @default(100)
+
+  // Documents
+  quotationsEnabled   Boolean @default(true)
+  deliveryEnabled     Boolean @default(false)
+  salesReturnsEnabled Boolean @default(true)
+
+  // Approval
+  requireApproval   Boolean @default(false)
+  approvalThreshold Decimal @default(0)
+
+  // Payment
+  defaultPaymentTerms Int     @default(30)
+  defaultWarehouseId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sales_settings")
+  @@schema("core")
+}
+
+model PurchasingSettings {
+  id        String @id @default(uuid())
+  companyId String @unique
+
+  // Features
+  taxEnabled             Boolean @default(false)
+  rfqEnabled             Boolean @default(true)
+  purchaseReturnsEnabled Boolean @default(true)
+  landedCostsEnabled     Boolean @default(false)
+
+  // Approval
+  requireApproval   Boolean @default(false)
+  approvalThreshold Decimal @default(0)
+
+  // Matching
+  threeWayMatching Boolean @default(false)
+
+  // Payment
+  defaultPaymentTerms Int     @default(30)
+  defaultWarehouseId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("purchasing_settings")
+  @@schema("core")
+}
+
+model AccountingSettings {
+  id        String @id @default(uuid())
+  companyId String @unique
+
+  method                String  @default("ACCRUAL")
+  taxMethod             String  @default("EXCLUSIVE")
+  multiCurrency         Boolean @default(false)
+  journalEntriesEnabled Boolean @default(true)
+
+  // Lock Dates — مستويين
+  softLockDate DateTime? // المحاسب مش بيدخل عليه
+  hardLockDate DateTime? // مقفول تماماً
+
+  // Default Accounts
+  defaultSalesAccount   String?
+  defaultCOGSAccount    String?
+  defaultExpenseAccount String?
+  defaultARAccount      String? // Accounts Receivable
+  defaultAPAccount      String? // Accounts Payable
+  defaultCashAccount    String? // الخزينة الافتراضية
+  defaultBankAccount    String? // البنك الافتراضي
+
+  // Default Journals
+  defaultSaleJournalId     String?
+  defaultPurchaseJournalId String?
+  defaultCashJournalId     String?
+  defaultBankJournalId     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("accounting_settings")
+  @@schema("core")
+}
+
+model LogisticsSettings {
+  id        String @id @default(uuid())
+  companyId String @unique
+
+  localDeliveryEnabled Boolean @default(true)
+  exportEnabled        Boolean @default(false)
+  storageEnabled       Boolean @default(false)
+  vehicleManagement    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("logistics_settings")
+  @@schema("core")
+}
+
+model ModuleSetting {
+  id        String   @id @default(uuid())
+  companyId String
+  module    String
+  key       String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, module, key])
+  @@map("module_settings")
+  @@schema("core")
+}
+
+// ===== INVENTORY SCHEMA =====
+
+model Warehouse {
+  id               String            @id @default(uuid())
+  name             String
+  address          String?
+  isActive         Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  companyId        String
+  company          Company           @relation(fields: [companyId], references: [id])
+  branchId         String
+  branch           Branch            @relation(fields: [branchId], references: [id])
+  stocks           Stock[]
+  stockMovements   StockMovement[]
+  stockAdjustments StockAdjustment[]
+  reorderingRules  ReorderingRule[]
+  lotNumbers       LotNumber[]
+  serialNumbers    SerialNumber[]
+
+  @@map("warehouses")
+  @@schema("inventory")
+}
+
+model Category {
+  id        String     @id @default(uuid())
+  name      String
+  parentId  String?
+  parent    Category?  @relation("CategoryChildren", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryChildren")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  companyId String
+  company   Company    @relation(fields: [companyId], references: [id])
+  products  Product[]
+
+  @@map("categories")
+  @@schema("inventory")
+}
+
+model UnitOfMeasure {
+  id        String    @id @default(uuid())
+  name      String
+  symbol    String
+  // ETA/ZATCA Unit Code
+  unitCode  String? // EA, KGM, MTR, etc.
+  createdAt DateTime  @default(now())
+  companyId String
+  company   Company   @relation(fields: [companyId], references: [id])
+  products  Product[]
+
+  @@map("units_of_measure")
+  @@schema("inventory")
+}
+
+model Product {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  barcode     String? @unique
+  sku         String? @unique
+  price       Decimal @default(0)
+  cost        Decimal @default(0)
+  isActive    Boolean @default(true)
+
+  // E-Invoice Fields
+  itemCode String? // GS1 or EGS Code
+  itemType String? // GS1 or EGS
+  unitType String? // EA, KGM, etc.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  categoryId      String?
+  category        Category?             @relation(fields: [categoryId], references: [id])
+  unitOfMeasureId String?
+  unitOfMeasure   UnitOfMeasure?        @relation(fields: [unitOfMeasureId], references: [id])
+  companyId       String
+  company         Company               @relation(fields: [companyId], references: [id])
+  stocks          Stock[]
+  stockMovements  StockMovement[]
+  adjustmentItems StockAdjustmentItem[]
+  reorderingRules ReorderingRule[]
+  lotNumbers      LotNumber[]
+  serialNumbers   SerialNumber[]
+  images          ProductImage[]
+  priceHistory    ProductPriceHistory[]
+  variants        ProductVariant[]
+
+  @@map("products")
+  @@schema("inventory")
+}
+
+model Stock {
+  id        String   @id @default(uuid())
+  quantity  Decimal  @default(0)
+  minStock  Decimal  @default(0)
+  updatedAt DateTime @updatedAt
+
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+
+  @@unique([warehouseId, productId])
+  @@map("stock")
+  @@schema("inventory")
+}
+
+model StockMovement {
+  id        String            @id @default(uuid())
+  type      StockMovementType
+  quantity  Decimal
+  reason    String?
+  reference String?
+  createdAt DateTime          @default(now())
+
+  warehouseId     String
+  productId       String
+  fromWarehouseId String?
+  toWarehouseId   String?
+  userId          String?
+  companyId       String // أضف
+  company         Company   @relation(fields: [companyId], references: [id])
+  warehouse       Warehouse @relation(fields: [warehouseId], references: [id])
+  product         Product   @relation(fields: [productId], references: [id])
+
+  @@map("stock_movements")
+  @@schema("inventory")
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  TRANSFER
+  ADJUSTMENT
+
+  @@schema("inventory")
+}
+
+model StockAdjustment {
+  id        String           @id @default(uuid())
+  reason    String
+  notes     String?
+  status    AdjustmentStatus @default(DRAFT)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  warehouseId String
+  warehouse   Warehouse             @relation(fields: [warehouseId], references: [id])
+  userId      String?
+  items       StockAdjustmentItem[]
+
+  @@map("stock_adjustments")
+  @@schema("inventory")
+}
+
+model StockAdjustmentItem {
+  id               String  @id @default(uuid())
+  expectedQuantity Decimal
+  actualQuantity   Decimal
+  difference       Decimal
+
+  adjustmentId String
+  adjustment   StockAdjustment @relation(fields: [adjustmentId], references: [id])
+  productId    String
+  product      Product         @relation(fields: [productId], references: [id])
+
+  @@map("stock_adjustment_items")
+  @@schema("inventory")
+}
+
+model ReorderingRule {
+  id              String   @id @default(uuid())
+  minQuantity     Decimal
+  maxQuantity     Decimal
+  reorderQuantity Decimal
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@unique([productId, warehouseId])
+  @@map("reordering_rules")
+  @@schema("inventory")
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  url       String
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("product_images")
+  @@schema("inventory")
+}
+
+model ProductPriceHistory {
+  id        String   @id @default(uuid())
+  price     Decimal
+  cost      Decimal
+  changedBy String?
+  createdAt DateTime @default(now())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("product_price_history")
+  @@schema("inventory")
+}
+
+model ProductVariant {
+  id         String   @id @default(uuid())
+  name       String
+  sku        String?
+  barcode    String?
+  price      Decimal  @default(0)
+  cost       Decimal  @default(0)
+  attributes Json
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@unique([companyId, sku])
+  @@unique([companyId, barcode])
+  @@map("product_variants")
+  @@schema("inventory")
+}
+
+model LotNumber {
+  id           String    @id @default(uuid())
+  lotNumber    String
+  quantity     Decimal
+  receivedDate DateTime  @default(now())
+  notes        String?
+  createdAt    DateTime  @default(now())
+  expiryDate   DateTime? // أضف
+
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@unique([lotNumber, productId, warehouseId])
+  @@map("lot_numbers")
+  @@schema("inventory")
+}
+
+model SerialNumber {
+  id           String             @id @default(uuid())
+  serialNumber String             @unique
+  status       SerialNumberStatus @default(IN_STOCK) // ✅
+  notes        String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@map("serial_numbers")
+  @@schema("inventory")
+}
+
+enum SerialNumberStatus {
+  IN_STOCK
+  SOLD
+  RETURNED
+  DEFECTIVE
+
+  @@schema("inventory")
+}
+
+model InventorySettings {
+  id        String @id @default(uuid())
+  companyId String @unique
+
+  valuationMethod           String  @default("FIFO")
+  trackLotNumbers           Boolean @default(false)
+  trackSerialNumbers        Boolean @default(false)
+  trackExpiryDates          Boolean @default(false)
+  requireTransferApproval   Boolean @default(false)
+  requireAdjustmentApproval Boolean @default(false)
+  enableLowStockAlert       Boolean @default(true)
+  defaultMinStock           Decimal @default(0)
+  allowNegativeStock        Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("inventory_settings")
+  @@schema("inventory")
+}
+
+// ===== SALES SCHEMA =====
+
+model Customer {
+  id            String  @id @default(uuid())
+  name          String
+  email         String?
+  phone         String?
+  address       String?
+  isActive      Boolean @default(true)
+  companyId     String
+  company       Company @relation(fields: [companyId], references: [id])
+  taxRegNumber  String?
+  commercialReg String?
+  country       String? @default("EG")
+  buyerType     String? @default("B")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders     SalesOrder[]
+  returns    SalesReturn[]
+  quotations SalesQuotation[]
+
+  @@map("customers")
+  @@schema("sales")
+}
+
+model SalesQuotation {
+  id              String          @id @default(uuid())
+  quotationNumber String          @unique
+  status          QuotationStatus @default(DRAFT)
+  notes           String?
+  validUntil      DateTime?
+
+  // Amounts
+  untaxedAmount  Decimal @default(0)
+  taxAmount      Decimal @default(0)
+  totalAmount    Decimal @default(0)
+  discountAmount Decimal @default(0)
+
+  // Currency
+  currency     String  @default("EGP")
+  exchangeRate Decimal @default(1)
+
+  customerId    String?
+  customer      Customer?    @relation(fields: [customerId], references: [id])
+  branchId      String
+  paymentTermId String?
+  paymentTerm   PaymentTerm? @relation(fields: [paymentTermId], references: [id])
+
+  items SalesQuotationItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sales_quotations")
+  @@schema("sales")
+}
+
+model SalesQuotationItem {
+  id        String  @id @default(uuid())
+  quantity  Decimal
+  unitPrice Decimal
+  discount  Decimal @default(0)
+  subtotal  Decimal
+  taxAmount Decimal @default(0)
+  total     Decimal
+
+  productId   String
+  taxId       String?
+  quotationId String
+  quotation   SalesQuotation @relation(fields: [quotationId], references: [id])
+
+  @@map("sales_quotation_items")
+  @@schema("sales")
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+
+  @@schema("sales")
+}
+
+model SalesOrder {
+  id          String           @id @default(uuid())
+  orderNumber String           @unique
+  status      SalesOrderStatus @default(DRAFT)
+  notes       String?
+
+  // Amounts
+  untaxedAmount  Decimal @default(0)
+  taxAmount      Decimal @default(0)
+  totalAmount    Decimal @default(0)
+  discountAmount Decimal @default(0)
+
+  // Currency
+  currency     String  @default("EGP")
+  exchangeRate Decimal @default(1)
+
+  // Delivery
+  deliveryStatus String    @default("PENDING")
+  expectedDate   DateTime?
+
+  customerId    String?
+  customer      Customer?    @relation(fields: [customerId], references: [id])
+  branchId      String
+  quotationId   String?
+  paymentTermId String?
+  paymentTerm   PaymentTerm? @relation(fields: [paymentTermId], references: [id])
+
+  items      SalesOrderItem[]
+  invoices   Invoice[]
+  deliveries Delivery[]
+  returns    SalesReturn[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sales_orders")
+  @@schema("sales")
+}
+
+model SalesOrderItem {
+  id        String  @id @default(uuid())
+  quantity  Decimal
+  unitPrice Decimal
+  discount  Decimal @default(0)
+  subtotal  Decimal
+  taxAmount Decimal @default(0)
+  total     Decimal
+
+  productId String
+  taxId     String?
+  orderId   String
+  order     SalesOrder @relation(fields: [orderId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("sales_order_items")
+  @@schema("sales")
+}
+
+model Delivery {
+  id             String         @id @default(uuid())
+  deliveryNumber String         @unique
+  status         DeliveryStatus @default(DRAFT)
+  notes          String?
+  deliveryDate   DateTime?
+
+  orderId     String
+  order       SalesOrder @relation(fields: [orderId], references: [id])
+  warehouseId String
+  branchId    String
+
+  items DeliveryItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("deliveries")
+  @@schema("sales")
+}
+
+model DeliveryItem {
+  id        String  @id @default(uuid())
+  quantity  Decimal
+  productId String
+
+  deliveryId String
+  delivery   Delivery @relation(fields: [deliveryId], references: [id])
+
+  @@map("delivery_items")
+  @@schema("sales")
+}
+
+enum DeliveryStatus {
+  DRAFT
+  CONFIRMED
+  DONE
+  CANCELLED
+
+  @@schema("sales")
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique
+  status        InvoiceStatus @default(UNPAID)
+
+  // Amounts
+  untaxedAmount  Decimal @default(0)
+  taxAmount      Decimal @default(0)
+  totalAmount    Decimal
+  paidAmount     Decimal @default(0)
+  discountAmount Decimal @default(0)
+
+  // Currency
+  currency     String  @default("EGP")
+  exchangeRate Decimal @default(1)
+
+  dueDate DateTime?
+
+  // E-Invoice Fields
+  uuid           String   @unique @default(uuid())
+  dateTimeIssued DateTime @default(now())
+  etaStatus      String?
+  etaUUID        String?
+  zatcaStatus    String?
+  qrCode         String?
+
+  orderId       String
+  order         SalesOrder   @relation(fields: [orderId], references: [id])
+  paymentTermId String?
+  paymentTerm   PaymentTerm? @relation(fields: [paymentTermId], references: [id])
+
+  items    InvoiceItem[]
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("invoices")
+  @@schema("sales")
+}
+
+model InvoiceItem {
+  id        String  @id @default(uuid())
+  quantity  Decimal
+  unitPrice Decimal
+  discount  Decimal @default(0)
+  subtotal  Decimal
+  taxAmount Decimal @default(0)
+  total     Decimal
+
+  // E-Invoice Fields
+  itemCode String?
+  itemType String?
+  unitType String?
+
+  productId String
+  taxId     String?
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@map("invoice_items")
+  @@schema("sales")
+}
+
+model Payment {
+  id            String             @id @default(uuid())
+  amount        Decimal            @db.Decimal(18, 4)
+  paymentMethod SalesPaymentMethod @default(CASH)
+  reference     String?
+  notes         String?
+  paymentDate   DateTime           @default(now())
+
+  // الجديد — ربط بالقيد المحاسبي
+  journalEntryId String? @unique
+  journalId      String? // الخزينة أو البنك اللي اتحصل فيه
+
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("payments")
+  @@schema("sales")
+}
+
+enum SalesPaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CHEQUE
+  CARD
+
+  @@schema("sales")
+}
+
+model SalesReturn {
+  id           String            @id @default(uuid())
+  returnNumber String            @unique
+  reason       String
+  status       SalesReturnStatus @default(DRAFT)
+  notes        String?
+  totalAmount  Decimal           @default(0)
+
+  orderId    String
+  order      SalesOrder @relation(fields: [orderId], references: [id])
+  customerId String?
+  customer   Customer?  @relation(fields: [customerId], references: [id])
+
+  items SalesReturnItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sales_returns")
+  @@schema("sales")
+}
+
+model SalesReturnItem {
+  id        String  @id @default(uuid())
+  quantity  Decimal
+  unitPrice Decimal
+  total     Decimal
+  productId String
+
+  returnId String
+  return   SalesReturn @relation(fields: [returnId], references: [id])
+
+  @@map("sales_return_items")
+  @@schema("sales")
+}
+
+enum SalesReturnStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+
+  @@schema("sales")
+}
+
+enum SalesOrderStatus {
+  DRAFT
+  CONFIRMED
+  DELIVERED
+  CANCELLED
+
+  @@schema("sales")
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PAID
+  PARTIAL
+  CANCELLED
+
+  @@schema("sales")
+}
+
+// ===== PURCHASING SCHEMA =====
+
+model Supplier {
+  id       String  @id @default(uuid())
+  name     String
+  email    String?
+  phone    String?
+  address  String?
+  isActive Boolean @default(true)
+
+  // E-Invoice Fields
+  taxRegNumber  String?
+  commercialReg String?
+  country       String?  @default("EG")
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  purchaseOrders PurchaseOrder[]
+  rfqs           RFQ[]
+  returns        PurchaseReturn[]
+
+  @@map("suppliers")
+  @@schema("purchasing")
+}
+
+model RFQ {
+  id         String    @id @default(uuid())
+  rfqNumber  String    @unique
+  status     RFQStatus @default(DRAFT)
+  notes      String?
+  validUntil DateTime?
+
+  // Amounts
+  totalAmount  Decimal @default(0)
+  currency     String  @default("EGP")
+  exchangeRate Decimal @default(1)
+
+  supplierId    String
+  supplier      Supplier     @relation(fields: [supplierId], references: [id])
+  branchId      String
+  paymentTermId String?
+  paymentTerm   PaymentTerm? @relation(fields: [paymentTermId], references: [id])
+
+  items RFQItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("rfqs")
+  @@schema("purchasing")
+}
+
+model RFQItem {
+  id        String  @id @default(uuid())
+  quantity  Decimal
+  unitCost  Decimal
+  total     Decimal
+  productId String
+  taxId     String?
+
+  rfqId String
+  rfq   RFQ    @relation(fields: [rfqId], references: [id])
+
+  @@map("rfq_items")
+  @@schema("purchasing")
+}
+
+enum RFQStatus {
+  DRAFT
+  SENT
+  CONFIRMED
+  CANCELLED
+
+  @@schema("purchasing")
+}
+
+model PurchaseOrder {
+  id          String              @id @default(uuid())
+  orderNumber String              @unique
+  status      PurchaseOrderStatus @default(DRAFT)
+  notes       String?
+
+  // Amounts
+  untaxedAmount Decimal @default(0)
+  taxAmount     Decimal @default(0)
+  totalAmount   Decimal @default(0)
+
+  // Currency
+  currency     String  @default("EGP")
+  exchangeRate Decimal @default(1)
+
+  expectedDate DateTime?
+
+  supplierId    String
+  supplier      Supplier     @relation(fields: [supplierId], references: [id])
+  warehouseId   String
+  branchId      String
+  rfqId         String?
+  paymentTermId String?
+  paymentTerm   PaymentTerm? @relation(fields: [paymentTermId], references: [id])
+
+  items    PurchaseOrderItem[]
+  receipts PurchaseReceipt[]
+  bills    VendorBill[]
+  returns  PurchaseReturn[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("purchase_orders")
+  @@schema("purchasing")
+}
+
+model PurchaseOrderItem {
+  id          String  @id @default(uuid())
+  quantity    Decimal
+  unitCost    Decimal
+  discount    Decimal @default(0)
+  subtotal    Decimal @default(0)
+  taxAmount   Decimal @default(0)
+  total       Decimal
+  receivedQty Decimal @default(0)
+
+  productId String
+  taxId     String?
+  orderId   String
+  order     PurchaseOrder @relation(fields: [orderId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("purchase_order_items")
+  @@schema("purchasing")
+}
+
+model PurchaseReceipt {
+  id            String   @id @default(uuid())
+  receiptNumber String   @unique
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  orderId     String
+  order       PurchaseOrder         @relation(fields: [orderId], references: [id])
+  warehouseId String
+  items       PurchaseReceiptItem[]
+
+  @@map("purchase_receipts")
+  @@schema("purchasing")
+}
+
+model PurchaseReceiptItem {
+  id          String   @id @default(uuid())
+  receivedQty Decimal
+  productId   String
+  createdAt   DateTime @default(now())
+
+  receiptId String
+  receipt   PurchaseReceipt @relation(fields: [receiptId], references: [id])
+
+  @@map("purchase_receipt_items")
+  @@schema("purchasing")
+}
+
+model VendorBill {
+  id          String           @id @default(uuid())
+  billNumber  String           @unique
+  status      VendorBillStatus @default(UNPAID)
+  totalAmount Decimal
+  paidAmount  Decimal          @default(0)
+  taxAmount   Decimal          @default(0)
+  dueDate     DateTime?
+
+  orderId       String
+  order         PurchaseOrder @relation(fields: [orderId], references: [id])
+  paymentTermId String?
+  paymentTerm   PaymentTerm?  @relation(fields: [paymentTermId], references: [id])
+
+  payments VendorPayment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("vendor_bills")
+  @@schema("purchasing")
+}
+
+model VendorPayment {
+  id            String                @id @default(uuid())
+  amount        Decimal               @db.Decimal(18, 4)
+  paymentMethod PurchasePaymentMethod @default(CASH)
+  reference     String?
+  notes         String?
+  paymentDate   DateTime              @default(now())
+
+  // الجديد — ربط بالقيد المحاسبي
+  journalEntryId String? @unique
+  journalId      String? // الخزينة أو البنك اللي اتدفع منه
+
+  billId String
+  bill   VendorBill @relation(fields: [billId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("vendor_payments")
+  @@schema("purchasing")
+}
+
+model PurchaseReturn {
+  id           String               @id @default(uuid())
+  returnNumber String               @unique
+  reason       String
+  status       PurchaseReturnStatus @default(DRAFT)
+  notes        String?
+  totalAmount  Decimal              @default(0)
+
+  orderId    String
+  order      PurchaseOrder @relation(fields: [orderId], references: [id])
+  supplierId String?
+  supplier   Supplier?     @relation(fields: [supplierId], references: [id])
+
+  items PurchaseReturnItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("purchase_returns")
+  @@schema("purchasing")
+}
+
+model PurchaseReturnItem {
+  id        String  @id @default(uuid())
+  quantity  Decimal
+  unitCost  Decimal
+  total     Decimal
+  productId String
+
+  returnId String
+  return   PurchaseReturn @relation(fields: [returnId], references: [id])
+
+  @@map("purchase_return_items")
+  @@schema("purchasing")
+}
+
+enum PurchaseReturnStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+
+  @@schema("purchasing")
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  CONFIRMED
+  PARTIALLY_RECEIVED
+  FULLY_RECEIVED
+  CANCELLED
+
+  @@schema("purchasing")
+}
+
+enum VendorBillStatus {
+  UNPAID
+  PAID
+  PARTIAL
+  CANCELLED
+
+  @@schema("purchasing")
+}
+
+enum PurchasePaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CHEQUE
+  CARD
+
+  @@schema("purchasing")
+}
+
+// ===== ACCOUNTING SCHEMA =====
+
+model FiscalYear {
+  id        String           @id @default(uuid())
+  name      String // "2025-2026" أو "FY2026"
+  startDate DateTime
+  endDate   DateTime
+  status    FiscalYearStatus @default(OPEN)
+  companyId String
+
+  periods FiscalPeriod[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // شركة ما تعملش سنتين ماليتين بنفس الوقت OPEN
+  @@unique([companyId, startDate])
+  @@index([companyId, status])
+  @@map("fiscal_years")
+  @@schema("accounting")
+}
+
+enum FiscalYearStatus {
+  OPEN // شغال عليه
+  CLOSED // اتقفل — مفيش entries تتضاف
+  LOCKED // مقفول تماماً حتى للـ admin
+
+  @@schema("accounting")
+}
+
+model FiscalPeriod {
+  id           String             @id @default(uuid())
+  name         String // "يناير 2026" أو "2026-01"
+  startDate    DateTime
+  endDate      DateTime
+  periodNumber Int // 1-12
+  status       FiscalPeriodStatus @default(OPEN)
+  companyId    String
+
+  fiscalYearId String
+  fiscalYear   FiscalYear @relation(fields: [fiscalYearId], references: [id])
+
+  journalEntries JournalEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([fiscalYearId, periodNumber])
+  @@index([companyId, status])
+  @@index([companyId, startDate, endDate])
+  @@map("fiscal_periods")
+  @@schema("accounting")
+}
+
+enum FiscalPeriodStatus {
+  OPEN // مفتوح للإدخال
+  SOFT_LOCKED // مقفول للمحاسب — بس الـ manager يفتحه
+  HARD_LOCKED // مقفول تماماً — مفيش حد يفتحه
+
+  @@schema("accounting")
+}
+
+model ChartOfAccount {
+  id   String @id @default(uuid())
+  code String
+  name String
+
+  category AccountCategory
+  role     AccountRole?
+
+  normalBalance NormalBalance
+
+  isGroup  Boolean @default(false)
+  isActive Boolean @default(true)
+
+  companyId String
+
+  parentId     String?
+  parent       ChartOfAccount?  @relation("AccountTree", fields: [parentId], references: [id])
+  children     ChartOfAccount[] @relation("AccountTree")
+  journalItems JournalItem[] // مهم جداً
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@schema("accounting")
+}
+
+enum AccountCategory {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+
+  @@schema("accounting")
+}
+
+enum NormalBalance {
+  DEBIT
+  CREDIT
+
+  @@schema("accounting")
+}
+
+enum AccountRole {
+  CASH
+  BANK
+  RECEIVABLE
+  PAYABLE
+  INVENTORY
+  COGS
+  TAX
+
+  @@schema("accounting")
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+  COGS
+  BANK // حسابات البنوك — نوع خاص من ASSET
+  CASH // الخزينة — نوع خاص من ASSET
+  RECEIVABLE // العملاء (AR)
+  PAYABLE // الموردين (AP)
+
+  @@schema("accounting")
+}
+
+model Journal {
+  id        String      @id @default(uuid())
+  name      String
+  type      JournalType
+  companyId String
+
+  entries JournalEntry[]
+
+  @@map("journals")
+  @@schema("accounting")
+}
+
+enum JournalType {
+  SALE
+  PURCHASE
+  CASH
+  BANK
+  GENERAL
+
+  @@schema("accounting")
+}
+
+model JournalEntry {
+  id        String            @id @default(uuid())
+  reference String
+  name      String? // رقم القيد التلقائي "JE/2026/00001"
+  date      DateTime
+  state     JournalEntryState @default(DRAFT) // Enum مش String
+  note      String?
+
+  // Currency
+  currencyId   String
+  exchangeRate Decimal @default(1) @db.Decimal(18, 6)
+
+  // Source Document — من فين جاء القيد ده
+  sourceType JournalEntrySource? // INVOICE, PAYMENT, MANUAL, etc.
+  sourceId   String? // id الوثيقة المصدر
+
+  // Reversal — لو القيد ده عكس قيد تاني
+  reversalOfId String?       @unique
+  reversalOf   JournalEntry? @relation("Reversal", fields: [reversalOfId], references: [id])
+  reversedBy   JournalEntry? @relation("Reversal")
+
+  // Audit
+  postedAt    DateTime? // وقت الـ post
+  postedById  String? // مين عمل الـ post
+  createdById String
+
+  companyId String
+  journalId String
+  journal   Journal @relation(fields: [journalId], references: [id])
+
+  // Fiscal Period — الربط بالفترة المحاسبية
+  fiscalPeriodId String
+  fiscalPeriod   FiscalPeriod @relation(fields: [fiscalPeriodId], references: [id])
+
+  items JournalItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId, state])
+  @@index([companyId, date])
+  @@index([companyId, sourceType, sourceId])
+  @@index([fiscalPeriodId])
+  @@map("journal_entries")
+  @@schema("accounting")
+}
+
+enum JournalEntryState {
+  DRAFT // تحت الإعداد
+  POSTED // اعتُمد — مش ينفع يتعدل
+  CANCELLED // ملغي
+
+  @@schema("accounting")
+}
+
+enum JournalEntrySource {
+  INVOICE // فاتورة مبيعات
+  VENDOR_BILL // فاتورة مشتريات
+  PAYMENT // دفعة من عميل
+  VENDOR_PAYMENT // دفعة لمورد
+  STOCK_VALUATION // تقييم مخزون
+  MANUAL // قيد يدوي
+
+  @@schema("accounting")
+}
+
+model JournalItem {
+  id   String @id @default(uuid())
+  name String
+
+  // المبالغ بالعملة الأساسية
+  debit  Decimal @default(0) @db.Decimal(18, 4)
+  credit Decimal @default(0) @db.Decimal(18, 4)
+
+  // العملة الأجنبية
+  amountCurrency Decimal? @db.Decimal(18, 4)
+  currencyId     String?
+
+  // Partner
+  partnerType PartnerType?
+  partnerId   String?
+
+  // Reconciliation
+  reconciled    Boolean   @default(false)
+  reconcileDate DateTime?
+  reconcileRef  String?
+
+  // Due Date
+  dueDate DateTime?
+
+  // Relations
+  entryId String
+  entry   JournalEntry @relation(fields: [entryId], references: [id])
+
+  accountId String
+  account   ChartOfAccount @relation(fields: [accountId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([accountId, reconciled])
+  @@index([partnerId, partnerType])
+  @@index([entryId])
+  @@map("journal_items")
+  @@schema("accounting")
+}
+
+enum PartnerType {
+  CUSTOMER
+  SUPPLIER
+
+  @@schema("accounting")
+}
+
+model Tax {
+  id       String   @id @default(uuid())
+  name     String
+  rate     Decimal  @default(0) @db.Decimal(8, 4)
+  isActive Boolean  @default(true)
+  taxType  TaxType  @default(PERCENTAGE)
+  scope    TaxScope @default(BOTH)
+
+  // حسابات منفصلة للمبيعات والمشتريات
+  salesAccountId    String? // ضريبة المبيعات المحصلة   (Tax Payable)
+  purchaseAccountId String? // ضريبة المشتريات المدفوعة (Tax Receivable)
+
+  // ETA Egypt
+  etaType    String?
+  etaSubtype String?
+
+  // ZATCA Saudi
+  zatcaType String?
+
+  companyId String
+
+  @@index([companyId, isActive])
+  @@index([companyId, scope])
+  @@map("taxes")
+  @@schema("accounting")
+}
+
+enum TaxType {
+  PERCENTAGE
+  FIXED
+  NONE
+
+  @@schema("accounting")
+}
+
+enum TaxScope {
+  SALES
+  PURCHASES
+  BOTH
+
+  @@schema("accounting")
+}
+
+model PaymentTerm {
+  id        String @id @default(uuid())
+  name      String
+  companyId String
+
+  lines           PaymentTermLine[]
+  salesOrders     SalesOrder[]
+  salesQuotations SalesQuotation[]
+  invoices        Invoice[]
+  purchaseOrders  PurchaseOrder[]
+  rfqs            RFQ[]
+  vendorBills     VendorBill[]
+
+  @@map("payment_terms")
+  @@schema("accounting")
+}
+
+model PaymentTermLine {
+  id        String  @id @default(uuid())
+  value     Decimal
+  valueType String // PERCENT or FIXED
+  days      Int     @default(0)
+
+  paymentTermId String
+  paymentTerm   PaymentTerm @relation(fields: [paymentTermId], references: [id])
+
+  @@map("payment_term_lines")
+  @@schema("accounting")
+}
+
+// ===== LOGISTICS SCHEMA =====
+
+model Carrier {
+  id        String  @id @default(uuid())
+  name      String
+  type      String  @default("ROAD") // ROAD, SEA, AIR
+  phone     String?
+  email     String?
+  isActive  Boolean @default(true)
+  companyId String
+
+  shipments Shipment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("carriers")
+  @@schema("logistics")
+}
+
+model Vehicle {
+  id          String   @id @default(uuid())
+  plateNumber String   @unique
+  type        String
+  capacity    Decimal?
+  isActive    Boolean  @default(true)
+  companyId   String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("vehicles")
+  @@schema("logistics")
+}
+
+model Shipment {
+  id             String         @id @default(uuid())
+  shipmentNumber String         @unique
+  status         ShipmentStatus @default(DRAFT)
+  type           String         @default("LOCAL") // LOCAL, EXPORT
+
+  // Origin & Destination
+  originCountry String  @default("EG")
+  destCountry   String
+  originCity    String?
+  destCity      String?
+
+  // Dates
+  pickupDate   DateTime?
+  deliveryDate DateTime?
+
+  // Costs
+  freightCost  Decimal @default(0)
+  currency     String  @default("EGP")
+  exchangeRate Decimal @default(1)
+
+  // Links
+  salesOrderId    String?
+  purchaseOrderId String?
+  carrierId       String?
+  carrier         Carrier? @relation(fields: [carrierId], references: [id])
+  vehicleId       String?
+  driverId        String?
+
+  companyId String
+  branchId  String
+
+  items ShipmentItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("shipments")
+  @@schema("logistics")
+}
+
+model ShipmentItem {
+  id          String   @id @default(uuid())
+  description String
+  quantity    Decimal
+  weight      Decimal?
+  productId   String?
+
+  shipmentId String
+  shipment   Shipment @relation(fields: [shipmentId], references: [id])
+
+  @@map("shipment_items")
+  @@schema("logistics")
+}
+
+enum ShipmentStatus {
+  DRAFT
+  CONFIRMED
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+
+  @@schema("logistics")
+}
+
+model StorageContract {
+  id             String @id @default(uuid())
+  contractNumber String @unique
+  status         String @default("ACTIVE")
+
+  // Client
+  clientName  String
+  clientPhone String?
+  clientEmail String?
+
+  // Storage Details
+  startDate      DateTime
+  endDate        DateTime?
+  spaceAllocated Decimal
+  pricePerUnit   Decimal
+  billingCycle   String    @default("MONTHLY") // DAILY, WEEKLY, MONTHLY
+  currency       String    @default("EGP")
+
+  companyId   String
+  warehouseId String
+
+  invoices StorageInvoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("storage_contracts")
+  @@schema("logistics")
+}
+
+model StorageInvoice {
+  id            String    @id @default(uuid())
+  invoiceNumber String    @unique
+  period        String // "2024-01"
+  amount        Decimal
+  status        String    @default("UNPAID")
+  dueDate       DateTime?
+
+  contractId String
+  contract   StorageContract @relation(fields: [contractId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("storage_invoices")
+  @@schema("logistics")
+}
