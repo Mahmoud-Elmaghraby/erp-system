@@ -9,7 +9,9 @@ export { default as QuotationsPage } from './lib/pages/quotations/quotations.pag
 export { default as InvoicesPage } from './lib/pages/invoices/invoices.page';
 export { default as CreateInvoicePage } from './lib/pages/invoices/create-invoice.page';
 export { default as DeliveriesPage } from './lib/pages/deliveries.page';
-export { default as SalesReturnsPage } from './lib/pages/sales-returns.page';
+export { default as SalesReturnsPage } from './lib/pages/returns/sales-returns.page';
+export { default as CreditNotesPage } from './lib/pages/credit-notes/credit-notes.page';
+export { default as CreateCreditNotePage } from './lib/pages/credit-notes/create-credit-note.page';
 export { default as SalesSettingsPage } from './lib/pages/sales-settings/sales-settings.page';
 export { default as InvoiceSettingsPage } from './lib/pages/sales-settings/invoices-settings/invoice-settings.page';
 export { default as InvoiceDesignsPage } from './lib/pages/sales-settings/invoices-settings/invoice-designs.page';

@@ -7,7 +7,9 @@ import CreateQuotationPage from './pages/quotations/create-quotation.page';
 import InvoicesPage from './pages/invoices/invoices.page';
 import CreateInvoicePage from './pages/invoices/create-invoice.page';
 import DeliveriesPage from './pages/deliveries.page';
-import SalesReturnsPage from './pages/sales-returns.page';
+import SalesReturnsPage from './pages/returns/sales-returns.page';
+import CreditNotesPage from './pages/credit-notes/credit-notes.page';
+import CreateCreditNotePage from './pages/credit-notes/create-credit-note.page';
 import SalesSettingsPage from './pages/sales-settings/sales-settings.page';
 import InvoiceSettingsPage from './pages/sales-settings/invoices-settings/invoice-settings.page';
 import InvoiceDesignsPage from './pages/sales-settings/invoices-settings/invoice-designs.page';
@@ -25,6 +27,8 @@ export const salesRoutes: RouteObject[] = [
       { path: 'invoices/create', element: <CreateInvoicePage /> },
       { path: 'deliveries', element: <DeliveriesPage /> },
       { path: 'returns', element: <SalesReturnsPage /> },
+      { path: 'credit-notes', element: <CreditNotesPage /> },
+      { path: 'credit-notes/create', element: <CreateCreditNotePage /> },
       { path: 'customers', element: <CustomersPage /> },
       { path: 'settings', element: <SalesSettingsPage /> },
       { path: 'settings/invoices', element: <InvoiceSettingsPage /> },

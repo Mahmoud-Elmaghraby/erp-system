@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Input, Select, Space } from 'antd';
+import { Button, Input, Select, Space, Card, Typography } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useOrders, useCreateOrder, useConfirmOrder, useCancelOrder } from '../hooks/useOrders';
 import { useCustomers } from '../hooks/useCustomers';
@@ -8,6 +8,7 @@ import OrderForm from '../components/orders/order-form';
 import OrderTable from '../components/orders/order-table';
 
 const { Option } = Select;
+const { Title } = Typography;
 
 export default function OrdersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,43 +31,52 @@ export default function OrdersPage() {
   });
 
   return (
-    <div style={{ padding: 24 }} dir="rtl">
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h2 style={{ margin: 0 }}>أوامر البيع</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsModalOpen(true)}>
+    <div style={{ padding: '24px 16px', backgroundColor: '#f0f2f5', minHeight: '100vh', fontFamily: "'Cairo', 'Tajawal', sans-serif" }} dir="rtl">
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, alignItems: 'center' }}>
+        <Title level={3} style={{ margin: 0, color: '#001529', fontWeight: 700 }}>أوامر البيع</Title>
+        <Button 
+          type="primary" 
+          icon={<PlusOutlined />} 
+          style={{ backgroundColor: '#001529', borderColor: '#001529', fontWeight: 600 }}
+          onClick={() => setIsModalOpen(true)}
+        >
           أمر بيع جديد
         </Button>
       </div>
 
-      <Space style={{ marginBottom: 16 }}>
-        <Input
-          prefix={<SearchOutlined />}
-          placeholder="بحث برقم الأمر..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ width: 220 }}
-          allowClear
-        />
-        <Select 
-          placeholder="فلتر بالحالة" 
-          allowClear 
-          style={{ width: 160 }}
-          onChange={(v) => setStatusFilter(v)}
-        >
-          <Option value="DRAFT">مسودة</Option>
-          <Option value="CONFIRMED">مؤكد</Option>
-          <Option value="DELIVERED">تم التسليم</Option>
-          <Option value="CANCELLED">ملغي</Option>
-        </Select>
-      </Space>
+      <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', marginBottom: 24 }}>
+        <Space style={{ marginBottom: 0 }}>
+          <Input
+            prefix={<SearchOutlined />}
+            placeholder="بحث برقم الأمر..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: 220 }}
+            allowClear
+          />
+          <Select 
+            placeholder="فلتر بالحالة" 
+            allowClear 
+            style={{ width: 160 }}
+            onChange={(v) => setStatusFilter(v)}
+          >
+            <Option value="DRAFT">مسودة</Option>
+            <Option value="CONFIRMED">مؤكد</Option>
+            <Option value="DELIVERED">تم التسليم</Option>
+            <Option value="CANCELLED">ملغي</Option>
+          </Select>
+        </Space>
+      </Card>
 
       {/* ✅ استخدام الـ Table النضيف بعد الـ Refactor */}
-      <OrderTable 
-        data={filteredOrders}
-        loading={isLoading}
-        onConfirm={(id) => confirmMutation.mutate(id)}
-        onCancel={(id) => cancelMutation.mutate(id)}
-      />
+      <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+        <OrderTable 
+          data={filteredOrders}
+          loading={isLoading}
+          onConfirm={(id) => confirmMutation.mutate(id)}
+          onCancel={(id) => cancelMutation.mutate(id)}
+        />
+      </Card>
 
       <OrderForm
         open={isModalOpen}

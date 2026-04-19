@@ -432,7 +432,6 @@ export default function CreateInvoicePage() {
                       <div style={{ display: 'flex', gap: 8 }}>
                         <Select placeholder="Select Document" style={{ flex: 1 }} />
                         <Button type="primary" style={{ backgroundColor: '#001529', borderColor: '#001529' }}>أرفق</Button>
-                        <Button type="primary" icon={<SearchOutlined />} style={{ backgroundColor: '#001529', borderColor: '#001529' }}>بحث متقدم</Button>
                       </div>
                     </Form.Item>
                   </div>
