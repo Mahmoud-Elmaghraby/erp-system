@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Table, Tag, Button, Modal, Form, InputNumber, Select, Space, Input, Popconfirm } from 'antd';
-import { SearchOutlined, CloseOutlined, PlusOutlined } from '@ant-design/icons';
+import { Table, Tag, Button, Modal, Form, InputNumber, Select, Space, Input, Popconfirm, Card, Typography, Row, Col, Empty, Tooltip } from 'antd';
+import { SearchOutlined, CloseOutlined, PlusOutlined, EyeOutlined, PrinterOutlined, DollarOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useInvoices, usePayInvoice, useCancelInvoice } from '../../hooks/useInvoices';
 
 const { Option } = Select;
+const { Title } = Typography;
 
 const statusColors: Record<string, string> = {
   UNPAID: 'red', PAID: 'green', PARTIAL: 'orange', CANCELLED: 'default',
@@ -68,31 +69,36 @@ export default function InvoicesPage() {
   });
 
   const columns = [
-    { title: 'رقم الفاتورة', dataIndex: 'invoiceNumber', key: 'invoiceNumber' },
+    { 
+      title: 'رقم الفاتورة', 
+      dataIndex: 'invoiceNumber', 
+      key: 'invoiceNumber',
+      render: (v: string) => <b style={{ color: '#1890ff' }}>{v}</b> 
+    },
     {
       title: 'العميل',
       key: 'customerName',
-      render: (_: any, r: any) => r.order?.customer?.name || r.customer?.name || '---',
+      render: (_: any, r: any) => r.order?.customer?.name || r.customer?.name || <span style={{ color: '#999' }}>—</span>,
     },
     {
       title: 'الحالة', dataIndex: 'derivedStatus', key: 'status',
-      render: (v: string) => <Tag color={statusColors[v] ?? 'default'}>{statusLabels[v] ?? v}</Tag>,
+      render: (v: string) => <Tag color={statusColors[v] ?? 'default'} style={{ borderRadius: '4px', padding: '2px 8px' }}>{statusLabels[v] ?? v}</Tag>,
     },
     {
       title: 'الإجمالي', dataIndex: 'totalAmount', key: 'totalAmount',
-      render: (v: number) => `${Number(v).toFixed(2)} ج.م`,
+      render: (v: number) => <span style={{ fontWeight: 'bold', color: '#001529' }}>{`${Number(v).toLocaleString()} ج.م`}</span>,
       align: 'right' as const,
     },
     {
       title: 'المدفوع', dataIndex: 'paidAmount', key: 'paidAmount',
-      render: (v: number) => `${Number(v).toFixed(2)} ج.م`,
+      render: (v: number) => `${Number(v).toLocaleString()} ج.م`,
       align: 'right' as const,
     },
     {
       title: 'المتبقي', key: 'remaining',
       render: (_: any, r: any) => (
-        <span style={{ color: Number(r.totalAmount) > Number(r.paidAmount) ? 'red' : 'green' }}>
-          {(Number(r.totalAmount) - Number(r.paidAmount)).toFixed(2)} ج.م
+        <span style={{ fontWeight: 'bold', color: Number(r.totalAmount) > Number(r.paidAmount) ? '#cf1322' : '#389e0d' }}>
+          {(Number(r.totalAmount) - Number(r.paidAmount)).toLocaleString()} ج.م
         </span>
       ),
       align: 'right' as const,
@@ -102,19 +108,27 @@ export default function InvoicesPage() {
       render: (v: string) => new Date(v).toLocaleDateString('ar-EG'),
     },
     {
-      title: 'إجراءات', key: 'actions',
+      title: 'الإجراءات', key: 'actions',
       render: (_: any, record: any) => (
-        <Space>
+        <Space size="small">
+          <Tooltip title="عرض">
+            <Button type="text" icon={<EyeOutlined style={{ color: '#1890ff' }} />} size="small" />
+          </Tooltip>
+          <Tooltip title="طباعة PDF">
+            <Button type="text" icon={<PrinterOutlined style={{ color: '#595959' }} />} size="small" />
+          </Tooltip>
           {record.status !== 'PAID' && record.status !== 'CANCELLED' && (
-            <Button size="small" type="primary"
-              onClick={() => { setSelectedInvoice(record); setPayOpen(true); }}>
-              تسجيل دفع
-            </Button>
+            <Tooltip title="تسجيل دفع">
+              <Button type="text" icon={<DollarOutlined style={{ color: '#52c41a' }} />} size="small"
+                onClick={() => { setSelectedInvoice(record); setPayOpen(true); }} />
+            </Tooltip>
           )}
           {record.status !== 'PAID' && record.status !== 'CANCELLED' && (
-            <Popconfirm title="إلغاء الفاتورة؟" onConfirm={() => cancelInvoice.mutate(record.id)}>
-              <Button size="small" danger icon={<CloseOutlined />}>إلغاء</Button>
-            </Popconfirm>
+            <Tooltip title="إلغاء الفاتورة">
+              <Popconfirm title="إلغاء الفاتورة؟" onConfirm={() => cancelInvoice.mutate(record.id)}>
+                <Button type="text" danger icon={<CloseOutlined />} size="small" />
+              </Popconfirm>
+            </Tooltip>
           )}
         </Space>
       ),
@@ -122,43 +136,101 @@ export default function InvoicesPage() {
   ];
 
   return (
-    <div style={{ padding: 24 }} dir="rtl">
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h2 style={{ margin: 0 }}>الفواتير</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/sales/invoices/create')}>
-          فاتورة جديدة
-        </Button>
-      </div>
+    <div style={{ padding: '24px 16px', backgroundColor: '#f0f2f5', minHeight: '100vh', fontFamily: "'Cairo', 'Tajawal', sans-serif" }} dir="rtl">
+      <Card 
+        bordered={false} 
+        style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+        bodyStyle={{ padding: '24px' }}
+      >
+        {/* Header Section */}
+        <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+          <Col>
+            <Title level={3} style={{ margin: 0, color: '#001529', fontWeight: 700 }}>الفواتير</Title>
+            <Typography.Text type="secondary">إدارة الفواتير وتسجيل المدفوعات السابقة والقادمة</Typography.Text>
+          </Col>
+          <Col>
+            <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => navigate('/sales/invoices/create')} style={{ backgroundColor: '#001529', borderColor: '#001529', borderRadius: '8px', fontWeight: 'bold' }}>
+              فاتورة جديدة
+            </Button>
+          </Col>
+        </Row>
 
-      <Space style={{ marginBottom: 16 }}>
-        <Input
-          prefix={<SearchOutlined />}
-          placeholder="بحث برقم الفاتورة أو العميل..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ width: 260 }}
-          allowClear
+        {/* Filters Section */}
+        <div style={{ backgroundColor: '#fafafa', padding: '16px', borderRadius: '8px', marginBottom: '24px' }}>
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={12} md={10} lg={10}>
+              <Input
+                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                placeholder="بحث برقم الفاتورة أو العميل..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                allowClear
+                size="large"
+                style={{ borderRadius: '6px' }}
+              />
+            </Col>
+            <Col xs={24} sm={12} md={6} lg={6}>
+              <Select 
+                placeholder="حالة الفاتورة" 
+                allowClear 
+                style={{ width: '100%' }}
+                size="large"
+                onChange={(v) => setStatusFilter(v)}
+              >
+                <Option value="OVERPAID">مدفوع بالزيادة</Option>
+                <Option value="DRAFT">مسودة</Option>
+                <Option value="UNPAID">غير مدفوعة</Option>
+                <Option value="DUE">مستحقة الدفع</Option>
+                <Option value="OVERDUE">متأخر</Option>
+                <Option value="PARTIAL">جزئي</Option>
+                <Option value="PAID">مدفوع</Option>
+                <Option value="CANCELLED">ملغي</Option>
+              </Select>
+            </Col>
+          </Row>
+        </div>
+
+        {/* Data Table */}
+        <Table
+          columns={columns}
+          dataSource={filtered}
+          loading={isLoading}
+          rowKey="id"
+          scroll={{ x: 800 }}
+          pagination={{ 
+            pageSize: 10, 
+            showTotal: (t) => `إجمالي: ${t} فاتورة`,
+            position: ['bottomCenter'],
+            showSizeChanger: true,
+            className: 'custom-pagination'
+          }}
+          locale={{
+            emptyText: (
+              <Empty 
+                image={Empty.PRESENTED_IMAGE_SIMPLE} 
+                description={<span style={{ color: '#8c8c8c', fontSize: '16px' }}>لا توجد بيانات فواتير حتى الآن</span>}
+              >
+                <Button type="primary" onClick={() => navigate('/sales/invoices/create')} style={{ backgroundColor: '#001529', borderColor: '#001529' }}>إضافة أول فاتورة</Button>
+              </Empty>
+            )
+          }}
+          rowClassName={() => 'table-row-hover'}
         />
-        <Select placeholder="فلتر بالحالة" allowClear style={{ width: 150 }}
-          onChange={(v) => setStatusFilter(v)}>
-          <Option value="OVERPAID">مدفوع بالزيادة</Option>
-          <Option value="DRAFT">مسودة</Option>
-          <Option value="UNPAID">غير مدفوعة</Option>
-          <Option value="DUE">مستحقة الدفع</Option>
-          <Option value="OVERDUE">متأخر</Option>
-          <Option value="PARTIAL">جزئي</Option>
-          <Option value="PAID">مدفوع</Option>
-          <Option value="CANCELLED">ملغي</Option>
-        </Select>
-      </Space>
+      </Card>
 
-      <Table
-        columns={columns}
-        dataSource={filtered}
-        loading={isLoading}
-        rowKey="id"
-        pagination={{ pageSize: 15, showTotal: (t) => `إجمالي: ${t} فاتورة` }}
-      />
+      <style>{`
+        .table-row-hover:hover > td {
+          background-color: #f0f7ff !important;
+          transition: background-color 0.3s;
+        }
+        .custom-pagination .ant-pagination-item-active {
+          border-color: #001529;
+          font-weight: bold;
+        }
+        .custom-pagination .ant-pagination-item-active a {
+          color: #001529;
+        }
+      `}</style>
 
       <Modal
         title={`تسجيل دفع — فاتورة ${selectedInvoice?.invoiceNumber ?? ''}`}

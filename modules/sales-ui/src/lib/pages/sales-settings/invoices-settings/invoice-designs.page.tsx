@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Dropdown, Switch, Select, Modal, Input, InputNumber } from 'antd';
+import { Button, Dropdown, Switch, Select, Modal, Input, InputNumber, Card } from 'antd';
 import {
   PlusOutlined,
   EllipsisOutlined,
@@ -30,6 +30,7 @@ import {
   AlignRightOutlined,
   LinkOutlined,
   UnorderedListOutlined,
+  ArrowRightOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
@@ -808,7 +809,7 @@ export default function InvoiceDesignsPage() {
           background: '#fff',
         }}>
           <div style={{ display: 'flex', gap: 10 }}>
-            <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} style={{ background: '#27ae60' }}>
+            <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} style={{ background: '#001529', borderColor: '#001529' }}>
               حفظ
             </Button>
             <Button icon={<CloseOutlined />} onClick={() => { setEditorMode(null); setEditingTemplate(null); }}>
@@ -1002,7 +1003,7 @@ export default function InvoiceDesignsPage() {
               <div style={{
                 width: 130,
                 minWidth: 130,
-                background: '#f4f6f8',
+                background: '#fafafa',
                 overflowY: 'auto',
                 paddingTop: 4,
               }}>
@@ -1017,9 +1018,9 @@ export default function InvoiceDesignsPage() {
                       padding: '10px 10px',
                       cursor: 'pointer',
                       fontSize: 12,
-                      fontWeight: activeTab === tab.key ? 600 : 400,
-                      color: activeTab === tab.key ? '#fff' : '#374151',
-                      background: activeTab === tab.key ? '#5b8fa8' : 'transparent',
+                      fontWeight: activeTab === tab.key ? 700 : 400,
+                      color: activeTab === tab.key ? '#fff' : '#001529',
+                      background: activeTab === tab.key ? '#001529' : 'transparent',
                       borderRadius: 4,
                       margin: '2px 4px',
                       transition: 'all 0.15s ease',
@@ -1044,7 +1045,7 @@ export default function InvoiceDesignsPage() {
             background: '#fff',
             borderTop: '1px solid #e8ecf0',
           }}>
-            <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} style={{ background: '#27ae60' }}>
+             <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} style={{ background: '#001529', borderColor: '#001529' }}>
               حفظ
             </Button>
             <Button onClick={() => { /* reset */ }}>
@@ -1058,81 +1059,90 @@ export default function InvoiceDesignsPage() {
 
   /* ═══════════════ LIST VIEW ═══════════════ */
   return (
-    <div dir="rtl" style={{ padding: '24px 32px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h2 style={{ margin: 0, fontSize: 20 }}>تصميمات الفواتير وعروض الأسعار</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleNewDesign} style={{ background: '#27ae60', borderColor: '#27ae60' }}>
-          تصميم جديد
-        </Button>
-      </div>
-
-      {/* Template cards */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {templates.map((template) => (
-          <div
-            key={template.id}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              background: '#f4f6f8',
-              borderRadius: 8,
-              padding: '16px 20px',
-              border: '1px solid #e8ecf0',
-              transition: 'box-shadow 0.2s',
-            }}
-          >
-            {/* Three-dot menu */}
-            <Dropdown menu={{ items: getMenuItems(template) }} trigger={['click']} placement="bottomRight">
-              <Button type="text" icon={<EllipsisOutlined style={{ fontSize: 20 }} />} style={{ marginLeft: 16, color: '#6b7280' }} />
-            </Dropdown>
-
-            {/* Template info */}
-            <div style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{ fontWeight: 600, fontSize: 16, color: '#1f2937', marginBottom: 4, textDecoration: 'underline' }}>
-                {template.name}
-              </div>
-              <div style={{ fontSize: 13, color: '#5b8fa8', marginBottom: 2 }}>
-                أنشأت في: {template.createdAt}
-              </div>
-              {template.isDefault && (
-                <div style={{ fontSize: 13, color: '#6b7280' }}>
-                  افتراضي: {template.documentType}
-                </div>
-              )}
-            </div>
-
-            {/* Preview thumbnail */}
-            <div style={{
-              width: 70, height: 90, background: '#fff', border: '1px solid #dfe3e8', borderRadius: 4,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: '#aaa',
-              flexShrink: 0, overflow: 'hidden', padding: 4,
-            }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 7, fontWeight: 'bold', marginBottom: 2 }}>Invoice</div>
-                <div style={{ width: 20, height: 16, border: '1px dashed #ccc', margin: '0 auto 3px', fontSize: 5 }}>Logo</div>
-                <div style={{ height: 1, background: '#e5e5e5', margin: '2px 0' }} />
-                <div style={{ height: 1, background: '#e5e5e5', margin: '2px 0' }} />
-                <div style={{ height: 1, background: '#e5e5e5', margin: '2px 0' }} />
-                <div style={{ marginTop: 4, fontSize: 5 }}>QR</div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Delete confirmation modal */}
-      <Modal
-        title="تأكيد الحذف"
-        open={!!deleteId}
-        onOk={() => deleteId && handleDelete(deleteId)}
-        onCancel={() => setDeleteId(null)}
-        okText="حذف"
-        cancelText="إلغاء"
-        okButtonProps={{ danger: true }}
+    <div dir="rtl" style={{ padding: '24px 16px', backgroundColor: '#f0f2f5', minHeight: '100vh', fontFamily: "'Cairo', 'Tajawal', sans-serif" }}>
+      <Card 
+        bordered={false} 
+        style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+        bodyStyle={{ padding: '24px 32px 40px' }}
       >
-        <p style={{ fontSize: 15 }}>هل أنت متأكد من حذف هذا التصميم؟ لا يمكن التراجع عن هذا الإجراء.</p>
-      </Modal>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Button type="text" icon={<ArrowRightOutlined />} onClick={() => navigate('/sales/settings')} />
+            <h2 style={{ margin: 0, color: '#001529', fontWeight: 700 }}>تصميمات الفواتير وعروض الأسعار</h2>
+          </div>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleNewDesign} style={{ background: '#001529', borderColor: '#001529' }}>
+            تصميم جديد
+          </Button>
+        </div>
+
+        {/* Template cards */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {templates.map((template) => (
+            <div
+              key={template.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                background: '#fafafa',
+                borderRadius: 12,
+                padding: '16px 20px',
+                border: '1px solid #e8ecf0',
+                transition: 'box-shadow 0.2s',
+              }}
+            >
+              {/* Three-dot menu */}
+              <Dropdown menu={{ items: getMenuItems(template) }} trigger={['click']} placement="bottomRight">
+                <Button type="text" icon={<EllipsisOutlined style={{ fontSize: 20 }} />} style={{ marginLeft: 16, color: '#001529' }} />
+              </Dropdown>
+
+              {/* Template info */}
+              <div style={{ flex: 1, textAlign: 'center' }}>
+                <div style={{ fontWeight: 700, fontSize: 16, color: '#001529', marginBottom: 4, textDecoration: 'underline' }}>
+                  {template.name}
+                </div>
+                <div style={{ fontSize: 13, color: '#5b8fa8', marginBottom: 2 }}>
+                  أنشأت في: {template.createdAt}
+                </div>
+                {template.isDefault && (
+                  <div style={{ fontSize: 13, color: '#6b7280' }}>
+                    افتراضي: {template.documentType}
+                  </div>
+                )}
+              </div>
+
+              {/* Preview thumbnail */}
+              <div style={{
+                width: 70, height: 90, background: '#fff', border: '1px solid #dfe3e8', borderRadius: 4,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: '#aaa',
+                flexShrink: 0, overflow: 'hidden', padding: 4,
+              }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 7, fontWeight: 'bold', marginBottom: 2 }}>Invoice</div>
+                  <div style={{ width: 20, height: 16, border: '1px dashed #ccc', margin: '0 auto 3px', fontSize: 5 }}>Logo</div>
+                  <div style={{ height: 1, background: '#e5e5e5', margin: '2px 0' }} />
+                  <div style={{ height: 1, background: '#e5e5e5', margin: '2px 0' }} />
+                  <div style={{ height: 1, background: '#e5e5e5', margin: '2px 0' }} />
+                  <div style={{ marginTop: 4, fontSize: 5 }}>QR</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Delete confirmation modal */}
+        <Modal
+          title="تأكيد الحذف"
+          open={!!deleteId}
+          onOk={() => deleteId && handleDelete(deleteId)}
+          onCancel={() => setDeleteId(null)}
+          okText="حذف"
+          cancelText="إلغاء"
+          okButtonProps={{ danger: true }}
+        >
+          <p style={{ fontSize: 15 }}>هل أنت متأكد من حذف هذا التصميم؟ لا يمكن التراجع عن هذا الإجراء.</p>
+        </Modal>
+      </Card>
     </div>
   );
 }

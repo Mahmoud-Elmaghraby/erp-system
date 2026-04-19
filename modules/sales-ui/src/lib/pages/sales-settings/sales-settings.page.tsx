@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Card, Typography } from 'antd';
 import {
   FileTextOutlined,
   SettingOutlined,
@@ -12,6 +13,8 @@ import {
   ShoppingOutlined,
   EditOutlined,
 } from '@ant-design/icons';
+
+const { Title, Text } = Typography;
 
 /* ────── card data ────── */
 interface SettingsCard {
@@ -98,20 +101,29 @@ export default function SalesSettingsPage() {
   const navigate = useNavigate();
 
   return (
-    <div dir="rtl" style={{ padding: '24px 32px 40px' }}>
-      <h2 style={{ margin: '0 0 24px', fontSize: 20 }}>اعدادات المبيعات</h2>
+    <div dir="rtl" style={{ padding: '24px 16px', backgroundColor: '#f0f2f5', minHeight: '100vh', fontFamily: "'Cairo', 'Tajawal', sans-serif" }}>
+      <Card 
+        bordered={false} 
+        style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+        bodyStyle={{ padding: '24px 32px 40px' }}
+      >
+        <div style={{ marginBottom: 24 }}>
+          <Title level={3} style={{ margin: 0, color: '#001529', fontWeight: 700 }}>إعدادات المبيعات</Title>
+          <Text type="secondary">تهيئة وتخصيص إعدادات عمليات البيع والفواتير</Text>
+        </div>
 
-      {/* ─── Section: الفواتير والمدفوعات ─── */}
-      <SectionTitle>الفواتير والمدفوعات</SectionTitle>
-      <CardGrid cards={invoicesAndPayments} onNavigate={navigate} />
+        {/* ─── Section: الفواتير والمدفوعات ─── */}
+        <SectionTitle>الفواتير والمدفوعات</SectionTitle>
+        <CardGrid cards={invoicesAndPayments} onNavigate={navigate} />
 
-      {/* ─── Section: عروض الأسعار ─── */}
-      <SectionTitle>عروض الأسعار</SectionTitle>
-      <CardGrid cards={quotationsCards} onNavigate={navigate} />
+        {/* ─── Section: عروض الأسعار ─── */}
+        <SectionTitle>عروض الأسعار</SectionTitle>
+        <CardGrid cards={quotationsCards} onNavigate={navigate} />
 
-      {/* ─── Section: أوامر البيع ─── */}
-      <SectionTitle>أوامر البيع</SectionTitle>
-      <CardGrid cards={ordersCards} onNavigate={navigate} />
+        {/* ─── Section: أوامر البيع ─── */}
+        <SectionTitle>أوامر البيع</SectionTitle>
+        <CardGrid cards={ordersCards} onNavigate={navigate} />
+      </Card>
     </div>
   );
 }
@@ -122,8 +134,8 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
       fontSize: 17,
-      fontWeight: 600,
-      color: '#5b8fa8',
+      fontWeight: 700,
+      color: '#001529',
       textAlign: 'right',
       margin: '32px 0 16px',
       paddingBottom: 8,
@@ -159,13 +171,13 @@ function CardGrid({
             onMouseLeave={() => setHovered(null)}
             onClick={() => card.path && onNavigate(card.path)}
             style={{
-              background: '#f4f6f8',
-              borderRadius: 8,
+              background: '#fafafa',
+              borderRadius: 12,
               padding: '24px 18px',
               textAlign: 'center',
               cursor: card.path ? 'pointer' : 'default',
-              border: isActive ? '2px solid #5b8fa8' : '2px solid transparent',
-              boxShadow: isActive ? '0 2px 10px rgba(91,143,168,0.12)' : 'none',
+              border: isActive ? '2px solid #001529' : '2px solid transparent',
+              boxShadow: isActive ? '0 4px 12px rgba(0,21,41,0.1)' : 'none',
               transition: 'all 0.2s ease',
               display: 'flex',
               flexDirection: 'column',
@@ -174,8 +186,8 @@ function CardGrid({
               minHeight: 190,
             }}
           >
-            <div style={{ fontSize: 30, color: '#5b8fa8', marginBottom: 12 }}>{card.icon}</div>
-            <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8, color: '#1f2937' }}>{card.title}</div>
+            <div style={{ fontSize: 32, color: '#001529', marginBottom: 12 }}>{card.icon}</div>
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8, color: '#001529' }}>{card.title}</div>
             <div style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.7 }}>{card.description}</div>
           </div>
         );

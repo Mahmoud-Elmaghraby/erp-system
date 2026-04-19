@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Form, Input, Select, DatePicker, Button, Tabs, InputNumber, Row, Col, Typography, Space, Divider, message, Switch, Upload, Dropdown } from 'antd';
+import { Form, Input, Select, DatePicker, Button, Tabs, InputNumber, Row, Col, Typography, Space, Divider, message, Switch, Upload, Dropdown, Tag } from 'antd';
 import type { MenuProps } from 'antd';
 import { PlusOutlined, DeleteOutlined, EyeOutlined, CloseOutlined, QuestionCircleOutlined, CloudUploadOutlined, SearchOutlined, DownOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -7,7 +7,7 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/ar';
 import updateLocale from 'dayjs/plugin/updateLocale';
 import { useCustomers } from '../../hooks/useCustomers';
-import { useCreateInvoice } from '../../hooks/useInvoices';
+import { useCreateQuotation } from '../../hooks/useQuotations';
 import { useProducts } from '@org/inventory-ui'; // Assuming this exists based on order-form.tsx
 
 dayjs.extend(updateLocale);
@@ -20,7 +20,7 @@ const { Option } = Select;
 const { Text, Title } = Typography;
 const { TabPane } = Tabs;
 
-export default function CreateInvoicePage() {
+export default function CreateQuotationPage() {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const [totalAmount, setTotalAmount] = useState(0);
@@ -30,7 +30,7 @@ export default function CreateInvoicePage() {
 
   const { data: customers } = useCustomers();
   const { data: products } = useProducts();
-  const createMutation = useCreateInvoice();
+  const createMutation = useCreateQuotation();
 
   const calculateTotals = () => {
     const items = form.getFieldValue('items') || [];
@@ -107,7 +107,7 @@ export default function CreateInvoicePage() {
     createMutation.mutate(payload, {
       onSuccess: () => {
         message.success('تم الحفظ بنجاح');
-        navigate('/sales/invoices');
+        navigate('/sales/quotations');
       }
     });
   };
@@ -201,57 +201,65 @@ export default function CreateInvoicePage() {
             <Dropdown.Button className="dark-blue-dropdown" menu={{ items: previewMenu }} type="primary" style={{ fontWeight: 600 }} icon={<DownOutlined />}>
               <Space>معاينة <EyeOutlined /></Space>
             </Dropdown.Button>
-            <Button icon={<CloseOutlined />} onClick={() => navigate('/sales/invoices')} style={{ fontWeight: 600, color: '#001529', borderColor: '#001529' }}>إلغاء</Button>
+            <Button icon={<CloseOutlined />} onClick={() => navigate('/sales/quotations')} style={{ fontWeight: 600, color: '#001529', borderColor: '#001529' }}>إلغاء</Button>
           </Space>
         </div>
 
         <div style={{ background: '#fff', padding: 24, borderRadius: 12, marginBottom: 24, paddingBottom: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
           <Row gutter={16}>
+            <Col span={24}>
+              <Form.Item label="قالب الفاتورة" name="templateId" initialValue="default">
+                <Select placeholder="التصميم الافتراضي لعرض الأسعار" style={{ width: '50%' }}>
+                  <Option value="default">التصميم الافتراضي لعرض الأسعار</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
             <Col span={6}>
-              <Form.Item label="رقم الفاتورة" name="invoiceNumber">
+              <Form.Item label="رقم عرض الأسعار" name="quotationNumber">
                 <Input placeholder="تلقائي" disabled />
               </Form.Item>
             </Col>
             <Col span={6}>
-              <Form.Item label="التاريخ" name="date" rules={[{ required: true, message: 'مطلوب' }]}>
+              <Form.Item label="تاريخ عرض الأسعار" name="date" rules={[{ required: true, message: 'مطلوب' }]}>
                 <DatePicker style={{ width: '100%' }} placeholder="اختيار التاريخ" format="YYYY-MM-DD" popupClassName="wide-calendar-popup" />
               </Form.Item>
             </Col>
             <Col span={6}>
-              <Form.Item label="مسئول المبيعات" name="salesRepId">
+              <Form.Item label="مسئول مبيعات" name="salesRepId">
                 <Select placeholder="اختر المسئول">
                   {/* Options would come from users/employees API */}
                 </Select>
               </Form.Item>
             </Col>
             <Col span={6}>
-              <Form.Item label={<Space>تاريخ الإصدار <QuestionCircleOutlined style={{ color: '#aaa', cursor: 'help' }}/></Space>} name="dueDate">
-                <DatePicker style={{ width: '100%' }} placeholder="اختيار التاريخ" format="YYYY-MM-DD" popupClassName="wide-calendar-popup" />
+              <Form.Item label="العميل *" name="customerId" rules={[{ required: true, message: 'مطلوب' }]}>
+                <div style={{ display: 'flex' }}>
+                   <Button type="primary" style={{ backgroundColor: '#001529', borderColor: '#001529', borderRadius: '0 4px 4px 0' }} icon={<PlusOutlined />}>جديد</Button>
+                   <Select
+                    style={{ flex: 1, borderRadius: '4px 0 0 4px' }}
+                    showSearch
+                    placeholder="(اختر عميل)"
+                    filterOption={(input, option) => (option?.label as string)?.toLowerCase().includes(input.toLowerCase())}
+                    options={(customers as any[] ?? []).map((c: any) => ({ label: c.name, value: c.id }))}
+                  />
+                </div>
               </Form.Item>
             </Col>
           </Row>
           <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item label="اسم العميل" name="customerId" rules={[{ required: true, message: 'مطلوب' }]}>
-                <Select
-                  showSearch
-                  placeholder="اختر العميل"
-                  filterOption={(input, option) => (option?.label as string)?.toLowerCase().includes(input.toLowerCase())}
-                  options={(customers as any[] ?? []).map((c: any) => ({ label: c.name, value: c.id }))}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item label="طريقة" name="method">
+            <Col span={6}>
+              <Form.Item label="الطريقة" name="method">
                 <Select placeholder="الطريقة">
                   <Option value="print">طباعة</Option>
                   <Option value="email">إرسال بالبريد</Option>
                 </Select>
               </Form.Item>
             </Col>
-            <Col span={8}>
-              <Form.Item label={<Space>شروط الدفع <QuestionCircleOutlined style={{ color: '#aaa', cursor: 'help' }}/></Space>} name="paymentTerms">
-                <InputNumber style={{ width: '100%' }} min={0} addonBefore="أيام" />
+            <Col span={6}>
+              <Form.Item label={<Space>تاريخ الانتهاء (صالح حتى) <QuestionCircleOutlined style={{ color: '#aaa', cursor: 'help' }}/></Space>} name="validUntil">
+                <DatePicker style={{ width: '100%' }} placeholder="اختيار التاريخ" format="YYYY-MM-DD" popupClassName="wide-calendar-popup" />
               </Form.Item>
             </Col>
           </Row>
@@ -261,12 +269,14 @@ export default function CreateInvoicePage() {
           <Form.List name="items">
             {(fields, { add, remove }) => (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1fr 1fr 1fr 1fr auto', gap: 12, marginBottom: 8, fontWeight: 'bold', color: '#666' }}>
-                  <span>العنصر / الوصف</span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 1fr) minmax(200px, 1fr) 70px 100px 100px 150px 100px 120px 40px', gap: 12, marginBottom: 8, fontWeight: 'bold', color: '#666', background: '#f5f5f5', padding: '12px 8px', borderRadius: 4 }}>
+                  <span>البند</span>
+                  <span>الوصف</span>
+                  <span>التوفر</span>
                   <span>سعر الوحدة</span>
                   <span>الكمية</span>
-                  <span>الخصم %</span>
-                  <span>الضريبة 1 %</span>
+                  <span>الخصم</span>
+                  <span>الضريبة 1</span>
                   <span>المجموع</span>
                   <span></span>
                 </div>
@@ -275,43 +285,62 @@ export default function CreateInvoicePage() {
                   const p = form.getFieldValue(['items', name, 'unitPrice']) || 0;
                   const d = form.getFieldValue(['items', name, 'discount']) || 0;
                   const t = form.getFieldValue(['items', name, 'tax']) || 0;
+                  const selectedProductId = form.getFieldValue(['items', name, 'productId']);
                   
                   const sub = q * p;
                   const aftDisc = sub - (sub * d / 100);
                   const totalLine = aftDisc + (aftDisc * t / 100);
 
                   return (
-                    <div key={key} style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1fr 1fr 1fr 1fr auto', gap: 12, marginBottom: 16, alignItems: 'start' }}>
+                    <div key={key} style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 1fr) minmax(200px, 1fr) 70px 100px 100px 150px 100px 120px 40px', gap: 12, marginBottom: 16, alignItems: 'start', background: '#fffcf0', padding: '12px 8px', borderRadius: 4, border: '1px solid #f0e6d2' }}>
                       <Form.Item {...restField} name={[name, 'productId']} rules={[{ required: true, message: 'مطلوب' }]} style={{ margin: 0 }}>
                         <Select
                           showSearch
-                          placeholder="اختر العنصر"
+                          placeholder="البند"
                           filterOption={(input, option) => (option?.label as string)?.toLowerCase().includes(input.toLowerCase())}
                           options={(products as any[] ?? []).map((p: any) => ({ label: p.name, value: p.id }))}
                           onChange={(val) => handleProductChange(val, name)}
                         />
                       </Form.Item>
+                      <Form.Item {...restField} name={[name, 'description']} style={{ margin: 0 }}>
+                         <Input placeholder="الوصف" />
+                      </Form.Item>
+                      <div style={{ display: 'flex', alignItems: 'center', height: '32px', justifyContent: 'center' }}>
+                        {!selectedProductId ? (
+                           <Tag color="default" style={{ margin: 0 }}>—</Tag>
+                        ) : (
+                           <Tag color="success" style={{ margin: 0 }}>متوفر</Tag>
+                        )}
+                      </div>
                       <Form.Item {...restField} name={[name, 'unitPrice']} rules={[{ required: true, message: 'مطلوب' }]} style={{ margin: 0 }}>
-                        <InputNumber min={0} precision={2} style={{ width: '100%' }} />
+                        <InputNumber min={0} precision={2} style={{ width: '100%' }} placeholder="سعر الوحدة" />
                       </Form.Item>
                       <Form.Item {...restField} name={[name, 'quantity']} rules={[{ required: true, message: 'مطلوب' }]} style={{ margin: 0 }}>
-                        <InputNumber min={1} style={{ width: '100%' }} />
+                        <InputNumber min={1} style={{ width: '100%' }} placeholder="الكمية" />
                       </Form.Item>
-                      <Form.Item {...restField} name={[name, 'discount']} style={{ margin: 0 }}>
-                        <InputNumber min={0} max={100} style={{ width: '100%' }} />
-                      </Form.Item>
-                      <Form.Item {...restField} name={[name, 'tax']} style={{ margin: 0 }}>
-                        <InputNumber min={0} max={100} style={{ width: '100%' }} />
-                      </Form.Item>
-                      <div style={{ padding: '4px 11px', background: '#f5f5f5', borderRadius: 4, height: 32, display: 'flex', alignItems: 'center' }}>
-                        {totalLine.toFixed(2)}
+                      <div style={{ display: 'flex' }}>
+                        <Form.Item {...restField} name={[name, 'discount']} style={{ margin: 0, flex: 1 }}>
+                          <InputNumber min={0} max={100} style={{ width: '100%', borderRadius: '0 4px 4px 0' }} placeholder="الخصم" />
+                        </Form.Item>
+                        <Select defaultValue="%" style={{ width: 60 }} className="discount-type-select">
+                          <Option value="%">%</Option>
+                          <Option value="amount">$</Option>
+                        </Select>
                       </div>
-                      <Button type="text" icon={<DeleteOutlined />} onClick={() => remove(name)} style={{ color: '#001529' }} />
+                      <Form.Item {...restField} name={[name, 'tax']} style={{ margin: 0 }}>
+                         <Select placeholder="بدون ضريبة" allowClear>
+                            {/* tax options */}
+                         </Select>
+                      </Form.Item>
+                      <div style={{ padding: '4px 11px', display: 'flex', alignItems: 'center' }}>
+                        {totalLine.toFixed(2)} ج.م
+                      </div>
+                      <Button type="text" icon={<DeleteOutlined />} onClick={() => remove(name)} style={{marginTop: 4, color: '#001529'}} />
                     </div>
                   );
                 })}
                 <Button onClick={() => add({})} icon={<PlusOutlined />} style={{ alignSelf: 'flex-start', marginTop: 8, color: '#001529', borderColor: '#001529' }}>
-                  إضافة سطر
+                  إضافة
                 </Button>
               </>
             )}
@@ -321,7 +350,16 @@ export default function CreateInvoicePage() {
           <Row>
             <Col span={14}>
               <Form.Item name="notes" label="الملاحظات/الشروط" labelCol={{span: 24}}>
-                <Input.TextArea rows={4} placeholder="الملاحظات والشروط تظهر أسفل الفاتورة" />
+                {/* Simulated Rich Text Editor toolbar layout using Antd elements */}
+                <div style={{ border: '1px solid #d9d9d9', borderRadius: 4 }}>
+                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #d9d9d9', background: '#fafafa', display: 'flex', gap: 4 }}>
+                    <Button size="small" icon={<i className="fas fa-bold">B</i>} />
+                    <Button size="small" icon={<i className="fas fa-italic">I</i>} />
+                    <Button size="small" icon={<i className="fas fa-underline">U</i>} />
+                    <Button size="small" icon={<i className="fas fa-strikethrough">S</i>} />
+                  </div>
+                  <Input.TextArea rows={4} placeholder="الملاحظات والشروط تظهر أسفل عرض السعر" style={{ border: 'none', borderRadius: '0 0 4px 4px' }} />
+                </div>
               </Form.Item>
             </Col>
             <Col span={9} offset={1}>
@@ -352,45 +390,23 @@ export default function CreateInvoicePage() {
           <Tabs defaultActiveKey="1" className="dark-blue-tabs">
             <TabPane tab="الخصم والتسوية" key="1">
               <Row gutter={16}>
-                <Col span={8}>
-                  <Form.Item label="الخصم الإضافي" name="overallDiscount">
-                    <InputNumber min={0} style={{ width: '100%' }} />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item label="نوع الخصم" name="overallDiscountType" initialValue="percentage">
-                    <Select>
-                      <Option value="percentage">نسبة مئوية (%)</Option>
-                      <Option value="fixed">مبلغ ثابت</Option>
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-            </TabPane>
-            
-            <TabPane tab="إيداع" key="2">
-              <Row gutter={24}>
-                <Col span={6}>
-                  <Form.Item label={<Space>الدفعة المقدمة <QuestionCircleOutlined style={{ color: '#aaa', cursor: 'help' }}/></Space>} name="advancePayment">
-                    <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
-                  </Form.Item>
-                </Col>
-                <Col span={6}>
-                  <Form.Item 
-                    label={<Space>(مدفوع بالفعل) <QuestionCircleOutlined style={{ color: '#aaa', cursor: 'help' }}/> <Switch size="small" /></Space>} 
-                    name="advancePaymentType" 
-                    initialValue="amount"
-                  >
-                    <Select>
-                      <Option value="amount">المبلغ</Option>
-                      <Option value="percentage">نسبة مئوية (%)</Option>
-                    </Select>
-                  </Form.Item>
+                <Col span={24}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <Form.Item label="التسوية" name="overallDiscount" style={{ flex: 1 }}>
+                      <InputNumber min={0} style={{ width: '100%' }} />
+                    </Form.Item>
+                    <Form.Item label="الخصم" name="overallDiscountType" initialValue="percentage" style={{ flex: 1 }}>
+                      <Select>
+                        <Option value="percentage">نسبة مئوية (%)</Option>
+                        <Option value="fixed">مبلغ ثابت</Option>
+                      </Select>
+                    </Form.Item>
+                  </div>
                 </Col>
               </Row>
             </TabPane>
 
-            <TabPane tab="بيانات الشحن" key="3">
+            <TabPane tab="بيانات الشحن" key="2">
               <Row gutter={24}>
                 <Col span={8}>
                   <Form.Item label={<Space>بيانات الشحن <QuestionCircleOutlined style={{ color: '#aaa', cursor: 'help' }}/></Space>} name="shippingDetails" initialValue="auto">
@@ -410,7 +426,27 @@ export default function CreateInvoicePage() {
               </Row>
             </TabPane>
 
-            <TabPane tab={<Space><QuestionCircleOutlined style={{ color: '#aaa' }} /> إرفاق المستندات</Space>} key="4">
+            <TabPane tab="خطة التقسيط" key="installments">
+              <Row gutter={24}>
+                <Col span={8}>
+                  <Form.Item label="المقدم" name={['installment', 'downPayment']}>
+                    <InputNumber min={0} style={{ width: '100%' }} placeholder="0.00" addonAfter="ج.م" />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item label="عدد الشهور" name={['installment', 'months']}>
+                    <InputNumber min={1} style={{ width: '100%' }} placeholder="12" addonAfter="شهر" />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item label="القيمة الشهرية" name={['installment', 'monthlyPayment']}>
+                    <InputNumber min={0} style={{ width: '100%' }} placeholder="0.00" addonAfter="ج.م" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </TabPane>
+
+            <TabPane tab={<Space><QuestionCircleOutlined style={{ color: '#aaa' }} /> إرفاق المستندات</Space>} key="3">
               <Tabs type="card" defaultActiveKey="new_doc" tabBarGutter={8} style={{ padding: '8px 0' }} className="dark-blue-tabs">
                 <TabPane tab="مستند جديد" key="new_doc">
                   <div style={{ marginTop: 16 }}>

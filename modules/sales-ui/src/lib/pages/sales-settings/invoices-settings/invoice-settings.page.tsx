@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Switch, Select, Input, Radio, Button, Divider } from 'antd';
+import { Switch, Select, Input, Radio, Button, Divider, Card } from 'antd';
 import {
   FileTextOutlined,
   TagsOutlined,
@@ -7,6 +7,7 @@ import {
   InboxOutlined,
   CalculatorOutlined,
   SettingOutlined,
+  ArrowRightOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
@@ -186,28 +187,35 @@ export default function InvoiceSettingsPage() {
   });
 
   return (
-    <div style={{ padding: 24 }} dir="rtl">
-      {/* top bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2 style={{ margin: 0 }}>إعدادات الفواتير</h2>
-        <Button onClick={() => navigate('/sales/settings')} type="text" style={{ color: '#6b7280' }}>
-          تجاهل
-        </Button>
-      </div>
+    <div style={{ padding: '24px 16px', backgroundColor: '#f0f2f5', minHeight: '100vh', fontFamily: "'Cairo', 'Tajawal', sans-serif" }} dir="rtl">
+      <Card 
+        bordered={false} 
+        style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+        bodyStyle={{ padding: '24px 32px 40px' }}
+      >
+        {/* top bar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Button type="text" icon={<ArrowRightOutlined />} onClick={() => navigate('/sales/settings')} />
+            <h2 style={{ margin: 0, color: '#001529', fontWeight: 700 }}>إعدادات الفواتير</h2>
+          </div>
+          <Button onClick={() => navigate('/sales/settings')} type="primary" style={{ backgroundColor: '#001529', borderColor: '#001529' }}>
+            رجوع للإعدادات
+          </Button>
+        </div>
 
-      <div style={{ display: 'flex', gap: 0 }}>
-        {/* ─── SIDEBAR ─── */}
-        <div style={{
-          width: 260,
-          minWidth: 260,
-          background: '#fff',
-          borderLeft: '1px solid #e8ecf0',
-          position: 'sticky',
-          top: 0,
-          alignSelf: 'flex-start',
-          maxHeight: 'calc(100vh - 160px)',
-          overflowY: 'auto',
-        }}>
+        <div style={{ display: 'flex', gap: '24px', borderTop: '1px solid #e8ecf0', paddingTop: '24px' }}>
+          {/* ─── SIDEBAR ─── */}
+          <div style={{
+            width: 280,
+            minWidth: 280,
+            background: '#fff',
+            position: 'sticky',
+            top: 24,
+            alignSelf: 'flex-start',
+            maxHeight: 'calc(100vh - 160px)',
+            overflowY: 'auto',
+          }}>
           {sideSections.map((s) => {
             const isActive = activeSection === s.key;
             return (
@@ -523,6 +531,7 @@ export default function InvoiceSettingsPage() {
           <div style={{ height: 40 }} />
         </div>
       </div>
+      </Card>
     </div>
   );
 }
