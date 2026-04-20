@@ -11,7 +11,6 @@ import {
   FormOutlined,
   SnippetsOutlined,
   ShoppingOutlined,
-  EditOutlined,
 } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -47,34 +46,32 @@ const invoicesAndPayments: SettingsCard[] = [
     path: '/sales/settings/designs',
   },
   {
-    key: 'invoice-custom-fields',
-    icon: <EditOutlined />,
-    title: 'حقول الفواتير الإضافية',
-    description: 'تحكم في الحقول الإضافية الخاصة بالفواتير بمختلف أنواع الحقول المتاحة و تفاصيلها.',
-  },
-  {
     key: 'price-lists',
     icon: <TagsOutlined />,
     title: 'قوائم الأسعار',
     description: 'أنشئ قوائم أسعار مختلفة للمنتجات وقم بإدارتها وتطبيقها حسب العميل أو نوع المعاملة.',
+    path: '/sales/settings/price-lists',
   },
   {
     key: 'order-sources',
     icon: <BarcodeOutlined />,
     title: 'مصادر الطلب',
     description: 'أنشئ مصادر طلب مخصصة لتصنيف وتتبع فواتير المبيعات وطلبات وإيصالات نقاط البيع.',
+    path: '/sales/settings/order-sources',
   },
   {
     key: 'shipping-options',
     icon: <CarOutlined />,
     title: 'خيارات الشحن',
     description: 'حدد طرق وأسعار الشحن والتوصيل وإعدادات خيار الدفع عند التوصيل.',
+    path: '/sales/settings/shipping-options',
   },
   {
     key: 'promotions',
     icon: <GiftOutlined />,
     title: 'العروض',
     description: 'خصّص أنواع العروض الترويجية ومدتها ونسب الخصم وقواعد التطبيق على العملاء.',
+    path: '/sales/settings/price-offers',
   },
 ];
 
@@ -84,6 +81,7 @@ const quotationsCards: SettingsCard[] = [
     icon: <FormOutlined />,
     title: 'إعدادات عروض الأسعار',
     description: 'اضبط طريقة إنشاء عروض الأسعار وإدارتها وتحويلها إلى فواتير.',
+    path: '/sales/settings/price-offers',
   },
 ];
 
@@ -93,6 +91,7 @@ const ordersCards: SettingsCard[] = [
     icon: <ShoppingOutlined />,
     title: 'إعدادات أوامر البيع',
     description: 'تهيئة كيفية إنشاء أوامر البيع، وإدارتها، وتحويلها إلى فواتير.',
+    path: '/sales/settings/orders',
   },
 ];
 
