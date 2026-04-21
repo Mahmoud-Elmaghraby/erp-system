@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { PrismaService, RbacModule, OutboxModule } from '@org/core';
+import { PrismaService, RbacModule, OutboxModule, SettingsRegistry } from '@org/core';
 
 import { CustomersController } from './presentation/controllers/customers.controller';
 import { OrdersController } from './presentation/controllers/orders.controller';
@@ -8,6 +8,7 @@ import { InvoicesController } from './presentation/controllers/invoices.controll
 import { QuotationsController } from './presentation/controllers/quotations.controller';
 import { DeliveriesController } from './presentation/controllers/deliveries.controller';
 import { SalesReturnsController } from './presentation/controllers/sales-returns.controller';
+import { SalesSettingsController } from './presentation/controllers/sales-settings.controller';
 
 import { CreateCustomerUseCase } from './application/use-cases/customers/create-customer.use-case';
 import { CreateOrderUseCase } from './application/use-cases/orders/create-order.use-case';
@@ -20,6 +21,7 @@ import { CreateDeliveryUseCase } from './application/use-cases/deliveries/create
 import { ConfirmDeliveryUseCase } from './application/use-cases/deliveries/confirm-delivery.use-case';
 import { CreateSalesReturnUseCase } from './application/use-cases/sales-returns/create-sales-return.use-case';
 import { ConfirmSalesReturnUseCase } from './application/use-cases/sales-returns/confirm-sales-return.use-case';
+import { SalesModuleSettingsService } from './application/services/sales-module-settings.service';
 
 
 
@@ -36,6 +38,7 @@ import { INVOICE_REPOSITORY } from './domain/repositories/invoice.repository.int
 import { QUOTATION_REPOSITORY } from './domain/repositories/quotation.repository.interface';
 import { DELIVERY_REPOSITORY } from './domain/repositories/delivery.repository.interface';
 import { SALES_RETURN_REPOSITORY } from './domain/repositories/sales-return.repository.interface';
+import { salesSettingsDefinition } from './sales.settings';
 
 @Module({
   imports: [
@@ -50,9 +53,11 @@ import { SALES_RETURN_REPOSITORY } from './domain/repositories/sales-return.repo
     QuotationsController,
     DeliveriesController,
     SalesReturnsController,
+    SalesSettingsController,
   ],
   providers: [
     PrismaService,
+    SalesModuleSettingsService,
     // Use Cases
     CreateCustomerUseCase,
     CreateOrderUseCase,
@@ -77,4 +82,10 @@ import { SALES_RETURN_REPOSITORY } from './domain/repositories/sales-return.repo
   ],
   exports: [CreateOrderUseCase, CreateInvoiceUseCase],
 })
-export class SalesModule {}
+export class SalesModule implements OnModuleInit {
+  constructor(private settingsRegistry: SettingsRegistry) {}
+
+  onModuleInit() {
+    this.settingsRegistry.register(salesSettingsDefinition);
+  }
+}

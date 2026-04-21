@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Table, Tag, Button, Modal, Form, InputNumber, Select, Space, Input, Popconfirm, Card, Typography, Row, Col, Empty, Tooltip } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import { SearchOutlined, CloseOutlined, PlusOutlined, EyeOutlined, PrinterOutlined, DollarOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useInvoices, usePayInvoice, useCancelInvoice } from '../../hooks/useInvoices';
@@ -16,7 +17,35 @@ const statusLabels: Record<string, string> = {
   OVERDUE: 'متأخر', DUE: 'مستحقة الدفع', DRAFT: 'مسودة', OVERPAID: 'مدفوع بالزيادة'
 };
 
-const getDerivedStatus = (invoice: any) => {
+interface PartyInfo {
+  name?: string;
+}
+
+interface OrderInfo {
+  customer?: PartyInfo;
+}
+
+interface InvoiceRow {
+  id: string;
+  invoiceNumber?: string;
+  status?: string;
+  totalAmount?: number | string;
+  paidAmount?: number | string;
+  dueDate?: string;
+  dateTimeIssued?: string;
+  customer?: PartyInfo;
+  order?: OrderInfo;
+  derivedStatus?: string;
+}
+
+interface InvoicePaymentValues {
+  amount: number;
+  paymentMethod: string;
+  reference?: string;
+  notes?: string;
+}
+
+const getDerivedStatus = (invoice: InvoiceRow) => {
   if (invoice.status === 'CANCELLED') return 'CANCELLED';
   if (invoice.status === 'PAID') return 'PAID';
   if (Number(invoice.paidAmount) > Number(invoice.totalAmount)) return 'OVERPAID';
@@ -35,7 +64,7 @@ const getDerivedStatus = (invoice: any) => {
 
 export default function InvoicesPage() {
   const [payOpen, setPayOpen] = useState(false);
-  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<InvoiceRow | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [form] = Form.useForm();
@@ -46,18 +75,21 @@ export default function InvoicesPage() {
   const cancelInvoice = useCancelInvoice();
 
   const handlePay = async () => {
-    const values = await form.validateFields();
+    const values = (await form.validateFields()) as InvoicePaymentValues;
+    if (!selectedInvoice) {
+      return;
+    }
     await payInvoice.mutateAsync({ id: selectedInvoice.id, data: values });
     setPayOpen(false);
     form.resetFields();
   };
 
-  const derivedInvoices = (invoices as any[] ?? []).map((i: any) => ({
+  const derivedInvoices = (((invoices as InvoiceRow[] | undefined) ?? []).map((i) => ({
     ...i,
     derivedStatus: getDerivedStatus(i)
-  }));
+  })));
 
-  const filtered = derivedInvoices.filter((i: any) => {
+  const filtered = derivedInvoices.filter((i) => {
     const searchLower = search.toLowerCase();
     const matchSearch = !search || 
       i.invoiceNumber?.toLowerCase().includes(searchLower) ||
@@ -68,7 +100,7 @@ export default function InvoicesPage() {
     return matchSearch && matchStatus;
   });
 
-  const columns = [
+  const columns: ColumnsType<InvoiceRow> = [
     { 
       title: 'رقم الفاتورة', 
       dataIndex: 'invoiceNumber', 
@@ -78,7 +110,7 @@ export default function InvoicesPage() {
     {
       title: 'العميل',
       key: 'customerName',
-      render: (_: any, r: any) => r.order?.customer?.name || r.customer?.name || <span style={{ color: '#999' }}>—</span>,
+      render: (_: unknown, r: InvoiceRow) => r.order?.customer?.name || r.customer?.name || <span style={{ color: '#999' }}>—</span>,
     },
     {
       title: 'الحالة', dataIndex: 'derivedStatus', key: 'status',
@@ -96,7 +128,7 @@ export default function InvoicesPage() {
     },
     {
       title: 'المتبقي', key: 'remaining',
-      render: (_: any, r: any) => (
+      render: (_: unknown, r: InvoiceRow) => (
         <span style={{ fontWeight: 'bold', color: Number(r.totalAmount) > Number(r.paidAmount) ? '#cf1322' : '#389e0d' }}>
           {(Number(r.totalAmount) - Number(r.paidAmount)).toLocaleString()} ج.م
         </span>
@@ -109,7 +141,7 @@ export default function InvoicesPage() {
     },
     {
       title: 'الإجراءات', key: 'actions',
-      render: (_: any, record: any) => (
+      render: (_: unknown, record: InvoiceRow) => (
         <Space size="small">
           <Tooltip title="عرض">
             <Button type="text" icon={<EyeOutlined style={{ color: '#1890ff' }} />} size="small" />

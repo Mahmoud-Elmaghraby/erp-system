@@ -1,29 +1,57 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Card, Typography, Button, Table, Select, Switch, Space, Input 
-} from 'antd';
-import {
-  SaveOutlined,
-  CloseOutlined,
-  PlusOutlined
-} from '@ant-design/icons';
+import { useEffect, useState } from 'react';
+import { Card, Button, Table, Select, Switch, Input } from 'antd';
+import { SaveOutlined, CloseOutlined, PlusOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import {
+  useOrderSourcesConfig,
+  useSaveOrderSourcesConfig,
+} from '../../../hooks/useOrderSources';
 
-const { Title, Text } = Typography;
 const { Option } = Select;
 
 interface OrderSource {
   id: string;
   name: string;
-  status: string;
+  status: 'active' | 'inactive';
 }
 
 export default function OrderSourcesPage() {
-  const navigate = useNavigate();
+  const { data, isLoading } = useOrderSourcesConfig();
+  const saveOrderSources = useSaveOrderSourcesConfig();
 
   const [sources, setSources] = useState<OrderSource[]>([]);
   const [isMandatory, setIsMandatory] = useState(false);
+  const [defaultSourceId, setDefaultSourceId] = useState<string>('none');
+
+  useEffect(() => {
+    const loadedSources = data?.sources ?? [];
+    setSources(loadedSources);
+    setIsMandatory(Boolean(data?.isMandatory));
+    setDefaultSourceId(data?.defaultSourceId ?? 'none');
+  }, [data]);
+
+  const updateSource = (id: string, patch: Partial<OrderSource>) => {
+    setSources((prev) => prev.map((source) => (source.id === id ? { ...source, ...patch } : source)));
+  };
+
+  const handleSave = async () => {
+    await saveOrderSources.mutateAsync({
+      sources: sources.map((source) => ({
+        id: source.id.startsWith('tmp-') ? undefined : source.id,
+        name: source.name,
+        status: source.status,
+      })),
+      defaultSourceId: defaultSourceId === 'none' ? null : defaultSourceId,
+      isMandatory,
+    });
+  };
+
+  const handleCancel = () => {
+    const loadedSources = (data?.sources ?? []) as OrderSource[];
+    setSources(loadedSources);
+    setIsMandatory(Boolean(data?.isMandatory));
+    setDefaultSourceId(data?.defaultSourceId ?? 'none');
+  };
 
   const columns: ColumnsType<OrderSource> = [
     {
@@ -31,7 +59,14 @@ export default function OrderSourcesPage() {
       dataIndex: 'name',
       key: 'name',
       align: 'right',
-      render: (text) => <Input value={text} placeholder="الاسم" bordered={false} />
+      render: (text: string, record: OrderSource) => (
+        <Input
+          value={text}
+          placeholder="الاسم"
+          bordered={false}
+          onChange={(e) => updateSource(record.id, { name: e.target.value })}
+        />
+      ),
     },
     {
       title: 'الحالة',
@@ -39,13 +74,18 @@ export default function OrderSourcesPage() {
       key: 'status',
       align: 'center',
       width: '30%',
-      render: (status) => (
-        <Select defaultValue={status} bordered={false} style={{ width: '100%' }}>
+      render: (status: OrderSource['status'], record: OrderSource) => (
+        <Select
+          value={status}
+          bordered={false}
+          style={{ width: '100%' }}
+          onChange={(value: OrderSource['status']) => updateSource(record.id, { status: value })}
+        >
           <Option value="active">نشط</Option>
           <Option value="inactive">غير نشط</Option>
         </Select>
-      )
-    }
+      ),
+    },
   ];
 
   return (
@@ -66,6 +106,8 @@ export default function OrderSourcesPage() {
           type="primary" 
           style={{ backgroundColor: '#001529', borderColor: '#001529', borderRadius: 4, fontWeight: 'bold', padding: '0 24px' }} 
           icon={<SaveOutlined />}
+          loading={saveOrderSources.isPending}
+          onClick={handleSave}
         >
           حفظ
         </Button>
@@ -73,6 +115,7 @@ export default function OrderSourcesPage() {
           size="large" 
           icon={<CloseOutlined />} 
           style={{ borderColor: '#001529', color: '#001529', borderRadius: 4, fontWeight: 'bold', padding: '0 24px' }}
+          onClick={handleCancel}
         >
           إلغاء
         </Button>
@@ -90,6 +133,7 @@ export default function OrderSourcesPage() {
           <div style={{ marginBottom: 32 }}>
             <div style={{ textAlign: 'right', marginBottom: 8, color: '#475569', fontSize: 14 }}>المصادر</div>
             <Table 
+              loading={isLoading}
               dataSource={sources} 
               columns={columns} 
               rowKey="id" 
@@ -97,11 +141,6 @@ export default function OrderSourcesPage() {
               bordered
               size="small"
               locale={{ emptyText: ' ' }}
-              components={{
-                header: {
-                  cell: (props: any) => <th {...props} style={{ backgroundColor: '#f8fafc', color: '#64748b', fontWeight: 'normal' }} />
-                }
-              }}
               footer={() => (
                 <div 
                   style={{ 
@@ -114,7 +153,12 @@ export default function OrderSourcesPage() {
                     gap: 8,
                     fontWeight: 'bold'
                   }}
-                  onClick={() => setSources([...sources, { id: Date.now().toString(), name: '', status: 'active' }])}
+                  onClick={() =>
+                    setSources([
+                      ...sources,
+                      { id: `tmp-${Date.now().toString()}`, name: '', status: 'active' },
+                    ])
+                  }
                 >
                   <PlusOutlined style={{ color: '#001529' }} /> إضافة
                 </div>
@@ -128,9 +172,13 @@ export default function OrderSourcesPage() {
               <Select 
                 size="large"
                 style={{ width: '100%' }} 
-                defaultValue="none"
+                value={defaultSourceId}
+                onChange={(value) => setDefaultSourceId(value)}
               >
                 <Option value="none">[لا افتراضي]</Option>
+                {sources.map((source) => (
+                  <Option key={source.id} value={source.id}>{source.name || 'بدون اسم'}</Option>
+                ))}
               </Select>
             </div>
 

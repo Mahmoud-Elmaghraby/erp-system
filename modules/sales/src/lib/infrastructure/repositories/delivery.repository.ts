@@ -4,6 +4,30 @@ import type { IDeliveryRepository } from '../../domain/repositories/delivery.rep
 import { DeliveryEntity, DeliveryStatus } from '../../domain/entities/delivery.entity';
 import { DeliveryItemEntity } from '../../domain/entities/delivery-item.entity';
 
+type NumericValue = number | string | { toString(): string };
+
+type DeliveryItemRecord = {
+  id: string;
+  productId: string;
+  quantity: NumericValue;
+  deliveryId: string;
+};
+
+type DeliveryRecord = {
+  id: string;
+  deliveryNumber: string;
+  status: DeliveryStatus;
+  orderId: string;
+  warehouseId: string;
+  branchId: string;
+  notes: string | null;
+  deliveryDate: Date | null;
+  createdAt?: Date;
+  items?: DeliveryItemRecord[];
+};
+
+const toNumber = (value: NumericValue): number => Number(value);
+
 @Injectable()
 export class DeliveryRepository implements IDeliveryRepository {
   constructor(private prisma: PrismaService) {}
@@ -67,9 +91,9 @@ async findByBranch(branchId: string): Promise<DeliveryEntity[]> {
     return this.toEntity(delivery);
   }
 
-  private toEntity(d: any): DeliveryEntity {
-    const items = (d.items || []).map((i: any) =>
-      new DeliveryItemEntity(i.id, i.productId, Number(i.quantity), i.deliveryId)
+  private toEntity(d: DeliveryRecord): DeliveryEntity {
+    const items = (d.items || []).map((i) =>
+      new DeliveryItemEntity(i.id, i.productId, toNumber(i.quantity), i.deliveryId)
     );
     return new DeliveryEntity(
       d.id, d.deliveryNumber, d.status as DeliveryStatus,

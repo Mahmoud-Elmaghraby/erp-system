@@ -35,18 +35,18 @@ export class DeliveryEntity {
   confirm(): void {
     if (this.status !== 'DRAFT')
       throw new Error('Only DRAFT deliveries can be confirmed');
-    (this as any).status = 'CONFIRMED';
+    this.status = 'CONFIRMED';
   }
 
   complete(): void {
     if (this.status !== 'CONFIRMED')
       throw new Error('Only CONFIRMED deliveries can be completed');
-    (this as any).status = 'DONE';
+    this.status = 'DONE';
   }
 
   cancel(): void {
     if (this.status === 'DONE')
       throw new Error('Cannot cancel completed delivery');
-    (this as any).status = 'CANCELLED';
+    this.status = 'CANCELLED';
   }
 }

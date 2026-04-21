@@ -5,8 +5,9 @@ import { message } from 'antd';
 export const useInvoices = (orderId?: string) => useQuery({
   queryKey: ['invoices', orderId ?? 'all'],
   queryFn: async () => {
-    const res = await salesApi.invoices.getAll(orderId) as any;
-    return res?.data ?? res ?? [];
+    const res = (await salesApi.invoices.getAll(orderId)) as { data?: unknown[] } | unknown[];
+    if (Array.isArray(res)) return res;
+    return Array.isArray(res.data) ? res.data : [];
   },
 });
 
@@ -25,7 +26,7 @@ export const useCreateInvoice = () => {
 export const usePayInvoice = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
+    mutationFn: ({ id, data }: { id: string; data: unknown }) =>
       salesApi.invoices.pay(id, data),
     onSuccess: () => {
       message.success('تم تسجيل الدفع');

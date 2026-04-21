@@ -5,10 +5,11 @@ import { message } from 'antd';
 export const useSalesReturns = (orderId?: string) => useQuery({
   queryKey: ['sales-returns', orderId ?? 'all'],
   queryFn: async () => {
-    const res = await (orderId
+    const res = (await (orderId
       ? salesApi.returns.getByOrder(orderId)
-      : salesApi.returns.getAll()) as any;
-    return res?.data ?? res ?? [];
+      : salesApi.returns.getAll())) as { data?: unknown[] } | unknown[];
+    if (Array.isArray(res)) return res;
+    return Array.isArray(res.data) ? res.data : [];
   },
 });
 

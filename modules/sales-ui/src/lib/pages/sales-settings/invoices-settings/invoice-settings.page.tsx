@@ -382,7 +382,20 @@ export default function InvoiceSettingsPage() {
               </Select>
               <FieldDesc>
                 حدد طريقة إدخال الخصومات — سواء على إجمالي الفاتورة أو لكل بند أو كلاهما. هذا إعداد عام يحدد طريقة الإدخال، استخدم{' '}
-                <a href="#" style={{ color: '#5b8fa8' }}>الصلاحيات والأدوار</a> لتحديد من يمكنه تطبيق الخصومات.
+                <button
+                  type="button"
+                  style={{
+                    color: '#5b8fa8',
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  الصلاحيات والأدوار
+                </button>{' '}
+                لتحديد من يمكنه تطبيق الخصومات.
               </FieldDesc>
             </FieldRow>
 

@@ -45,19 +45,19 @@ export class QuotationEntity {
   confirm(): void {
     if (this.status !== 'DRAFT' && this.status !== 'SENT')
       throw new Error('Only DRAFT or SENT quotations can be confirmed');
-    (this as any).status = 'CONFIRMED';
+    this.status = 'CONFIRMED';
   }
 
   send(): void {
     if (this.status !== 'DRAFT')
       throw new Error('Only DRAFT quotations can be sent');
-    (this as any).status = 'SENT';
+    this.status = 'SENT';
   }
 
   cancel(): void {
     if (this.status === 'CONFIRMED')
       throw new Error('Cannot cancel confirmed quotation');
-    (this as any).status = 'CANCELLED';
+    this.status = 'CANCELLED';
   }
 
   calculateTotals(): void {

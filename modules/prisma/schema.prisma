@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  output   = "../../generated/prisma"
 }
 
 datasource db {
@@ -275,6 +275,12 @@ model SalesSettings {
   // Payment
   defaultPaymentTerms Int     @default(30)
   defaultWarehouseId  String?
+
+  // Sales Settings UI Config
+  orderSourceMandatory  Boolean @default(false)
+  defaultOrderSourceId  String?
+  shippingOptionsEnabled Boolean @default(true)
+  codFeeItemId          String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -707,6 +713,72 @@ model Customer {
   quotations SalesQuotation[]
 
   @@map("customers")
+  @@schema("sales")
+}
+
+model SalesPriceList {
+  id        String             @id @default(uuid())
+  companyId String
+  name      String
+  status    SalesSettingsStatus @default(ACTIVE)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@unique([companyId, name])
+  @@map("sales_price_lists")
+  @@schema("sales")
+}
+
+model SalesOrderSource {
+  id        String             @id @default(uuid())
+  companyId String
+  name      String
+  status    SalesSettingsStatus @default(ACTIVE)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@unique([companyId, name])
+  @@map("sales_order_sources")
+  @@schema("sales")
+}
+
+model SalesShippingOption {
+  id        String             @id @default(uuid())
+  companyId String
+  name      String
+  status    SalesSettingsStatus @default(ACTIVE)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@unique([companyId, name])
+  @@map("sales_shipping_options")
+  @@schema("sales")
+}
+
+model SalesPriceOffer {
+  id            String   @id @default(uuid())
+  companyId     String
+  name          String
+  validFrom     DateTime?
+  validTo       DateTime?
+  requiredQty   Int      @default(0)
+  type          String   @default("item-discount")
+  discountValue Decimal  @default(0)
+  discountType  String   @default("fixed")
+  customerScope String   @default("all")
+  unitType      String   @default("all")
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("sales_price_offers")
+  @@schema("sales")
+}
+
+enum SalesSettingsStatus {
+  ACTIVE
+  INACTIVE
+
   @@schema("sales")
 }
 

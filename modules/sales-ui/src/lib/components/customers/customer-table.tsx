@@ -1,15 +1,26 @@
 import { Table, Button, Space, Popconfirm, Tag } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
 
+interface CustomerRow {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  buyerType?: string;
+  country?: string;
+}
+
 interface Props {
-  data: any[];
+  data: CustomerRow[];
   loading: boolean;
-  onEdit: (record: any) => void;
+  onEdit: (record: CustomerRow) => void;
   onDelete: (id: string) => void;
 }
 
 export default function CustomerTable({ data, loading, onEdit, onDelete }: Props) {
-  const columns = [
+  const columns: ColumnsType<CustomerRow> = [
     { title: 'الاسم', dataIndex: 'name', key: 'name' },
     {
       title: 'البريد الإلكتروني',
@@ -46,7 +57,7 @@ export default function CustomerTable({ data, loading, onEdit, onDelete }: Props
     {
       title: 'إجراءات',
       key: 'actions',
-      render: (_: any, record: any) => (
+      render: (_: unknown, record: CustomerRow) => (
         <Space>
           <Button icon={<EditOutlined />} size="small" onClick={() => onEdit(record)}>
             تعديل

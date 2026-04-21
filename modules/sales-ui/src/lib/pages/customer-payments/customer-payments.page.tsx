@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Card, Table, Button, Input, Select, Row, Col, Space, Typography, Modal, Form, InputNumber, Radio, message, Dropdown } from 'antd';
-import type { MenuProps } from 'antd';
-import { PlusOutlined, SearchOutlined, PrinterOutlined, EllipsisOutlined } from '@ant-design/icons';
+import { Card, Table, Button, Input, Select, Row, Col, Space, Typography, Modal, Form, InputNumber, Radio, message } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import { PlusOutlined, SearchOutlined, PrinterOutlined } from '@ant-design/icons';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const { Option } = Select;
 
 interface Payment {
@@ -14,6 +14,13 @@ interface Payment {
   paymentMethod: string;
   date: string;
   linkedInvoice: string;
+}
+
+interface PaymentFormValues {
+  customerId: string;
+  amount: number;
+  paymentMethod: string;
+  invoiceId?: string;
 }
 
 const mockPayments: Payment[] = [
@@ -48,7 +55,7 @@ export default function CustomerPaymentsPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [payments, setPayments] = useState<Payment[]>(mockPayments);
 
-  const columns = [
+  const columns: ColumnsType<Payment> = [
     { title: 'رقم السند', dataIndex: 'receiptNumber', key: 'receiptNumber' },
     { title: 'اسم العميل', dataIndex: 'customerName', key: 'customerName' },
     { title: 'المبلغ', dataIndex: 'amount', key: 'amount', render: (val: number) => `${val.toFixed(2)} ج.م` },
@@ -58,7 +65,7 @@ export default function CustomerPaymentsPage() {
     {
       title: 'الإجراءات',
       key: 'actions',
-      render: (_: any, record: Payment) => (
+      render: (_: unknown, record: Payment) => (
         <Space>
           <Button 
             type="text" 
@@ -87,7 +94,7 @@ export default function CustomerPaymentsPage() {
     setSelectedCustomer(null);
   };
 
-  const handleAddPayment = (values: any) => {
+  const handleAddPayment = (values: PaymentFormValues) => {
     const newPayment: Payment = {
       key: Date.now().toString(),
       receiptNumber: `RCP-000${payments.length + 1}`,

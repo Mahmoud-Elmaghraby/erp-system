@@ -22,10 +22,16 @@ export class ConfirmSalesReturnUseCase {
     const order = await this.prisma.salesOrder.findUnique({
       where: { id: salesReturn.orderId },
     });
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
     const branch = await this.prisma.branch.findUnique({
-      where: { id: order!.branchId },
+      where: { id: order.branchId },
     });
-    const companyId = branch!.companyId;
+    if (!branch) {
+      throw new NotFoundException('Branch not found');
+    }
+    const companyId = branch.companyId;
 
     await this.prisma.$transaction(async (tx) => {
       await this.salesReturnRepository.update(returnId, { status: 'CONFIRMED' });

@@ -4,6 +4,42 @@ import type { IQuotationRepository } from '../../domain/repositories/quotation.r
 import { QuotationEntity, QuotationStatus } from '../../domain/entities/quotation.entity';
 import { QuotationItemEntity } from '../../domain/entities/quotation-item.entity';
 
+type NumericValue = number | string | { toString(): string };
+
+type QuotationItemRecord = {
+  id: string;
+  productId: string;
+  quantity: NumericValue;
+  unitPrice: NumericValue;
+  discount: NumericValue;
+  subtotal: NumericValue;
+  taxAmount: NumericValue;
+  total: NumericValue;
+  taxId: string | null;
+  quotationId: string;
+};
+
+type QuotationRecord = {
+  id: string;
+  quotationNumber: string;
+  status: QuotationStatus;
+  branchId: string;
+  customerId: string | null;
+  notes: string | null;
+  validUntil: Date | null;
+  untaxedAmount: NumericValue;
+  taxAmount: NumericValue;
+  totalAmount: NumericValue;
+  discountAmount: NumericValue;
+  currency: string;
+  exchangeRate: NumericValue;
+  paymentTermId: string | null;
+  createdAt?: Date;
+  items?: QuotationItemRecord[];
+};
+
+const toNumber = (value: NumericValue): number => Number(value);
+
 @Injectable()
 export class QuotationRepository implements IQuotationRepository {
   constructor(private prisma: PrismaService) {}
@@ -79,22 +115,22 @@ export class QuotationRepository implements IQuotationRepository {
     await this.prisma.salesQuotation.delete({ where: { id } });
   }
 
-  private toEntity(q: any): QuotationEntity {
-    const items = (q.items || []).map((i: any) =>
+  private toEntity(q: QuotationRecord): QuotationEntity {
+    const items = (q.items || []).map((i) =>
       new QuotationItemEntity(
         i.id, i.productId,
-        Number(i.quantity), Number(i.unitPrice),
-        Number(i.discount), Number(i.subtotal),
-        Number(i.taxAmount), Number(i.total),
+        toNumber(i.quantity), toNumber(i.unitPrice),
+        toNumber(i.discount), toNumber(i.subtotal),
+        toNumber(i.taxAmount), toNumber(i.total),
         i.taxId, i.quotationId,
       )
     );
     return new QuotationEntity(
       q.id, q.quotationNumber, q.status as QuotationStatus,
       q.branchId, q.customerId, q.notes, q.validUntil,
-      Number(q.untaxedAmount), Number(q.taxAmount),
-      Number(q.totalAmount), Number(q.discountAmount),
-      q.currency, Number(q.exchangeRate),
+      toNumber(q.untaxedAmount), toNumber(q.taxAmount),
+      toNumber(q.totalAmount), toNumber(q.discountAmount),
+      q.currency, toNumber(q.exchangeRate),
       q.paymentTermId, items, q.createdAt,
     );
   }

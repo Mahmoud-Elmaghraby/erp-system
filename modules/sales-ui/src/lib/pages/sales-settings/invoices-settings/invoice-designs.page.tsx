@@ -702,7 +702,10 @@ export default function InvoiceDesignsPage() {
         );
 
       case 'formatting': {
-        const updateFmt = (key: string, val: any) => setFormatting(p => ({ ...p, [key]: val }));
+        const updateFmt = <K extends keyof typeof formatting>(
+          key: K,
+          val: (typeof formatting)[K]
+        ) => setFormatting((p) => ({ ...p, [key]: val }));
         return (
           <>
             <PanelTitle>تعديل التنسيق</PanelTitle>

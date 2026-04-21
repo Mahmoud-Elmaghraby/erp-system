@@ -6,6 +6,35 @@ import axios from 'axios';
 
 const { Text } = Typography;
 
+interface NamedEntity {
+  id: string;
+  name: string;
+}
+
+interface ProductEntity extends NamedEntity {
+  price?: number | string | null;
+}
+
+type BranchEntity = NamedEntity;
+
+interface OrderItemForm {
+  productId: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+interface OrderFormValues {
+  branchId: string;
+  customerId?: string;
+  notes?: string;
+  items: OrderItemForm[];
+}
+
+interface OrderSubmitPayload extends Omit<OrderFormValues, 'items'> {
+  totalAmount: number;
+  items: Array<OrderItemForm & { total: number }>;
+}
+
 // ✅ استخدام نفس إعدادات الـ interceptors عشان التوكن
 const fetchBranches = async () => {
   const token = localStorage.getItem('access_token');
@@ -13,15 +42,16 @@ const fetchBranches = async () => {
     `${import.meta.env['VITE_API_URL'] || 'http://localhost:3000/api'}/branches`,
     { headers: { Authorization: token ? `Bearer ${token}` : '' } }
   );
-  return res.data?.data ?? res.data ?? [];
+  const payload = (res.data?.data ?? res.data ?? []) as unknown;
+  return Array.isArray(payload) ? (payload as BranchEntity[]) : [];
 };
 
 interface Props {
   open: boolean;
   loading: boolean;
-  customers: any[];
-  products: any[];
-  onSubmit: (values: any) => void;
+  customers: NamedEntity[];
+  products: ProductEntity[];
+  onSubmit: (values: OrderSubmitPayload) => void;
   onCancel: () => void;
 }
 
@@ -35,29 +65,29 @@ export default function OrderForm({ open, loading, customers, products, onSubmit
   });
 
   const calculateTotal = () => {
-    const items = form.getFieldValue('items') || [];
-    const sum = items.reduce((acc: number, item: any) => {
+    const items = (form.getFieldValue('items') || []) as Partial<OrderItemForm>[];
+    const sum = items.reduce((acc: number, item) => {
       return acc + (Number(item?.quantity ?? 0) * Number(item?.unitPrice ?? 0));
     }, 0);
     setTotalAmount(sum);
   };
 
   const handleProductChange = (productId: string, name: number) => {
-    const product = products.find((p: any) => p.id === productId);
+    const product = products.find((p) => p.id === productId);
     if (product) {
-      const items = form.getFieldValue('items');
+      const items = (form.getFieldValue('items') || []) as Partial<OrderItemForm>[];
       items[name] = { ...items[name], unitPrice: Number(product.price ?? 0) };
       form.setFieldsValue({ items });
       calculateTotal();
     }
   };
 
-  const handleFinish = (values: any) => {
+  const handleFinish = (values: OrderFormValues) => {
     // ✅ تجميع الـ Payload بالشكل اللي الباك إند مستنيه بالظبط
     const payload = {
       ...values,
       totalAmount: totalAmount,
-      items: values.items.map((item: any) => ({
+      items: values.items.map((item) => ({
         productId: item.productId,
         quantity: Number(item.quantity),
         unitPrice: Number(item.unitPrice),
@@ -84,7 +114,7 @@ export default function OrderForm({ open, loading, customers, products, onSubmit
       <Form form={form} layout="vertical" onFinish={handleFinish} onValuesChange={calculateTotal} dir="rtl">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <Form.Item label="الفرع" name="branchId" rules={[{ required: true, message: 'اختر الفرع' }]}>
-            <Select placeholder="اختر الفرع" options={branches.map((b: any) => ({ label: b.name, value: b.id }))} />
+            <Select placeholder="اختر الفرع" options={branches.map((b) => ({ label: b.name, value: b.id }))} />
           </Form.Item>
           <Form.Item label="العميل" name="customerId">
             <Select
@@ -92,7 +122,7 @@ export default function OrderForm({ open, loading, customers, products, onSubmit
               showSearch
               placeholder="اختر العميل (اختياري)"
               filterOption={(input, option) => (option?.label as string)?.toLowerCase().includes(input.toLowerCase())}
-              options={customers.map((c: any) => ({ label: c.name, value: c.id }))}
+              options={customers.map((c) => ({ label: c.name, value: c.id }))}
             />
           </Form.Item>
         </div>
@@ -119,7 +149,7 @@ export default function OrderForm({ open, loading, customers, products, onSubmit
                       placeholder="اختر المنتج"
                       showSearch
                       filterOption={(input, option) => (option?.label as string)?.toLowerCase().includes(input.toLowerCase())}
-                      options={products.map((p: any) => ({ label: p.name, value: p.id }))}
+                      options={products.map((p) => ({ label: p.name, value: p.id }))}
                       onChange={(val) => handleProductChange(val, name)}
                     />
                   </Form.Item>

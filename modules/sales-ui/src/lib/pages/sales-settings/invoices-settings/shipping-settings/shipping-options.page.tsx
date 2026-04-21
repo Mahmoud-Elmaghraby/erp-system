@@ -1,13 +1,30 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, Button, Switch, Select, Typography } from 'antd';
 import { SaveOutlined, SettingOutlined, ExportOutlined, EditOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useShippingConfig, useUpdateShippingConfig } from '../../../../hooks/useShippingOptions';
 
 const { Title, Text } = Typography;
 
 export default function ShippingOptionsPage() {
   const navigate = useNavigate();
+  const { data: shippingConfig } = useShippingConfig();
+  const updateShippingConfig = useUpdateShippingConfig();
+
   const [isShippingEnabled, setIsShippingEnabled] = useState(true);
+  const [codFeeItem, setCodFeeItem] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    setIsShippingEnabled(shippingConfig?.isEnabled ?? true);
+    setCodFeeItem(shippingConfig?.codFeeItemId ?? undefined);
+  }, [shippingConfig]);
+
+  const handleSave = async () => {
+    await updateShippingConfig.mutateAsync({
+      isEnabled: isShippingEnabled,
+      codFeeItemId: codFeeItem ?? null,
+    });
+  };
 
   return (
     <div dir="rtl" style={{ backgroundColor: '#eef2f6', minHeight: '100vh', fontFamily: "'Cairo', 'Tajawal', sans-serif" }}>
@@ -27,6 +44,8 @@ export default function ShippingOptionsPage() {
           type="primary" 
           style={{ backgroundColor: '#001529', borderColor: '#001529', borderRadius: 4, fontWeight: 'bold', padding: '0 32px' }} 
           icon={<SaveOutlined />}
+          onClick={handleSave}
+          loading={updateShippingConfig.isPending}
         >
           حفظ
         </Button>
@@ -104,7 +123,9 @@ export default function ShippingOptionsPage() {
                 size="large"
                 placeholder="Select Item"
                 style={{ flex: 1 }}
-                options={[]}
+                value={codFeeItem}
+                onChange={setCodFeeItem}
+                options={[{ value: 'cod-fee-item', label: 'رسوم الدفع عند الاستلام' }]}
               />
 
               <Button 

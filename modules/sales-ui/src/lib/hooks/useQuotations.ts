@@ -5,8 +5,9 @@ import { message } from 'antd';
 export const useQuotations = () => useQuery({
   queryKey: ['quotations'],
   queryFn: async () => {
-    const res = await salesApi.quotations.getAll() as any;
-    return res?.data ?? res ?? [];
+    const res = (await salesApi.quotations.getAll()) as { data?: unknown[] } | unknown[];
+    if (Array.isArray(res)) return res;
+    return Array.isArray(res.data) ? res.data : [];
   },
 });
 
@@ -25,7 +26,7 @@ export const useCreateQuotation = () => {
 export const useUpdateQuotation = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
+    mutationFn: ({ id, data }: { id: string; data: unknown }) =>
       salesApi.quotations.update(id, data),
     onSuccess: () => {
       message.success('تم تعديل عرض السعر');

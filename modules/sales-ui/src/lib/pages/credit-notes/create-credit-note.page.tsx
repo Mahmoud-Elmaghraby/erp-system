@@ -1,13 +1,25 @@
-import { useState, useEffect } from 'react';
-import { Form, Input, Select, DatePicker, Button, Tabs, InputNumber, Row, Col, Typography, Space, Divider, message, Switch, Upload, Dropdown, Steps } from 'antd';
+import { useState, useEffect, useCallback } from 'react';
+import { Form, Input, Select, DatePicker, Button, Tabs, InputNumber, Row, Col, Typography, Space, Divider, message, Upload, Dropdown, Steps } from 'antd';
 import type { MenuProps } from 'antd';
-import { PlusOutlined, DeleteOutlined, EyeOutlined, CloseOutlined, QuestionCircleOutlined, CloudUploadOutlined, SearchOutlined, DownOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, EyeOutlined, QuestionCircleOutlined, CloudUploadOutlined, DownOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
-import dayjs from 'dayjs';
 
 const { Option } = Select;
 const { Text, Title } = Typography;
 const { TabPane } = Tabs;
+
+interface CreditNoteItem {
+  quantity?: number | string;
+  unitPrice?: number | string;
+  discount?: number | string;
+  tax?: number | string;
+}
+
+interface ReturnContextState {
+  invoiceNumber?: string;
+  customer?: string;
+  items?: CreditNoteItem[];
+}
 
 export default function CreateCreditNotePage() {
   const [form] = Form.useForm();
@@ -16,31 +28,18 @@ export default function CreateCreditNotePage() {
 
   const [totalAmount, setTotalAmount] = useState(0);
   const [untaxedAmount, setUntaxedAmount] = useState(0);
-  const [taxAmount, setTaxAmount] = useState(0);
   const [discountAmount, setDiscountAmount] = useState(0);
   
   // Received context from returns flow
-  const originalReturnData = location.state as { invoiceNumber?: string; customer?: string; items?: any[] } | null;
+  const originalReturnData = location.state as ReturnContextState | null;
 
-  useEffect(() => {
-    if (originalReturnData) {
-       message.info(`جاري إصدار إشعار دائن للفاتورة ${originalReturnData.invoiceNumber || ''}`);
-       form.setFieldsValue({
-         originalInvoice: originalReturnData.invoiceNumber,
-         customerId: originalReturnData.customer,
-         items: originalReturnData.items?.length ? originalReturnData.items : [{}]
-       });
-       calculateTotals();
-    }
-  }, [originalReturnData, form]);
-
-  const calculateTotals = () => {
-    const items = form.getFieldValue('items') || [];
+  const calculateTotals = useCallback(() => {
+    const items = (form.getFieldValue('items') || []) as CreditNoteItem[];
     let _untaxed = 0;
     let _tax = 0;
     let _discount = 0;
 
-    items.forEach((item: any) => {
+    items.forEach((item) => {
       const q = Number(item?.quantity || 0);
       const p = Number(item?.unitPrice || 0);
       const d = Number(item?.discount || 0);
@@ -73,17 +72,28 @@ export default function CreateCreditNotePage() {
     const maxReturnAmountAllowed = originalReturnData?.items ? 10000 : Infinity; // example
 
     if (_total > maxReturnAmountAllowed) {
-       message.error('عفواً، لا يمكن أن يزيد مبلغ الإشعار الدائن عن قيمة المرتجع الفعلي');
-       // Enforce cap dynamically if needed
+      message.error('عفواً، لا يمكن أن يزيد مبلغ الإشعار الدائن عن قيمة المرتجع الفعلي');
+      // Enforce cap dynamically if needed
     }
 
     setUntaxedAmount(_untaxed);
     setDiscountAmount(_discount);
-    setTaxAmount(_tax);
     setTotalAmount(_total);
-  };
+  }, [form, originalReturnData]);
 
-  const onFinish = (values: any) => {
+  useEffect(() => {
+    if (originalReturnData) {
+       message.info(`جاري إصدار إشعار دائن للفاتورة ${originalReturnData.invoiceNumber || ''}`);
+       form.setFieldsValue({
+         originalInvoice: originalReturnData.invoiceNumber,
+         customerId: originalReturnData.customer,
+         items: originalReturnData.items?.length ? originalReturnData.items : [{}]
+       });
+       calculateTotals();
+    }
+  }, [originalReturnData, form, calculateTotals]);
+
+  const onFinish = (_values: unknown) => {
     message.success('تم إنشاء الإشعار الدائن بنجاح');
     navigate('/sales/credit-notes');
   };

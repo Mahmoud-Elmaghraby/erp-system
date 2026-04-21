@@ -3,6 +3,32 @@ import { PrismaService } from '@org/core';
 import type { IInvoiceRepository } from '../../domain/repositories/invoice.repository.interface';
 import { InvoiceEntity } from '../../domain/entities/invoice.entity';
 
+type NumericValue = number | string | { toString(): string };
+
+type InvoiceRecord = {
+  id: string;
+  invoiceNumber: string;
+  status: InvoiceEntity['status'];
+  untaxedAmount: NumericValue;
+  taxAmount: NumericValue;
+  totalAmount: NumericValue;
+  paidAmount: NumericValue;
+  discountAmount: NumericValue;
+  currency: string;
+  exchangeRate: NumericValue;
+  orderId: string;
+  dueDate: Date | null;
+  paymentTermId: string | null;
+  uuid: string;
+  dateTimeIssued: Date;
+  etaStatus: string | null;
+  etaUUID: string | null;
+  zatcaStatus: string | null;
+  qrCode: string | null;
+};
+
+const toNumber = (value: NumericValue): number => Number(value);
+
 @Injectable()
 export class InvoiceRepository implements IInvoiceRepository {
   constructor(private prisma: PrismaService) {}
@@ -89,18 +115,18 @@ async findByBranch(branchId: string): Promise<InvoiceEntity[]> {
     return this.toEntity(invoice);
   }
 
-  private toEntity(i: any): InvoiceEntity {
+  private toEntity(i: InvoiceRecord): InvoiceEntity {
     return new InvoiceEntity(
       i.id,
       i.invoiceNumber,
       i.status,
-      Number(i.untaxedAmount),
-      Number(i.taxAmount),
-      Number(i.totalAmount),
-      Number(i.paidAmount),
-      Number(i.discountAmount),
+      toNumber(i.untaxedAmount),
+      toNumber(i.taxAmount),
+      toNumber(i.totalAmount),
+      toNumber(i.paidAmount),
+      toNumber(i.discountAmount),
       i.currency,
-      Number(i.exchangeRate),
+      toNumber(i.exchangeRate),
       i.orderId,
       i.dueDate,
       i.paymentTermId,

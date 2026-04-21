@@ -1,13 +1,26 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button, Card, Select, Typography } from 'antd';
 import { SaveOutlined, CloseOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useShippingConfig, useUpdateShippingConfig } from '../../../../hooks/useShippingOptions';
 
 const { Title, Text } = Typography;
 
 export default function ShippingOptionsConfigurationPage() {
   const navigate = useNavigate();
+  const { data: shippingConfig } = useShippingConfig();
+  const updateShippingConfig = useUpdateShippingConfig();
+
   const [codFeeItem, setCodFeeItem] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    setCodFeeItem(shippingConfig?.codFeeItemId ?? undefined);
+  }, [shippingConfig]);
+
+  const handleSave = async () => {
+    await updateShippingConfig.mutateAsync({ codFeeItemId: codFeeItem ?? null });
+    navigate('/sales/settings/shipping-options/manage');
+  };
 
   return (
     <div dir="rtl" style={{ backgroundColor: '#f0f2f5', minHeight: '100vh', fontFamily: "'Cairo', 'Tajawal', sans-serif" }}>
@@ -27,6 +40,8 @@ export default function ShippingOptionsConfigurationPage() {
           type="primary"
           icon={<SaveOutlined />}
           style={{ backgroundColor: '#001529', borderColor: '#001529', borderRadius: 4, fontWeight: 'bold', padding: '0 24px' }}
+          onClick={handleSave}
+          loading={updateShippingConfig.isPending}
         >
           حفظ
         </Button>

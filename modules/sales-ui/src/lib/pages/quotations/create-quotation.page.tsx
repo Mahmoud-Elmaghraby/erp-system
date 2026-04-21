@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Form, Input, Select, DatePicker, Button, Tabs, InputNumber, Row, Col, Typography, Space, Divider, message, Switch, Upload, Dropdown, Tag } from 'antd';
+import { Form, Input, Select, DatePicker, Button, Tabs, InputNumber, Row, Col, Typography, Space, Divider, message, Upload, Dropdown, Tag } from 'antd';
 import type { MenuProps } from 'antd';
-import { PlusOutlined, DeleteOutlined, EyeOutlined, CloseOutlined, QuestionCircleOutlined, CloudUploadOutlined, SearchOutlined, DownOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, EyeOutlined, CloseOutlined, QuestionCircleOutlined, CloudUploadOutlined, DownOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ar';
@@ -20,6 +20,29 @@ const { Option } = Select;
 const { Text, Title } = Typography;
 const { TabPane } = Tabs;
 
+interface SelectEntity {
+  id: string;
+  name: string;
+}
+
+interface ProductEntity extends SelectEntity {
+  price?: number | string | null;
+}
+
+interface QuotationItemForm {
+  productId?: string;
+  quantity?: number | string;
+  unitPrice?: number | string;
+  discount?: number | string;
+  tax?: number | string;
+  taxId?: string;
+}
+
+interface QuotationFormValues {
+  items?: QuotationItemForm[];
+  [key: string]: unknown;
+}
+
 export default function CreateQuotationPage() {
   const [form] = Form.useForm();
   const navigate = useNavigate();
@@ -33,12 +56,12 @@ export default function CreateQuotationPage() {
   const createMutation = useCreateQuotation();
 
   const calculateTotals = () => {
-    const items = form.getFieldValue('items') || [];
+    const items = (form.getFieldValue('items') || []) as QuotationItemForm[];
     let _untaxed = 0;
     let _tax = 0;
     let _discount = 0;
 
-    items.forEach((item: any) => {
+    items.forEach((item) => {
       const q = Number(item?.quantity || 0);
       const p = Number(item?.unitPrice || 0);
       const d = Number(item?.discount || 0);
@@ -74,9 +97,10 @@ export default function CreateQuotationPage() {
   };
 
   const handleProductChange = (productId: string, name: number) => {
-    const product = (products as any[] ?? []).find((p: any) => p.id === productId);
+    const productList = ((products as ProductEntity[] | undefined) ?? []);
+    const product = productList.find((p) => p.id === productId);
     if (product) {
-      const items = form.getFieldValue('items');
+      const items = (form.getFieldValue('items') || []) as QuotationItemForm[];
       items[name] = { 
         ...items[name], 
         unitPrice: Number(product.price ?? 0),
@@ -87,14 +111,14 @@ export default function CreateQuotationPage() {
     }
   };
 
-  const onFinish = (values: any) => {
+  const onFinish = (values: QuotationFormValues) => {
     const payload = {
       ...values,
       untaxedAmount,
       taxAmount,
       discountAmount,
       totalAmount,
-      items: values.items?.map((item: any) => ({
+      items: values.items?.map((item) => ({
         productId: item.productId,
         quantity: Number(item.quantity),
         unitPrice: Number(item.unitPrice),
@@ -242,7 +266,7 @@ export default function CreateQuotationPage() {
                     showSearch
                     placeholder="(اختر عميل)"
                     filterOption={(input, option) => (option?.label as string)?.toLowerCase().includes(input.toLowerCase())}
-                    options={(customers as any[] ?? []).map((c: any) => ({ label: c.name, value: c.id }))}
+                      options={(((customers as SelectEntity[] | undefined) ?? []).map((c) => ({ label: c.name, value: c.id })))}
                   />
                 </div>
               </Form.Item>
@@ -298,7 +322,7 @@ export default function CreateQuotationPage() {
                           showSearch
                           placeholder="البند"
                           filterOption={(input, option) => (option?.label as string)?.toLowerCase().includes(input.toLowerCase())}
-                          options={(products as any[] ?? []).map((p: any) => ({ label: p.name, value: p.id }))}
+                          options={(((products as ProductEntity[] | undefined) ?? []).map((p) => ({ label: p.name, value: p.id })))}
                           onChange={(val) => handleProductChange(val, name)}
                         />
                       </Form.Item>

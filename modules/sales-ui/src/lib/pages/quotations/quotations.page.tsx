@@ -1,24 +1,25 @@
 import { useState } from 'react';
-import { Table, Button, Modal, Form, Input, InputNumber, Space, Popconfirm, Tag, Select, Divider, Typography, Card, Row, Col, Empty, Tooltip } from 'antd';
-import { PlusOutlined, CheckOutlined, DeleteOutlined, SearchOutlined, MinusCircleOutlined, SendOutlined, CloseOutlined, EyeOutlined, PrinterOutlined } from '@ant-design/icons';
-import { useQuotations, useCreateQuotation, useConfirmQuotation, useDeleteQuotation, useSendQuotation, useCancelQuotation } from '../../hooks/useQuotations';
-import { useCustomers } from '../../hooks/useCustomers';
-import { useProducts } from '@org/inventory-ui';
-import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import { Table, Button, Modal, Input, Space, Popconfirm, Tag, Select, Typography, Card, Row, Col, Empty, Tooltip } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import { PlusOutlined, CheckOutlined, DeleteOutlined, SearchOutlined, SendOutlined, CloseOutlined, EyeOutlined, PrinterOutlined } from '@ant-design/icons';
+import { useQuotations, useConfirmQuotation, useDeleteQuotation, useSendQuotation, useCancelQuotation } from '../../hooks/useQuotations';
 import { useNavigate } from 'react-router-dom';
 
 const { Option } = Select;
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
-const fetchBranches = async () => {
-  const token = localStorage.getItem('access_token');
-  const res = await axios.get(
-    `${import.meta.env['VITE_API_URL'] || 'http://localhost:3000/api'}/branches`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  return res.data?.data ?? res.data ?? [];
-};
+interface CustomerRef {
+  name?: string;
+}
+
+interface QuotationRow {
+  id: string;
+  quotationNumber?: string;
+  customer?: CustomerRef;
+  status?: string;
+  totalAmount?: number | string;
+  validUntil?: string;
+}
 
 const statusColors: Record<string, string> = {
   DRAFT: 'default', SENT: 'blue', CONFIRMED: 'green', CANCELLED: 'red', EXPIRED: 'orange',
@@ -29,63 +30,23 @@ const statusLabels: Record<string, string> = {
 
 export default function QuotationsPage() {
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
-  const [form] = Form.useForm();
 
   const { data: quotations, isLoading } = useQuotations();
-  const { data: customers } = useCustomers();
-  const { data: products } = useProducts();
-  const { data: branches = [] } = useQuery({ queryKey: ['branches'], queryFn: fetchBranches });
 
-  const createQuotation = useCreateQuotation();
   const confirmQuotation = useConfirmQuotation();
   const sendQuotation = useSendQuotation();
   const cancelQuotation = useCancelQuotation();
   const deleteQuotation = useDeleteQuotation();
 
-  const calculateTotal = () => {
-    const items = form.getFieldValue('items') || [];
-    const discount = Number(form.getFieldValue('discountAmount') ?? 0);
-    const sum = items.reduce((acc: number, item: any) => {
-      return acc + Number(item?.quantity ?? 0) * Number(item?.unitPrice ?? 0) - Number(item?.discount ?? 0);
-    }, 0);
-    setTotal(Math.max(0, sum - discount));
-  };
-
-  const handleProductChange = (productId: string, name: number) => {
-    const product = (products as any[] ?? []).find((p: any) => p.id === productId);
-    if (product) {
-      const items = form.getFieldValue('items');
-      items[name] = { ...items[name], unitPrice: Number(product.price ?? 0) };
-      form.setFieldsValue({ items });
-      calculateTotal();
-    }
-  };
-
-const handleSubmit = async () => {
-  const values = await form.validateFields();
-
-  if (values.validUntil) {
-    values.validUntil = new Date(values.validUntil).toISOString();
-  }
-
-  await createQuotation.mutateAsync(values);
-
-  setOpen(false);
-  form.resetFields();
-  setTotal(0);
-};
-
-  const filtered = (quotations as any[] ?? []).filter((q: any) => {
+  const filtered = (((quotations as QuotationRow[] | undefined) ?? []).filter((q) => {
     const matchSearch = !search || q.quotationNumber?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = !statusFilter || q.status === statusFilter;
     return matchSearch && matchStatus;
-  });
+  }));
 
-  const columns = [
+  const columns: ColumnsType<QuotationRow> = [
     { 
       title: 'الرقم', 
       dataIndex: 'quotationNumber', 
@@ -94,7 +55,7 @@ const handleSubmit = async () => {
     },
     {
       title: 'العميل', dataIndex: 'customer', key: 'customer',
-      render: (c: any) => c?.name ?? <span style={{ color: '#999' }}>—</span>,
+      render: (c: CustomerRef | undefined) => c?.name ?? <span style={{ color: '#999' }}>—</span>,
     },
     {
       title: 'الحالة', dataIndex: 'status', key: 'status',
@@ -111,7 +72,7 @@ const handleSubmit = async () => {
     },
     {
       title: 'إجراءات', key: 'actions',
-      render: (_: any, record: any) => (
+      render: (_: unknown, record: QuotationRow) => (
         <Space size="small">
           <Tooltip title="عرض">
             <Button type="text" icon={<EyeOutlined style={{ color: '#1890ff' }} />} size="small" />

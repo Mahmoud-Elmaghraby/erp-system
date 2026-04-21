@@ -2,11 +2,22 @@ import { Form, Input, Modal, Select, Tabs, Tooltip } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { useEffect } from 'react';
 
+interface CustomerFormValues {
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  taxRegNumber?: string;
+  commercialReg?: string;
+  country?: string;
+  buyerType?: string;
+}
+
 interface Props {
   open: boolean;
   loading: boolean;
-  initialValues?: any;
-  onSubmit: (values: any) => void;
+  initialValues?: Partial<CustomerFormValues>;
+  onSubmit: (values: CustomerFormValues) => void;
   onCancel: () => void;
 }
 
@@ -22,7 +33,7 @@ export default function CustomerForm({ open, loading, initialValues, onSubmit, o
     }
   }, [open, initialValues, form]);
 
-  const handleFinish = (values: any) => {
+  const handleFinish = (values: CustomerFormValues) => {
     onSubmit(values);
   };
 

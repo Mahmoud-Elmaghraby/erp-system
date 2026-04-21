@@ -1,18 +1,29 @@
 import { useState } from 'react';
 import { Card, Table, Button, Input, Select, DatePicker, Row, Col, Space, Typography, Modal, Form, message, Tag, Steps } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import { PlusOutlined, SearchOutlined, EyeOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
+
+interface SalesReturnRow {
+  returnNumber: string;
+  date: string;
+  customer: string;
+  invoiceNumber: string;
+  amount: string;
+  status: string;
+  hasCreditNote?: boolean;
+}
 
 export default function SalesReturnsPage() {
   const navigate = useNavigate();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
 
-  const columns = [
+  const columns: ColumnsType<SalesReturnRow> = [
     { title: 'رقم الإرجاع', dataIndex: 'returnNumber', key: 'returnNumber' },
     { title: 'تاريخ الإرجاع', dataIndex: 'date', key: 'date' },
     { title: 'العميل', dataIndex: 'customer', key: 'customer' },
@@ -30,7 +41,7 @@ export default function SalesReturnsPage() {
     {
       title: 'الإجراءات',
       key: 'actions',
-      render: (_: any, record: any) => (
+      render: (_: unknown, record: SalesReturnRow) => (
         <Space size="middle">
           <Button type="text" icon={<EyeOutlined />} style={{ color: '#001529' }} />
           {record.status === 'مؤكد' && !record.hasCreditNote && (

@@ -51,7 +51,7 @@ export class QuotationsController {
   @Patch(':id')
   @RequirePermission('sales.quotations.edit')
   update(@Param('id') id: string, @Body() dto: UpdateQuotationDto) {
-    return this.quotationRepository.update(id, dto as any);
+    return this.quotationRepository.update(id, dto);
   }
 
   @Patch(':id/confirm')
@@ -66,7 +66,7 @@ export class QuotationsController {
     const quotation = await this.quotationRepository.findById(id);
     if (!quotation) throw new Error('Quotation not found');
     quotation.send();
-    return this.quotationRepository.update(id, { status: 'SENT' } as any);
+    return this.quotationRepository.update(id, { status: 'SENT' });
   }
 
   @Patch(':id/cancel')
@@ -75,7 +75,7 @@ export class QuotationsController {
     const quotation = await this.quotationRepository.findById(id);
     if (!quotation) throw new Error('Quotation not found');
     quotation.cancel();
-    return this.quotationRepository.update(id, { status: 'CANCELLED' } as any);
+    return this.quotationRepository.update(id, { status: 'CANCELLED' });
   }
 
   @Delete(':id')

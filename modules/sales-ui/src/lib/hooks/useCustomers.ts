@@ -5,8 +5,9 @@ import { message } from 'antd';
 export const useCustomers = () => useQuery({
   queryKey: ['customers'],
   queryFn: async () => {
-    const res = await salesApi.customers.getAll() as any;
-    return res?.data ?? res ?? [];
+    const res = (await salesApi.customers.getAll()) as { data?: unknown[] } | unknown[];
+    if (Array.isArray(res)) return res;
+    return Array.isArray(res.data) ? res.data : [];
   },
 });
 
@@ -25,7 +26,7 @@ export const useCreateCustomer = () => {
 export const useUpdateCustomer = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) =>
+    mutationFn: ({ id, data }: { id: string; data: unknown }) =>
       salesApi.customers.update(id, data),
     onSuccess: () => {
       message.success('تم تعديل العميل بنجاح');

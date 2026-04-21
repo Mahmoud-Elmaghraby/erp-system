@@ -1,9 +1,18 @@
 import { Table, Button, Space, Tag, InputNumber, Modal } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import { DollarOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 
+interface InvoiceRow {
+  id: string;
+  invoiceNumber: string;
+  status: string;
+  totalAmount: number;
+  paidAmount: number;
+}
+
 interface Props {
-  data: any[];
+  data: InvoiceRow[];
   loading: boolean;
   onPay: (id: string, amount: number) => void;
 }
@@ -25,7 +34,7 @@ export default function InvoiceTable({ data, loading, onPay }: Props) {
     open: false, id: '', amount: 0
   });
 
-  const columns = [
+  const columns: ColumnsType<InvoiceRow> = [
     { title: 'رقم الفاتورة', dataIndex: 'invoiceNumber', key: 'invoiceNumber' },
     {
       title: 'الحالة',
@@ -40,7 +49,7 @@ export default function InvoiceTable({ data, loading, onPay }: Props) {
     {
       title: 'إجراءات',
       key: 'actions',
-      render: (_: any, record: any) => (
+      render: (_: unknown, record: InvoiceRow) => (
         <Space>
           {record.status !== 'PAID' && (
             <Button

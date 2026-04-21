@@ -5,8 +5,9 @@ import { message } from 'antd';
 export const useOrders = () => useQuery({
   queryKey: ['orders'],
   queryFn: async () => {
-    const res = await salesApi.orders.getAll() as any;
-    return res?.data ?? res ?? [];
+    const res = (await salesApi.orders.getAll()) as { data?: unknown[] } | unknown[];
+    if (Array.isArray(res)) return res;
+    return Array.isArray(res.data) ? res.data : [];
   },
 });
 
@@ -14,7 +15,8 @@ export const useOrders = () => useQuery({
 export const useOrder = (id?: string) => useQuery({
   queryKey: ['order', id],
   queryFn: async () => {
-    const res = await salesApi.orders.getById(id!);
+    if (!id) return null;
+    const res = await salesApi.orders.getById(id);
     return res?.data ?? res ?? null;
   },
   enabled: !!id,

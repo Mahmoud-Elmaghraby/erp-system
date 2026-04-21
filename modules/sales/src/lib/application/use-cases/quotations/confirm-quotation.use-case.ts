@@ -27,7 +27,10 @@ export class ConfirmQuotationUseCase {
     quotation.confirm();
 
     const branch = await this.prisma.branch.findUnique({ where: { id: quotation.branchId } });
-    const companyId = branch!.companyId;
+    if (!branch) {
+      throw new NotFoundException('Branch not found');
+    }
+    const companyId = branch.companyId;
 
     const orderNumber = await this.documentSequenceService.getNextNumber(
       companyId, 'sales', 'order', 'SO'
@@ -52,7 +55,7 @@ export class ConfirmQuotationUseCase {
     order.calculateTotal();
 
     await this.prisma.$transaction(async (tx) => {
-      await this.quotationRepository.update(quotationId, { status: 'CONFIRMED' } as any);
+      await this.quotationRepository.update(quotationId, { status: 'CONFIRMED' });
       await this.orderRepository.create(order);
       await this.outboxService.publish(
         'quotation.confirmed',

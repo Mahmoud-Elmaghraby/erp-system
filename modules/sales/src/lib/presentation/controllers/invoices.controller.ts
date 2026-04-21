@@ -26,7 +26,7 @@ export class InvoicesController {
     @Query('orderId') orderId?: string,
   ) {
     if (orderId) return this.invoiceRepository.findAll(orderId);
-    return (this.invoiceRepository as any).findByCompany(companyId);
+    return this.invoiceRepository.findByCompany(companyId);
   }
 
   @Get(':id')

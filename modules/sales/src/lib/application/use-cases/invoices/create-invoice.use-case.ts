@@ -36,7 +36,7 @@ export class CreateInvoiceUseCase {
 
     let untaxedAmount = Number(order.totalAmount);
     let taxAmount = 0;
-    let discountAmount = dto.discountAmount ?? 0;
+  const discountAmount = dto.discountAmount ?? 0;
     untaxedAmount -= discountAmount;
 
     if (taxEnabled === 'true' && dto.taxRate) {

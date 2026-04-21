@@ -4,6 +4,30 @@ import type { IOrderRepository } from '../../domain/repositories/order.repositor
 import { OrderEntity } from '../../domain/entities/order.entity';
 import { OrderItem } from '../../domain/entities/order-item.entity';
 
+type NumericValue = number | string | { toString(): string };
+
+type OrderItemRecord = {
+  id: string;
+  orderId: string;
+  productId: string;
+  quantity: NumericValue;
+  unitPrice: NumericValue;
+  total: NumericValue;
+};
+
+type OrderRecord = {
+  id: string;
+  orderNumber: string;
+  status: OrderEntity['status'];
+  branchId: string;
+  customerId: string | null;
+  notes: string | null;
+  totalAmount: NumericValue;
+  items?: OrderItemRecord[];
+};
+
+const toNumber = (value: NumericValue): number => Number(value);
+
 @Injectable()
 export class OrderRepository implements IOrderRepository {
   constructor(private prisma: PrismaService) {}
@@ -75,15 +99,15 @@ export class OrderRepository implements IOrderRepository {
     return this.toEntity(order);
   }
 
-  private toEntity(o: any): OrderEntity {
-    const items = (o.items || []).map((i: any) =>
+  private toEntity(o: OrderRecord): OrderEntity {
+    const items = (o.items || []).map((i) =>
       new OrderItem(
         i.id,
         i.orderId,
         i.productId,
-        Number(i.quantity),
-        Number(i.unitPrice),
-        Number(i.total)
+        toNumber(i.quantity),
+        toNumber(i.unitPrice),
+        toNumber(i.total)
       )
     );
 
@@ -95,7 +119,7 @@ export class OrderRepository implements IOrderRepository {
       o.branchId,
       o.customerId,
       o.notes,
-      Number(o.totalAmount),
+      toNumber(o.totalAmount),
       items
     );
   }

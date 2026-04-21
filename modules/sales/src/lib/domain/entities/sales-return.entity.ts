@@ -34,16 +34,16 @@ export class SalesReturnEntity {
   confirm(): void {
     if (this.status !== 'DRAFT')
       throw new Error('Only DRAFT returns can be confirmed');
-    (this as any).status = 'CONFIRMED';
+    this.status = 'CONFIRMED';
   }
 
   cancel(): void {
     if (this.status === 'CONFIRMED')
       throw new Error('Cannot cancel confirmed return');
-    (this as any).status = 'CANCELLED';
+    this.status = 'CANCELLED';
   }
 
   calculateTotal(): void {
-    (this as any).totalAmount = this.items.reduce((s, i) => s + i.total, 0);
+    this.totalAmount = this.items.reduce((s, i) => s + i.total, 0);
   }
 }

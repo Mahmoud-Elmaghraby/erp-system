@@ -1,24 +1,33 @@
-import { Card, Table, Button, Input, Select, DatePicker, Row, Col, Space, Typography, Tag, Dropdown } from 'antd';
+import { Card, Table, Button, Input, Select, Row, Col, Space, Typography, Tag, Dropdown } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import type { MenuProps } from 'antd';
-import { PlusOutlined, SearchOutlined, DownOutlined, EllipsisOutlined } from '@ant-design/icons';
+import { PlusOutlined, SearchOutlined, EllipsisOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
 const { Title } = Typography;
 const { Option } = Select;
-const { RangePicker } = DatePicker;
+
+interface CreditNoteRow {
+  key: string;
+  invoiceNumber: string;
+  date: string;
+  customer: string;
+  amount: string;
+  status: string;
+}
 
 export default function CreditNotesPage() {
   const navigate = useNavigate();
 
-  const handleActionMenuClick = (key: string, record: any) => {
+  const handleActionMenuClick = (key: string, record: CreditNoteRow) => {
     if (key === 'linkCustomer') {
-      console.log('Linking to customer balance for', record.creditNoteNumber);
+      console.log('Linking to customer balance for', record.invoiceNumber);
     } else if (key === 'cashReceipt') {
-      console.log('Converting to cash receipt for', record.creditNoteNumber);
+      console.log('Converting to cash receipt for', record.invoiceNumber);
     }
   };
 
-  const getActionMenu = (record: any): MenuProps => ({
+  const getActionMenu = (record: CreditNoteRow): MenuProps => ({
     items: [
       { key: 'linkCustomer', label: 'ربط هذا الإشعار برصيد العميل' },
       { key: 'cashReceipt', label: 'تحويله لسند صرف نقدي' }
@@ -26,7 +35,7 @@ export default function CreditNotesPage() {
     onClick: ({ key }) => handleActionMenuClick(key, record)
   });
 
-  const columns = [
+  const columns: ColumnsType<CreditNoteRow> = [
     { title: 'رقم الفاتورة', dataIndex: 'invoiceNumber', key: 'invoiceNumber' },
     { title: 'تاريخ الإشعار', dataIndex: 'date', key: 'date' },
     { title: 'العميل', dataIndex: 'customer', key: 'customer' },
@@ -46,7 +55,7 @@ export default function CreditNotesPage() {
     {
       title: 'الإجراءات',
       key: 'actions',
-      render: (_: any, record: any) => (
+      render: (_: unknown, record: CreditNoteRow) => (
         <Dropdown menu={getActionMenu(record)} trigger={['click']}>
            <Button icon={<EllipsisOutlined />} style={{ color: '#001529' }} />
         </Dropdown>
@@ -54,7 +63,7 @@ export default function CreditNotesPage() {
     },
   ];
 
-  const mockData = [
+  const mockData: CreditNoteRow[] = [
      {
        key: '1',
        invoiceNumber: '000001 POS Client',

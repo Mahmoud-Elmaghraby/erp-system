@@ -3,6 +3,20 @@ import { PrismaService } from '@org/core';
 import type { ICustomerRepository } from '../../domain/repositories/customer.repository.interface';
 import { CustomerEntity } from '../../domain/entities/customer.entity';
 
+type CustomerRecord = {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  isActive: boolean;
+  companyId: string;
+  taxRegNumber: string | null;
+  commercialReg: string | null;
+  country: string | null;
+  buyerType: string | null;
+};
+
 @Injectable()
 export class CustomerRepository implements ICustomerRepository {
   constructor(private prisma: PrismaService) {}
@@ -60,7 +74,7 @@ export class CustomerRepository implements ICustomerRepository {
     await this.prisma.customer.update({ where: { id }, data: { isActive: false } });
   }
 
-  private toEntity(c: any): CustomerEntity {
+  private toEntity(c: CustomerRecord): CustomerEntity {
     return new CustomerEntity(
       c.id, c.name, c.email, c.phone, c.address,
       c.isActive, c.companyId,

@@ -26,7 +26,10 @@ export class ConfirmDeliveryUseCase {
     const branch = await this.prisma.branch.findUnique({
       where: { id: delivery.branchId },
     });
-    const companyId = branch!.companyId;
+    if (!branch) {
+      throw new NotFoundException('Branch not found');
+    }
+    const companyId = branch.companyId;
 
     await this.prisma.$transaction(async (tx) => {
       await this.deliveryRepository.update(deliveryId, { status: 'CONFIRMED' });

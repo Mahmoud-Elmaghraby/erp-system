@@ -5,10 +5,11 @@ import { message } from 'antd';
 export const useDeliveries = (orderId?: string) => useQuery({
   queryKey: ['deliveries', orderId ?? 'all'],
   queryFn: async () => {
-    const res = await (orderId
+    const res = (await (orderId
       ? salesApi.deliveries.getByOrder(orderId)
-      : salesApi.deliveries.getAll()) as any;
-    return res?.data ?? res ?? [];
+      : salesApi.deliveries.getAll())) as { data?: unknown[] } | unknown[];
+    if (Array.isArray(res)) return res;
+    return Array.isArray(res.data) ? res.data : [];
   },
 });
 

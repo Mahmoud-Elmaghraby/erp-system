@@ -30,6 +30,7 @@ export * from './lib/application/dtos/quotation.dto';
 export * from './lib/application/dtos/invoice.dto';
 export * from './lib/application/dtos/delivery.dto';
 export * from './lib/application/dtos/sales-return.dto';
+export * from './lib/application/dtos/sales-settings.dto';
 
 // Use Cases
 export * from './lib/application/use-cases/orders/create-order.use-case';

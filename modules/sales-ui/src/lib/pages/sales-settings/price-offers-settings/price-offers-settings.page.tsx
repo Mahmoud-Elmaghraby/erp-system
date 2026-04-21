@@ -3,14 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Typography, Button, Form, Input, Select, InputNumber, Row, Col, Checkbox, Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { SaveOutlined, PlusOutlined, ArrowRightOutlined, FileExclamationOutlined } from '@ant-design/icons';
+import { useCreatePriceOffer, usePriceOffers } from '../../../hooks/usePriceOffers';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
+
 
 interface OfferRecord {
   id: string;
   name: string;
-  validFrom?: string;
-  validTo?: string;
+  validFrom?: string | null;
+  validTo?: string | null;
   discountValue: number;
   isActive: boolean;
 }
@@ -19,7 +21,8 @@ export default function PriceOffersSettingsPage() {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [isAdding, setIsAdding] = useState(false);
-  const [offers, setOffers] = useState<OfferRecord[]>([]);
+  const { data: offers = [], isLoading } = usePriceOffers();
+  const createPriceOffer = useCreatePriceOffer();
 
   const columns: ColumnsType<OfferRecord> = [
     {
@@ -73,16 +76,28 @@ export default function PriceOffersSettingsPage() {
   const handleSaveOffer = async () => {
     const values = await form.validateFields();
 
-    const offer: OfferRecord = {
-      id: Date.now().toString(),
-      name: values.name,
-      validFrom: values.validFrom,
-      validTo: values.validTo,
-      discountValue: Number(values.discountValue || 0),
-      isActive: Boolean(values.isActive),
+    const normalizeDate = (value?: string): string | undefined => {
+      if (!value) {
+        return undefined;
+      }
+
+      const isIsoDate = /^\d{4}-\d{2}-\d{2}$/.test(value);
+      return isIsoDate ? value : undefined;
     };
 
-    setOffers((prev) => [offer, ...prev]);
+    await createPriceOffer.mutateAsync({
+      name: values.name,
+      validFrom: normalizeDate(values.validFrom),
+      validTo: normalizeDate(values.validTo),
+      requiredQty: Number(values.requiredQty || 0),
+      type: values.type,
+      discountValue: Number(values.discountValue || 0),
+      discountType: values.discountType,
+      customerScope: values.customer,
+      unitType: values.unitType,
+      isActive: Boolean(values.isActive),
+    });
+
     setIsAdding(false);
     form.resetFields();
   };
@@ -141,7 +156,7 @@ export default function PriceOffersSettingsPage() {
                   </Button>
                 </div>
 
-                <Table columns={columns} dataSource={offers} rowKey="id" pagination={false} />
+                <Table loading={isLoading} columns={columns} dataSource={offers} rowKey="id" pagination={false} />
               </div>
             )}
           </div>
@@ -172,6 +187,7 @@ export default function PriceOffersSettingsPage() {
           type="primary"
           icon={<SaveOutlined />}
           onClick={handleSaveOffer}
+          loading={createPriceOffer.isPending}
           style={{ backgroundColor: '#001529', borderColor: '#001529', borderRadius: 4, fontWeight: 'bold', padding: '0 24px' }}
         >
           حفظ

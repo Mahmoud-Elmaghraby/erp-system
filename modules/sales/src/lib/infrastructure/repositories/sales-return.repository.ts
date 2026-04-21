@@ -4,6 +4,32 @@ import type { ISalesReturnRepository } from '../../domain/repositories/sales-ret
 import { SalesReturnEntity, SalesReturnStatus } from '../../domain/entities/sales-return.entity';
 import { SalesReturnItemEntity } from '../../domain/entities/sales-return-item.entity';
 
+type NumericValue = number | string | { toString(): string };
+
+type SalesReturnItemRecord = {
+  id: string;
+  productId: string;
+  quantity: NumericValue;
+  unitPrice: NumericValue;
+  total: NumericValue;
+  returnId: string;
+};
+
+type SalesReturnRecord = {
+  id: string;
+  returnNumber: string;
+  status: SalesReturnStatus;
+  reason: string;
+  notes: string | null;
+  totalAmount: NumericValue;
+  orderId: string;
+  customerId: string | null;
+  createdAt?: Date;
+  items?: SalesReturnItemRecord[];
+};
+
+const toNumber = (value: NumericValue): number => Number(value);
+
 @Injectable()
 export class SalesReturnRepository implements ISalesReturnRepository {
   constructor(private prisma: PrismaService) {}
@@ -67,16 +93,16 @@ async findByBranch(branchId: string): Promise<SalesReturnEntity[]> {
     return this.toEntity(salesReturn);
   }
 
-  private toEntity(r: any): SalesReturnEntity {
-    const items = (r.items || []).map((i: any) =>
+  private toEntity(r: SalesReturnRecord): SalesReturnEntity {
+    const items = (r.items || []).map((i) =>
       new SalesReturnItemEntity(
-        i.id, i.productId, Number(i.quantity),
-        Number(i.unitPrice), Number(i.total), i.returnId,
+        i.id, i.productId, toNumber(i.quantity),
+        toNumber(i.unitPrice), toNumber(i.total), i.returnId,
       )
     );
     return new SalesReturnEntity(
       r.id, r.returnNumber, r.status as SalesReturnStatus,
-      r.reason, r.notes, Number(r.totalAmount),
+      r.reason, r.notes, toNumber(r.totalAmount),
       r.orderId, r.customerId, items, r.createdAt,
     );
   }
