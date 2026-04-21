@@ -5,7 +5,6 @@ import {
   ConfigProvider,
   Typography,
 } from 'antd';
-import { ApartmentOutlined } from '@ant-design/icons';
 import { useLogin } from '../../core/hooks/use-login.hook';
 import './login.page.css';
 
@@ -26,27 +25,12 @@ export default function LoginPage() {
       <section className="erp-login-visual">
         <div className="erp-login-overlay" />
 
-        <div className="erp-login-brand">
-          <div className="erp-login-brand-mark" aria-hidden="true">
-            <ApartmentOutlined />
-          </div>
-          <div className="erp-login-brand-text">
-            <strong>ERP</strong>
-            <span>Nubgha Systems</span>
-          </div>
-        </div>
-
-        <div className="erp-login-visual-content">
-          <Typography.Title level={2} className="erp-login-visual-title">
-            منصة ERP متطورة
-          </Typography.Title>
-          <Typography.Paragraph className="erp-login-visual-subtitle">
-            إدارة المبيعات والمخزون والمحاسبة من واجهة واحدة، بسرعة وأمان أعلى.
-          </Typography.Paragraph>
-        </div>
       </section>
 
       <section className="erp-login-form-section">
+        <div className="erp-login-logo-container">
+          <span className="erp-login-typographic-logo">ussol</span>
+        </div>
         <ConfigProvider
           theme={{
             token: {
