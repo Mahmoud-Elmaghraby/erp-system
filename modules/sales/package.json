@@ -21,6 +21,10 @@
   "dependencies": {
     "tslib": "^2.3.0",
     "@nestjs/common": "*",
+    "@nestjs/event-emitter": "*",
+    "@nestjs/swagger": "*",
+    "class-transformer": "*",
+    "class-validator": "*",
     "@org/core": "*"
   }
 }

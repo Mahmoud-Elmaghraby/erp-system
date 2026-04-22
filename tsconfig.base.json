@@ -29,7 +29,8 @@
   "@org/purchasing": ["./modules/purchasing/src/index.ts"],
   "@org/purchasing-ui": ["./modules/purchasing-ui/src/index.ts"],
   "@org/accounting": ["./modules/accounting/src/index.ts"],
-  "@org/accounting-ui": ["./modules/accounting-ui/src/index.ts"]
+  "@org/accounting-ui": ["./modules/accounting-ui/src/index.ts"],
+  "@org/prisma": ["./generated/prisma"]
 }
   }
 }

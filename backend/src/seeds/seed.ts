@@ -1,5 +1,7 @@
+import 'dotenv/config';
+import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../../../generated/prisma';
+import { PrismaClient } from '@org/prisma';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import {
@@ -10,11 +12,10 @@ import {
   FiscalYearStatus,
   FiscalPeriodStatus,
   NormalBalance,
-} from '../../../generated/prisma';
+} from '@org/prisma';
 
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
+const pool = new Pool({ connectionString: process.env.DATABASE_URL as string });
+const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 const ARABIC_MONTHS = [
@@ -271,6 +272,8 @@ async function main() {
         { name: 'sales.returns.view',                     module: 'sales',       description: 'عرض المرتجعات' },
         { name: 'sales.returns.create',                   module: 'sales',       description: 'إنشاء مرتجع' },
         { name: 'sales.returns.confirm',                  module: 'sales',       description: 'تأكيد مرتجع' },
+        { name: 'sales.settings.view',                    module: 'sales',       description: 'عرض إعدادات المبيعات' },
+        { name: 'sales.settings.edit',                    module: 'sales',       description: 'تعديل إعدادات المبيعات' },
         { name: 'purchasing.suppliers.view',              module: 'purchasing',  description: 'عرض الموردين' },
         { name: 'purchasing.suppliers.create',            module: 'purchasing',  description: 'إضافة مورد' },
         { name: 'purchasing.suppliers.edit',              module: 'purchasing',  description: 'تعديل مورد' },

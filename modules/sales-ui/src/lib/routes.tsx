@@ -3,6 +3,7 @@ import QuotationsPage from './pages/quotations/quotations.page';
 import CreateQuotationPage from './pages/quotations/create-quotation.page';
 import InvoicesPage from './pages/invoices/invoices.page';
 import CreateInvoicePage from './pages/invoices/create-invoice.page';
+import InvoiceViewPage from './pages/invoices/invoice-view.page';
 import SalesReturnsPage from './pages/returns/sales-returns.page';
 import CreditNotesPage from './pages/credit-notes/credit-notes.page';
 import CreateCreditNotePage from './pages/credit-notes/create-credit-note.page';
@@ -25,6 +26,7 @@ export const salesRoutes: RouteObject[] = [
       { index: true, element: <Navigate to="invoices" replace /> },
       { path: 'invoices', element: <InvoicesPage /> },
       { path: 'invoices/create', element: <CreateInvoicePage /> },
+      { path: 'invoices/:id', element: <InvoiceViewPage /> },
       { path: 'quotations', element: <QuotationsPage /> },
       { path: 'quotations/create', element: <CreateQuotationPage /> },
       { path: 'credit-notes', element: <CreditNotesPage /> },

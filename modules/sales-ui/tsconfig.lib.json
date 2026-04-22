@@ -3,6 +3,7 @@
   "compilerOptions": {
     "outDir": "dist",
     "lib": ["dom", "es2022"],
+    "noUnusedLocals": false,
     "types": [
       "node",
       "@nx/react/typings/cssmodule.d.ts",

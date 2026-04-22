@@ -1,0 +1,119 @@
+
+[7m[1m[33m NX [39m[22m[27m  [33m--skip-nx-cache disables the connection to Nx Cloud for the current run.[39m
+
+The remote cache will not be read from or written to during this run.
+
+
+[2m> [22m[2mnx run[22m @org/sales-ui:lint
+
+[2m> [22meslint .
+
+[0m[0m
+[0m[4mE:\erp-system\modules\sales-ui\src\lib\components\orders\order-form.tsx[24m[0m
+[0m  [2m18:11[22m  [31merror[39m  An interface declaring no members is equivalent to its supertype  [2m@typescript-eslint/no-empty-object-type[22m[0m
+[0m  [2m18:11[22m  [31merror[39m  An interface declaring no members is equivalent to its supertype  [2m@typescript-eslint/no-empty-interface[22m[0m
+[0m[0m
+[0m[4mE:\erp-system\modules\sales-ui\src\lib\pages\credit-notes\create-credit-note.page.tsx[24m[0m
+[0m   [2m2:117[22m  [33mwarning[39m  'Switch' is defined but never used                                                                                  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m4:53[22m   [33mwarning[39m  'CloseOutlined' is defined but never used                                                                           [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m4:113[22m  [33mwarning[39m  'SearchOutlined' is defined but never used                                                                          [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m6:8[22m    [33mwarning[39m  'dayjs' is defined but never used                                                                                   [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m19:10[22m   [33mwarning[39m  'taxAmount' is assigned a value but never used                                                                      [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m23:101[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                            [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m35:6[22m    [33mwarning[39m  React Hook useEffect has a missing dependency: 'calculateTotals'. Either include it or remove the dependency array  [2mreact-hooks/exhaustive-deps[22m[0m
+[0m  [2m43:26[22m   [33mwarning[39m  Unexpected any. Specify a different type                                                                            [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m86:29[22m   [33mwarning[39m  Unexpected any. Specify a different type                                                                            [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mE:\erp-system\modules\sales-ui\src\lib\pages\credit-notes\credit-notes.page.tsx[24m[0m
+[0m   [2m3:40[22m  [33mwarning[39m  'DownOutlined' is defined but never used          [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m8:9[22m   [33mwarning[39m  'RangePicker' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m13:55[22m  [33mwarning[39m  Unexpected any. Specify a different type          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m21:34[22m  [33mwarning[39m  Unexpected any. Specify a different type          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m49:19[22m  [33mwarning[39m  Unexpected any. Specify a different type          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m49:32[22m  [33mwarning[39m  Unexpected any. Specify a different type          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mE:\erp-system\modules\sales-ui\src\lib\pages\customer-payments\customer-payments.page.tsx[24m[0m
+[0m   [2m2:117[22m  [33mwarning[39m  'Dropdown' is defined but never used          [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m3:15[22m   [33mwarning[39m  'MenuProps' is defined but never used         [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m4:57[22m   [33mwarning[39m  'EllipsisOutlined' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m6:16[22m   [33mwarning[39m  'Text' is assigned a value but never used     [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m61:19[22m   [33mwarning[39m  Unexpected any. Specify a different type      [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m90:37[22m   [33mwarning[39m  Unexpected any. Specify a different type      [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mE:\erp-system\modules\sales-ui\src\lib\pages\invoices\create-invoice.page.tsx[24m[0m
+[0m    [2m4:113[22m  [33mwarning[39m  'SearchOutlined' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m41:26[22m   [33mwarning[39m  Unexpected any. Specify a different type    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m77:34[22m   [33mwarning[39m  Unexpected any. Specify a different type    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m77:56[22m   [33mwarning[39m  Unexpected any. Specify a different type    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m90:29[22m   [33mwarning[39m  Unexpected any. Specify a different type    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m97:39[22m   [33mwarning[39m  Unexpected any. Specify a different type    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m240:42[22m   [33mwarning[39m  Unexpected any. Specify a different type    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m240:63[22m   [33mwarning[39m  Unexpected any. Specify a different type    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m290:49[22m   [33mwarning[39m  Unexpected any. Specify a different type    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m290:70[22m   [33mwarning[39m  Unexpected any. Specify a different type    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mE:\erp-system\modules\sales-ui\src\lib\pages\invoices\invoices.page.tsx[24m[0m
+[0m   [2m19:36[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m38:58[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m55:40[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m55:61[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m60:47[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m81:19[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m81:27[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m99:19[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m99:27[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m112:19[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m112:32[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mE:\erp-system\modules\sales-ui\src\lib\pages\quotations\create-quotation.page.tsx[24m[0m
+[0m    [2m2:117[22m  [33mwarning[39m  'Switch' is defined but never used          [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m    [2m4:113[22m  [33mwarning[39m  'SearchOutlined' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m41:26[22m   [33mwarning[39m  Unexpected any. Specify a different type    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m77:34[22m   [33mwarning[39m  Unexpected any. Specify a different type    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m77:56[22m   [33mwarning[39m  Unexpected any. Specify a different type    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m90:29[22m   [33mwarning[39m  Unexpected any. Specify a different type    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m97:39[22m   [33mwarning[39m  Unexpected any. Specify a different type    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m245:44[22m   [33mwarning[39m  Unexpected any. Specify a different type    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m245:65[22m   [33mwarning[39m  Unexpected any. Specify a different type    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m301:49[22m   [33mwarning[39m  Unexpected any. Specify a different type    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m301:70[22m   [33mwarning[39m  Unexpected any. Specify a different type    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mE:\erp-system\modules\sales-ui\src\lib\pages\quotations\quotations.page.tsx[24m[0m
+[0m    [2m2:45[22m  [33mwarning[39m  'InputNumber' is defined but never used                   [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m    [2m2:90[22m  [33mwarning[39m  'Divider' is defined but never used                       [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m    [2m3:71[22m  [33mwarning[39m  'MinusCircleOutlined' is defined but never used           [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m12:16[22m  [33mwarning[39m  'Text' is assigned a value but never used                 [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m32:10[22m  [33mwarning[39m  'open' is assigned a value but never used                 [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m35:10[22m  [33mwarning[39m  'total' is assigned a value but never used                [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m39:17[22m  [33mwarning[39m  'customers' is assigned a value but never used            [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m41:17[22m  [33mwarning[39m  'branches' is assigned a value but never used             [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m52:50[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m58:9[22m   [33mwarning[39m  'handleProductChange' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m59:34[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m59:56[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m68:7[22m   [33mwarning[39m  'handleSubmit' is assigned a value but never used         [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m82:35[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m82:59[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m97:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m114:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m114:32[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mE:\erp-system\modules\sales-ui\src\lib\pages\returns\sales-returns.page.tsx[24m[0m
+[0m   [2m6:16[22m  [33mwarning[39m  'Text' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m33:19[22m  [33mwarning[39m  Unexpected any. Specify a different type   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m33:32[22m  [33mwarning[39m  Unexpected any. Specify a different type   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[31m[1m✖ 76 problems (2 errors, 74 warnings)[22m[39m[0m
+[0m[31m[1m[22m[39m[31m[1m  1 error and 0 warnings potentially fixable with the `--fix` option.[22m[39m[0m
+[0m[31m[1m[22m[39m[0m
+Warning: command "eslint ." exited with non-zero status code
+[2m[31m[39m[22m
+
+[7m[1m[31m NX [39m[22m[27m  [31mRunning target [1mlint[22m for project @org/sales-ui failed[39m
+
+[2mFailed tasks:[22m
+
+[2m-[22m @org/sales-ui:lint
+
+[2mHint: run the command with[22m --verbose [2mfor more details.[22m
+

@@ -144,7 +144,7 @@ export default function InvoicesPage() {
       render: (_: unknown, record: InvoiceRow) => (
         <Space size="small">
           <Tooltip title="عرض">
-            <Button type="text" icon={<EyeOutlined style={{ color: '#1890ff' }} />} size="small" />
+            <Button type="text" icon={<EyeOutlined style={{ color: '#1890ff' }} />} size="small" onClick={() => navigate(`/sales/invoices/${record.id}`)} />
           </Tooltip>
           <Tooltip title="طباعة PDF">
             <Button type="text" icon={<PrinterOutlined style={{ color: '#595959' }} />} size="small" />
