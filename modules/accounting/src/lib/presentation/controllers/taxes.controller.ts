@@ -10,8 +10,8 @@ import {
 import type { ITaxRepository } from '../../domain/repositories/tax.repository.interface';
 import { TAX_REPOSITORY } from '../../domain/repositories/tax.repository.interface';
 import { TaxEntity } from '../../domain/entities/tax.entity';
-import { CreateTaxDto, UpdateTaxDto } from '../../application/dtos/tax.dto';
 import { randomUUID } from 'crypto';
+import { CreateTaxDto, UpdateTaxDto } from '../../application/dtos/tax.dto';
 
 @ApiTags('Taxes')
 @ApiBearerAuth()

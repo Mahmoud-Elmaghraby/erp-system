@@ -8,9 +8,9 @@ import type { IJournalEntryRepository } from '../../domain/repositories/journal-
 import { JOURNAL_ENTRY_REPOSITORY } from '../../domain/repositories/journal-entry.repository.interface';
 import { JournalEntryEntity } from '../../domain/entities/journal-entry.entity';
 import { JournalItemEntity } from '../../domain/entities/journal-item.entity';
-import { CreateJournalEntryDto, UpdateJournalEntryDto } from '../../application/dtos/journal-entry.dto';
 import { FiscalYearService } from '../../application/services/fiscal-year.service';
 import { randomUUID } from 'crypto';
+import { CreateJournalEntryDto, UpdateJournalEntryDto } from '../../application/dtos/journal-entry.dto';
 
 @ApiTags('Accounting — Journal Entries')
 @ApiBearerAuth()

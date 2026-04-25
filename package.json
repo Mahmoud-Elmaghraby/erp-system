@@ -101,6 +101,7 @@
     "prisma": "^7.6.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-hook-form": "^7.72.1",
     "react-router-dom": "^6.30.3",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.0",

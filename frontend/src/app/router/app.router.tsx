@@ -10,8 +10,8 @@ import {
   PaymentTermsPage,
   ChartOfAccountsPage,
   JournalsPage,
-  JournalEntriesPage,
-  AccountingSettingsPage,
+  // JournalEntriesPage,
+  // AccountingSettingsPage,
   FiscalYearsPage,
 } from '@org/accounting-ui';
 import SettingsPage from '../../pages/settings/settings.page';
@@ -65,8 +65,8 @@ export default function AppRouter() {
           <Route path="payment-terms"     element={<PaymentTermsPage />} />
           <Route path="chart-of-accounts" element={<ChartOfAccountsPage />} />
           <Route path="journals"          element={<JournalsPage />} />
-          <Route path="journal-entries"   element={<JournalEntriesPage />} />
-          <Route path="settings"          element={<AccountingSettingsPage />} />
+          {/* <Route path="journal-entries"   element={<JournalEntriesPage />} />
+          <Route path="settings"          element={<AccountingSettingsPage />} /> */}
         </Route>
 
         {/* Core */}

@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../../../generated/prisma';
+import { AccountCategory, AccountRole, PrismaClient } from '../../../generated/prisma';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import {
@@ -444,65 +444,227 @@ async function main() {
       }
 
       console.log('✅ Currencies created\n');
+// ─────────────────────────────────────
+// 6. CHART OF ACCOUNTS
+// ─────────────────────────────────────
+console.log('📊 Creating chart of accounts...')
 
-      // ─────────────────────────────────────
-      // 6. CHART OF ACCOUNTS
-      // ─────────────────────────────────────
-      console.log('📊 Creating chart of accounts...');
+type CoaSeed = {
+  id: string
+  code: string
+  name: string
+  category: AccountCategory
+  role: AccountRole | null
+  normalBalance: NormalBalance
+  isGroup: boolean
+  parentId: string | null
+}
 
-      type CoaRecord = {
-        id: string; code: string; name: string; type: AccountType;
-        normalBalance: NormalBalance; level: number; isGroup: boolean;
-        parentId: string | null; companyId: string; isActive: boolean;
-      };
+const chartOfAccounts: CoaSeed[] = [
 
-      const chartOfAccounts: CoaRecord[] = [
-        // Level 1
-        { id: COA.ASSETS_ROOT,           code: '1',   name: 'الأصول',                          type: AccountType.ASSET,      normalBalance: NormalBalance.DEBIT,  level: 1, isGroup: true,  parentId: null,                    companyId: company.id, isActive: true },
-        { id: COA.LIABILITIES_ROOT,      code: '2',   name: 'الخصوم',                          type: AccountType.LIABILITY,  normalBalance: NormalBalance.CREDIT, level: 1, isGroup: true,  parentId: null,                    companyId: company.id, isActive: true },
-        { id: COA.EQUITY_ROOT,           code: '3',   name: 'حقوق الملكية',                    type: AccountType.EQUITY,     normalBalance: NormalBalance.CREDIT, level: 1, isGroup: true,  parentId: null,                    companyId: company.id, isActive: true },
-        { id: COA.REVENUE_ROOT,          code: '4',   name: 'الإيرادات',                       type: AccountType.REVENUE,    normalBalance: NormalBalance.CREDIT, level: 1, isGroup: true,  parentId: null,                    companyId: company.id, isActive: true },
-        { id: COA.EXPENSE_ROOT,          code: '5',   name: 'المصروفات',                       type: AccountType.EXPENSE,    normalBalance: NormalBalance.DEBIT,  level: 1, isGroup: true,  parentId: null,                    companyId: company.id, isActive: true },
-        // Level 2
-        { id: COA.CURRENT_ASSETS,        code: '11',  name: 'الأصول المتداولة',                type: AccountType.ASSET,      normalBalance: NormalBalance.DEBIT,  level: 2, isGroup: true,  parentId: COA.ASSETS_ROOT,         companyId: company.id, isActive: true },
-        { id: COA.FIXED_ASSETS,          code: '12',  name: 'الأصول الثابتة',                  type: AccountType.ASSET,      normalBalance: NormalBalance.DEBIT,  level: 2, isGroup: true,  parentId: COA.ASSETS_ROOT,         companyId: company.id, isActive: true },
-        { id: COA.CURRENT_LIABILITIES,   code: '21',  name: 'الخصوم المتداولة',                type: AccountType.LIABILITY,  normalBalance: NormalBalance.CREDIT, level: 2, isGroup: true,  parentId: COA.LIABILITIES_ROOT,    companyId: company.id, isActive: true },
-        { id: COA.LONG_TERM_LIABILITIES, code: '22',  name: 'الخصوم طويلة الأجل',              type: AccountType.LIABILITY,  normalBalance: NormalBalance.CREDIT, level: 2, isGroup: true,  parentId: COA.LIABILITIES_ROOT,    companyId: company.id, isActive: true },
-        { id: COA.SALES_REVENUE,         code: '41',  name: 'إيرادات المبيعات',                type: AccountType.REVENUE,    normalBalance: NormalBalance.CREDIT, level: 2, isGroup: true,  parentId: COA.REVENUE_ROOT,        companyId: company.id, isActive: true },
-        { id: COA.SERVICE_REVENUE,       code: '42',  name: 'إيرادات الخدمات',                 type: AccountType.REVENUE,    normalBalance: NormalBalance.CREDIT, level: 2, isGroup: true,  parentId: COA.REVENUE_ROOT,        companyId: company.id, isActive: true },
-        { id: COA.OPERATING_EXPENSES,    code: '51',  name: 'المصروفات التشغيلية',             type: AccountType.EXPENSE,    normalBalance: NormalBalance.DEBIT,  level: 2, isGroup: true,  parentId: COA.EXPENSE_ROOT,        companyId: company.id, isActive: true },
-        { id: COA.COGS_GROUP,            code: '52',  name: 'تكلفة البضاعة المباعة',           type: AccountType.COGS,       normalBalance: NormalBalance.DEBIT,  level: 2, isGroup: true,  parentId: COA.EXPENSE_ROOT,        companyId: company.id, isActive: true },
-        // Level 3
-        { id: COA.CASH,                  code: '111', name: 'الصندوق',                         type: AccountType.CASH,       normalBalance: NormalBalance.DEBIT,  level: 3, isGroup: false, parentId: COA.CURRENT_ASSETS,      companyId: company.id, isActive: true },
-        { id: COA.BANK,                  code: '112', name: 'البنك',                           type: AccountType.BANK,       normalBalance: NormalBalance.DEBIT,  level: 3, isGroup: false, parentId: COA.CURRENT_ASSETS,      companyId: company.id, isActive: true },
-        { id: COA.AR,                    code: '113', name: 'العملاء — حسابات القبض',          type: AccountType.RECEIVABLE, normalBalance: NormalBalance.DEBIT,  level: 3, isGroup: false, parentId: COA.CURRENT_ASSETS,      companyId: company.id, isActive: true },
-        { id: COA.INVENTORY_ACCOUNT,     code: '114', name: 'المخزون',                         type: AccountType.ASSET,      normalBalance: NormalBalance.DEBIT,  level: 3, isGroup: false, parentId: COA.CURRENT_ASSETS,      companyId: company.id, isActive: true },
-        { id: COA.VAT_RECEIVABLE,        code: '115', name: 'ضريبة القيمة المضافة — مدخلات',  type: AccountType.ASSET,      normalBalance: NormalBalance.DEBIT,  level: 3, isGroup: false, parentId: COA.CURRENT_ASSETS,      companyId: company.id, isActive: true },
-        { id: COA.PREPAID_EXPENSES,      code: '121', name: 'مصروفات مدفوعة مقدماً',          type: AccountType.ASSET,      normalBalance: NormalBalance.DEBIT,  level: 3, isGroup: false, parentId: COA.FIXED_ASSETS,        companyId: company.id, isActive: true },
-        { id: COA.FIXED_ASSETS_ACCOUNT,  code: '122', name: 'الأصول الثابتة — صافي',          type: AccountType.ASSET,      normalBalance: NormalBalance.DEBIT,  level: 3, isGroup: false, parentId: COA.FIXED_ASSETS,        companyId: company.id, isActive: true },
-        { id: COA.AP,                    code: '211', name: 'الموردون — حسابات الدفع',         type: AccountType.PAYABLE,    normalBalance: NormalBalance.CREDIT, level: 3, isGroup: false, parentId: COA.CURRENT_LIABILITIES, companyId: company.id, isActive: true },
-        { id: COA.VAT_PAYABLE,           code: '212', name: 'ضريبة القيمة المضافة — مخرجات',  type: AccountType.LIABILITY,  normalBalance: NormalBalance.CREDIT, level: 3, isGroup: false, parentId: COA.CURRENT_LIABILITIES, companyId: company.id, isActive: true },
-        { id: COA.ACCRUED_LIABILITIES,   code: '213', name: 'مستحقات الدفع',                  type: AccountType.LIABILITY,  normalBalance: NormalBalance.CREDIT, level: 3, isGroup: false, parentId: COA.CURRENT_LIABILITIES, companyId: company.id, isActive: true },
-        { id: COA.CAPITAL,               code: '311', name: 'رأس المال',                       type: AccountType.EQUITY,     normalBalance: NormalBalance.CREDIT, level: 3, isGroup: false, parentId: COA.EQUITY_ROOT,         companyId: company.id, isActive: true },
-        { id: COA.RETAINED_EARNINGS,     code: '312', name: 'الأرباح المحتجزة',               type: AccountType.EQUITY,     normalBalance: NormalBalance.CREDIT, level: 3, isGroup: false, parentId: COA.EQUITY_ROOT,         companyId: company.id, isActive: true },
-        { id: COA.SALES_ACCOUNT,         code: '411', name: 'إيرادات المبيعات',               type: AccountType.REVENUE,    normalBalance: NormalBalance.CREDIT, level: 3, isGroup: false, parentId: COA.SALES_REVENUE,       companyId: company.id, isActive: true },
-        { id: COA.SERVICE_ACCOUNT,       code: '421', name: 'إيرادات الخدمات',                type: AccountType.REVENUE,    normalBalance: NormalBalance.CREDIT, level: 3, isGroup: false, parentId: COA.SERVICE_REVENUE,     companyId: company.id, isActive: true },
-        { id: COA.COGS_ACCOUNT,          code: '521', name: 'تكلفة البضاعة المباعة',          type: AccountType.COGS,       normalBalance: NormalBalance.DEBIT,  level: 3, isGroup: false, parentId: COA.COGS_GROUP,          companyId: company.id, isActive: true },
-        { id: COA.SALARIES_EXPENSE,      code: '511', name: 'مصروفات الرواتب والأجور',        type: AccountType.EXPENSE,    normalBalance: NormalBalance.DEBIT,  level: 3, isGroup: false, parentId: COA.OPERATING_EXPENSES,  companyId: company.id, isActive: true },
-        { id: COA.RENT_EXPENSE,          code: '512', name: 'مصروفات الإيجار',                type: AccountType.EXPENSE,    normalBalance: NormalBalance.DEBIT,  level: 3, isGroup: false, parentId: COA.OPERATING_EXPENSES,  companyId: company.id, isActive: true },
-        { id: COA.UTILITIES_EXPENSE,     code: '513', name: 'مصروفات المرافق',               type: AccountType.EXPENSE,    normalBalance: NormalBalance.DEBIT,  level: 3, isGroup: false, parentId: COA.OPERATING_EXPENSES,  companyId: company.id, isActive: true },
-        { id: COA.MARKETING_EXPENSE,     code: '514', name: 'مصروفات التسويق والإعلان',       type: AccountType.EXPENSE,    normalBalance: NormalBalance.DEBIT,  level: 3, isGroup: false, parentId: COA.OPERATING_EXPENSES,  companyId: company.id, isActive: true },
-        { id: COA.DEPRECIATION_EXPENSE,  code: '515', name: 'مصروفات الإهلاك',               type: AccountType.EXPENSE,    normalBalance: NormalBalance.DEBIT,  level: 3, isGroup: false, parentId: COA.OPERATING_EXPENSES,  companyId: company.id, isActive: true },
-      ];
+  // ───────────── Level 1 ─────────────
 
-      const sortedAccounts = chartOfAccounts.sort((a, b) => a.level - b.level);
-      for (const account of sortedAccounts) {
-        const exists = await tx.chartOfAccount.findFirst({ where: { companyId: company.id, code: account.code } });
-        if (!exists) await tx.chartOfAccount.create({ data: account });
-      }
+  {
+    id: COA.ASSETS_ROOT,
+    code: '1',
+    name: 'الأصول',
+    category: AccountCategory.ASSET,
+    role: null,
+    normalBalance: NormalBalance.DEBIT,
+    isGroup: true,
+    parentId: null
+  },
 
-      console.log('✅ Chart of accounts created\n');
+  {
+    id: COA.LIABILITIES_ROOT,
+    code: '2',
+    name: 'الخصوم',
+    category: AccountCategory.LIABILITY,
+    role: null,
+    normalBalance: NormalBalance.CREDIT,
+    isGroup: true,
+    parentId: null
+  },
 
+  {
+    id: COA.EQUITY_ROOT,
+    code: '3',
+    name: 'حقوق الملكية',
+    category: AccountCategory.EQUITY,
+    role: null,
+    normalBalance: NormalBalance.CREDIT,
+    isGroup: true,
+    parentId: null
+  },
+
+  {
+    id: COA.REVENUE_ROOT,
+    code: '4',
+    name: 'الإيرادات',
+    category: AccountCategory.REVENUE,
+    role: null,
+    normalBalance: NormalBalance.CREDIT,
+    isGroup: true,
+    parentId: null
+  },
+
+  {
+    id: COA.EXPENSE_ROOT,
+    code: '5',
+    name: 'المصروفات',
+    category: AccountCategory.EXPENSE,
+    role: null,
+    normalBalance: NormalBalance.DEBIT,
+    isGroup: true,
+    parentId: null
+  },
+
+  // ───────────── Level 2 ─────────────
+
+  {
+    id: COA.CURRENT_ASSETS,
+    code: '11',
+    name: 'الأصول المتداولة',
+    category: AccountCategory.ASSET,
+    role: null,
+    normalBalance: NormalBalance.DEBIT,
+    isGroup: true,
+    parentId: COA.ASSETS_ROOT
+  },
+
+  {
+    id: COA.FIXED_ASSETS,
+    code: '12',
+    name: 'الأصول الثابتة',
+    category: AccountCategory.ASSET,
+    role: null,
+    normalBalance: NormalBalance.DEBIT,
+    isGroup: true,
+    parentId: COA.ASSETS_ROOT
+  },
+
+  {
+    id: COA.CURRENT_LIABILITIES,
+    code: '21',
+    name: 'الخصوم المتداولة',
+    category: AccountCategory.LIABILITY,
+    role: null,
+    normalBalance: NormalBalance.CREDIT,
+    isGroup: true,
+    parentId: COA.LIABILITIES_ROOT
+  },
+
+  {
+    id: COA.OPERATING_EXPENSES,
+    code: '51',
+    name: 'المصروفات التشغيلية',
+    category: AccountCategory.EXPENSE,
+    role: null,
+    normalBalance: NormalBalance.DEBIT,
+    isGroup: true,
+    parentId: COA.EXPENSE_ROOT
+  },
+
+  {
+    id: COA.COGS_GROUP,
+    code: '52',
+    name: 'تكلفة البضاعة المباعة',
+    category: AccountCategory.EXPENSE,
+    role: null,
+    normalBalance: NormalBalance.DEBIT,
+    isGroup: true,
+    parentId: COA.EXPENSE_ROOT
+  },
+
+  // ───────────── Level 3 ─────────────
+
+  {
+    id: COA.CASH,
+    code: '111',
+    name: 'الصندوق',
+    category: AccountCategory.ASSET,
+    role: AccountRole.CASH,
+    normalBalance: NormalBalance.DEBIT,
+    isGroup: false,
+    parentId: COA.CURRENT_ASSETS
+  },
+
+  {
+    id: COA.BANK,
+    code: '112',
+    name: 'البنك',
+    category: AccountCategory.ASSET,
+    role: AccountRole.BANK,
+    normalBalance: NormalBalance.DEBIT,
+    isGroup: false,
+    parentId: COA.CURRENT_ASSETS
+  },
+
+  {
+    id: COA.AR,
+    code: '113',
+    name: 'العملاء',
+    category: AccountCategory.ASSET,
+    role: AccountRole.RECEIVABLE,
+    normalBalance: NormalBalance.DEBIT,
+    isGroup: false,
+    parentId: COA.CURRENT_ASSETS
+  },
+
+  {
+    id: COA.AP,
+    code: '211',
+    name: 'الموردين',
+    category: AccountCategory.LIABILITY,
+    role: AccountRole.PAYABLE,
+    normalBalance: NormalBalance.CREDIT,
+    isGroup: false,
+    parentId: COA.CURRENT_LIABILITIES
+  },
+
+  {
+    id: COA.COGS_ACCOUNT,
+    code: '521',
+    name: 'تكلفة البضاعة المباعة',
+    category: AccountCategory.EXPENSE,
+    role: AccountRole.COGS,
+    normalBalance: NormalBalance.DEBIT,
+    isGroup: false,
+    parentId: COA.COGS_GROUP
+  }
+
+]
+
+console.log('📊 Cleaning and creating chart of accounts...')
+
+// مسح الحسابات القديمة
+await tx.chartOfAccount.deleteMany({
+  where: { companyId: company.id }
+})
+
+// ترتيب حسب المستوى
+const sorted = chartOfAccounts.sort((a, b) => a.code.length - b.code.length)
+
+for (const acc of sorted) {
+
+  await tx.chartOfAccount.create({
+    data: {
+      id: acc.id,
+      code: acc.code,
+      name: acc.name,
+      category: acc.category,
+      role: acc.role,
+      normalBalance: acc.normalBalance,
+      isGroup: acc.isGroup,
+      parentId: acc.parentId,
+      companyId: company.id,
+      isActive: true
+    }
+  })
+
+}
+
+console.log('✅ Chart of accounts created\n')
       // ─────────────────────────────────────
       // 7. JOURNALS
       // ─────────────────────────────────────
