@@ -11,6 +11,15 @@ export const useInvoices = (orderId?: string) => useQuery({
   },
 });
 
+export const useInvoice = (id: string) => useQuery({
+  queryKey: ['invoice', id],
+  queryFn: async () => {
+    const res = await salesApi.invoices.getById(id);
+    return res.data ? res.data : res;
+  },
+  enabled: !!id,
+});
+
 export const useCreateInvoice = () => {
   const qc = useQueryClient();
   return useMutation({
