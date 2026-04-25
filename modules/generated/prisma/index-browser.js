@@ -857,9 +857,15 @@ exports.Prisma.ChartOfAccountScalarFieldEnum = {
   id: 'id',
   code: 'code',
   name: 'name',
+<<<<<<< HEAD
   type: 'type',
   normalBalance: 'normalBalance',
   level: 'level',
+=======
+  category: 'category',
+  role: 'role',
+  normalBalance: 'normalBalance',
+>>>>>>> main
   isGroup: 'isGroup',
   isActive: 'isActive',
   companyId: 'companyId',
@@ -1171,17 +1177,35 @@ exports.FiscalPeriodStatus = exports.$Enums.FiscalPeriodStatus = {
   HARD_LOCKED: 'HARD_LOCKED'
 };
 
+<<<<<<< HEAD
 exports.AccountType = exports.$Enums.AccountType = {
+=======
+exports.AccountCategory = exports.$Enums.AccountCategory = {
+>>>>>>> main
   ASSET: 'ASSET',
   LIABILITY: 'LIABILITY',
   EQUITY: 'EQUITY',
   REVENUE: 'REVENUE',
+<<<<<<< HEAD
   EXPENSE: 'EXPENSE',
   COGS: 'COGS',
   BANK: 'BANK',
   CASH: 'CASH',
   RECEIVABLE: 'RECEIVABLE',
   PAYABLE: 'PAYABLE'
+=======
+  EXPENSE: 'EXPENSE'
+};
+
+exports.AccountRole = exports.$Enums.AccountRole = {
+  CASH: 'CASH',
+  BANK: 'BANK',
+  RECEIVABLE: 'RECEIVABLE',
+  PAYABLE: 'PAYABLE',
+  INVENTORY: 'INVENTORY',
+  COGS: 'COGS',
+  TAX: 'TAX'
+>>>>>>> main
 };
 
 exports.NormalBalance = exports.$Enums.NormalBalance = {

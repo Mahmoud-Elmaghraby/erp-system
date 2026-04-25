@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
@@ -23,4 +24,37 @@
     "src/**/*.spec.ts",
     "src/**/*.test.ts"
   ]
+=======
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "../dist/core",
+    "tsBuildInfoFile": "../dist/core/tsconfig.lib.tsbuildinfo",
+
+    "emitDeclarationOnly": false,
+    "forceConsistentCasingInFileNames": true,
+
+    "types": ["node"],
+    "target": "es2021",
+
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
+    "noFallthroughCasesInSwitch": true
+  },
+
+  "include": ["src/**/*.ts"],
+
+  "exclude": [
+    "jest.config.ts",
+    "jest.config.cts",
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "../modules/**"
+  ]
+>>>>>>> main
 }

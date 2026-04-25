@@ -1370,6 +1370,7 @@ enum FiscalPeriodStatus {
 }
 
 model ChartOfAccount {
+<<<<<<< HEAD
   id            String        @id @default(uuid())
   code          String
   name          String
@@ -1386,15 +1387,50 @@ model ChartOfAccount {
   children ChartOfAccount[] @relation("AccountTree")
 
   journalItems JournalItem[]
+=======
+  id   String @id @default(uuid())
+  code String
+  name String
+
+  category AccountCategory
+  role     AccountRole?
+
+  normalBalance NormalBalance
+
+  isGroup  Boolean @default(false)
+  isActive Boolean @default(true)
+
+  companyId String
+
+  parentId     String?
+  parent       ChartOfAccount?  @relation("AccountTree", fields: [parentId], references: [id])
+  children     ChartOfAccount[] @relation("AccountTree")
+  journalItems JournalItem[] // مهم جداً
+>>>>>>> main
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+<<<<<<< HEAD
   // unique per company مش globally
   @@unique([companyId, code])
   @@index([companyId, type])
   @@index([companyId, isActive])
   @@map("chart_of_accounts")
+=======
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@schema("accounting")
+}
+
+enum AccountCategory {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+
+>>>>>>> main
   @@schema("accounting")
 }
 
@@ -1405,6 +1441,21 @@ enum NormalBalance {
   @@schema("accounting")
 }
 
+<<<<<<< HEAD
+=======
+enum AccountRole {
+  CASH
+  BANK
+  RECEIVABLE
+  PAYABLE
+  INVENTORY
+  COGS
+  TAX
+
+  @@schema("accounting")
+}
+
+>>>>>>> main
 enum AccountType {
   ASSET
   LIABILITY
@@ -1510,12 +1561,17 @@ enum JournalEntrySource {
 
 model JournalItem {
   id   String @id @default(uuid())
+<<<<<<< HEAD
   name String // وصف البند
+=======
+  name String
+>>>>>>> main
 
   // المبالغ بالعملة الأساسية
   debit  Decimal @default(0) @db.Decimal(18, 4)
   credit Decimal @default(0) @db.Decimal(18, 4)
 
+<<<<<<< HEAD
   // المبالغ بالعملة الأجنبية (لو مختلفة عن الأساسية)
   amountCurrency Decimal? @db.Decimal(18, 4)
   currencyId     String?
@@ -1525,15 +1581,36 @@ model JournalItem {
   partnerId   String? // id العميل أو المورد
 
   // Reconciliation — هل الـ item اتسدد؟
+=======
+  // العملة الأجنبية
+  amountCurrency Decimal? @db.Decimal(18, 4)
+  currencyId     String?
+
+  // Partner
+  partnerType PartnerType?
+  partnerId   String?
+
+  // Reconciliation
+>>>>>>> main
   reconciled    Boolean   @default(false)
   reconcileDate DateTime?
   reconcileRef  String?
 
+<<<<<<< HEAD
   // Due Date — للـ aging report
   dueDate DateTime?
 
   entryId   String
   entry     JournalEntry   @relation(fields: [entryId], references: [id])
+=======
+  // Due Date
+  dueDate DateTime?
+
+  // Relations
+  entryId String
+  entry   JournalEntry @relation(fields: [entryId], references: [id])
+
+>>>>>>> main
   accountId String
   account   ChartOfAccount @relation(fields: [accountId], references: [id])
 
