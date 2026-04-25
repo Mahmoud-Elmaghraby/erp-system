@@ -31,7 +31,8 @@ export const ChartOfAccountsPage: React.FC = () => {
           <Title level={2} style={{ margin: 0 }}>الدليل المحاسبي</Title>
         </Col>
         <Col>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => { setSelectedAccount(null); setViewMode('create'); }}>
+
+          <Button type="primary" icon={<PlusOutlined />} style={{ backgroundColor: '#FF0000', color: 'white' }} onClick={() => { setSelectedAccount(null); setViewMode('create'); }}>
             إضافة حساب رئيسي
           </Button>
         </Col>
