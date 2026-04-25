@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { AccountCategory, AccountRole, PrismaClient } from '../../../generated/prisma';
 import * as bcrypt from 'bcrypt';
