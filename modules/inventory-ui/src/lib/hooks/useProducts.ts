@@ -10,6 +10,15 @@ export const useProducts = () => useQuery({
   },
 });
 
+export const useProduct = (id: string) => useQuery({
+  queryKey: ['products', id],
+  queryFn: async () => {
+    const res = await inventoryApi.products.getOne(id) as any;
+    return res?.data ?? res;
+  },
+  enabled: !!id,
+});
+
 export const useCreateProduct = () => {
   const queryClient = useQueryClient();
   return useMutation({

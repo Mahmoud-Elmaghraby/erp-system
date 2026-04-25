@@ -39,7 +39,7 @@ export class QuotationsController {
   @Get(':id')
   @RequirePermission('sales.quotations.view')
   findOne(@Param('id') id: string) {
-    return this.quotationRepository.findById(id);
+    return this.quotationRepository.findDetails(id);
   }
 
   @Post()

@@ -2,12 +2,17 @@ import { useState } from 'react';
 import { Form, Input, Select, DatePicker, Button, Tabs, InputNumber, Row, Col, Typography, Space, Divider, message, Upload, Dropdown, Tag } from 'antd';
 import type { MenuProps } from 'antd';
 import { PlusOutlined, DeleteOutlined, EyeOutlined, CloseOutlined, QuestionCircleOutlined, CloudUploadOutlined, DownOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
+import { useEffect } from 'react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ar';
 import updateLocale from 'dayjs/plugin/updateLocale';
 import { useCustomers } from '../../hooks/useCustomers';
-import { useCreateQuotation } from '../../hooks/useQuotations';
+import { useCreateQuotation, useUpdateQuotation } from '../../hooks/useQuotations';
+import { salesApi } from '../../api/sales.api';
+import { accountingApi } from '@org/accounting-ui';
 import { useProducts } from '@org/inventory-ui'; // Assuming this exists based on order-form.tsx
 
 dayjs.extend(updateLocale);
@@ -46,6 +51,10 @@ interface QuotationFormValues {
 export default function CreateQuotationPage() {
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const editId = queryParams.get('id');
+
   const [totalAmount, setTotalAmount] = useState(0);
   const [untaxedAmount, setUntaxedAmount] = useState(0);
   const [taxAmount, setTaxAmount] = useState(0);
@@ -54,6 +63,53 @@ export default function CreateQuotationPage() {
   const { data: customers } = useCustomers();
   const { data: products } = useProducts();
   const createMutation = useCreateQuotation();
+  const updateMutation = useUpdateQuotation();
+
+  const { data: quotationData } = useQuery({
+    queryKey: ['quotation', editId],
+    queryFn: () => salesApi.quotations.getById(editId!),
+    enabled: !!editId,
+  });
+
+  useEffect(() => {
+    if (quotationData) {
+      const q = (quotationData as any).data || quotationData;
+      form.setFieldsValue({
+        ...q,
+        date: q.createdAt ? dayjs(q.createdAt) : undefined,
+        validUntil: q.validUntil ? dayjs(q.validUntil) : undefined,
+        items: q.items?.map((item: any) => ({
+          ...item,
+          tax: item.taxId ? 14 : 0,
+        })),
+      });
+      calculateTotals();
+    }
+  }, [quotationData, form]);
+
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches'],
+    queryFn: async () => {
+      const token = localStorage.getItem('access_token');
+      const res = await axios.get(
+        `${import.meta.env['VITE_API_URL'] || 'http://localhost:3000/api'}/branches`,
+        { headers: { Authorization: token ? `Bearer ${token}` : '' } }
+      );
+      const payload = (res.data?.data ?? res.data ?? []) as any[];
+      return payload;
+    },
+  });
+
+  const { data: taxes = [] } = useQuery({
+    queryKey: ['taxes'],
+    queryFn: () => accountingApi.taxes.getAll({ scope: 'sales' }),
+  });
+
+  useEffect(() => {
+    if (branches.length > 0 && !form.getFieldValue('branchId') && !editId) {
+      form.setFieldsValue({ branchId: branches[0].id });
+    }
+  }, [branches, form, editId]);
 
   const calculateTotals = () => {
     const items = (form.getFieldValue('items') || []) as QuotationItemForm[];
@@ -65,7 +121,9 @@ export default function CreateQuotationPage() {
       const q = Number(item?.quantity || 0);
       const p = Number(item?.unitPrice || 0);
       const d = Number(item?.discount || 0);
-      const t = Number(item?.tax || 0);
+      
+      const selectedTax = (taxes as any)?.data?.find((t: any) => t.id === item?.taxId);
+      const t = selectedTax ? Number(selectedTax.rate) : 0;
 
       const subtotal = q * p;
       const itemDiscount = (subtotal * d) / 100; // Assuming discount is percentage
@@ -111,28 +169,75 @@ export default function CreateQuotationPage() {
     }
   };
 
-  const onFinish = (values: QuotationFormValues) => {
+const onFinish = (values: QuotationFormValues) => {
     const payload = {
-      ...values,
-      untaxedAmount,
-      taxAmount,
+      branchId: values.branchId || branches[0]?.id,
+      customerId: values.customerId,
+      // REMOVED: untaxedAmount, taxAmount, and totalAmount
       discountAmount,
-      totalAmount,
-      items: values.items?.map((item) => ({
+      notes: values.notes as string,
+      // CHANGED: Use .toISOString() instead of .toDate() for class-validator @IsDateString()
+      validUntil: values.validUntil ? (values.validUntil as any).toISOString() : undefined,
+      items: (values.items as any[])?.map((item: any) => ({
         productId: item.productId,
         quantity: Number(item.quantity),
         unitPrice: Number(item.unitPrice),
         discount: Number(item.discount || 0),
-        taxId: item.taxId, // if mapping to DB
-        total: (Number(item.quantity) * Number(item.unitPrice)) * (1 - Number(item.discount || 0)/100) * (1 + Number(item.tax || 0)/100)
+        taxId: item.taxId || undefined,
       })) ?? []
     };
 
-    createMutation.mutate(payload, {
-      onSuccess: () => {
-        message.success('تم الحفظ بنجاح');
-        navigate('/sales/quotations');
-      }
+    if (editId) {
+      updateMutation.mutate({ id: editId, data: payload }, {
+        onSuccess: () => {
+          message.success('تم التعديل بنجاح');
+          navigate(`/sales/quotations/preview/${editId}`);
+        }
+      });
+    } else {
+      createMutation.mutate(payload, {
+        onSuccess: (data: any) => {
+          message.success('تم الحفظ بنجاح');
+          const id = (data as any)?.id || data;
+          navigate(`/sales/quotations/preview/${id}`);
+        }
+      });
+    }
+  };
+
+  const handlePreview = () => {
+    form.validateFields().then((values) => {
+      const payload = {
+      branchId: values.branchId || branches[0]?.id,
+      
+      // Fix: If customerId is an empty string, send undefined so @IsOptional() catches it
+      customerId: values.customerId?.trim() === "" ? undefined : values.customerId,
+      
+      discountAmount,
+      notes: values.notes as string,
+      validUntil: values.validUntil ? (values.validUntil as any).toISOString() : undefined,
+      
+      // Fix: Filter out any items that don't have a valid productId selected yet
+      items: (values.items as any[])
+        ?.filter((item: any) => item.productId && item.productId.trim() !== "")
+        ?.map((item: any) => ({
+          productId: item.productId,
+          quantity: Number(item.quantity),
+          unitPrice: Number(item.unitPrice),
+          discount: Number(item.discount || 0),
+          // Fix: Ensure taxId isn't an empty string
+          taxId: item.taxId?.trim() === "" ? undefined : item.taxId,
+        })) ?? []
+    };
+
+      createMutation.mutate(payload, {
+        onSuccess: (data: any) => {
+          const id = (data as any)?.id || data;
+          navigate(`/sales/quotations/preview/${id}`);
+        }
+      });
+    }).catch(() => {
+      message.error('يرجى ملء جميع الحقول المطلوبة');
     });
   };
 
@@ -140,6 +245,7 @@ export default function CreateQuotationPage() {
     {
       key: '1',
       label: 'معاينة على المتصفح',
+      onClick: handlePreview,
     },
     {
       key: '2',
@@ -222,7 +328,15 @@ export default function CreateQuotationPage() {
               حفظ دون طباعة
             </Dropdown.Button>
             <Button htmlType="submit" style={{ fontWeight: 600, color: '#001529', borderColor: '#001529' }}>حفظ كمسودة</Button>
-            <Dropdown.Button className="dark-blue-dropdown" menu={{ items: previewMenu }} type="primary" style={{ fontWeight: 600 }} icon={<DownOutlined />}>
+            <Dropdown.Button 
+              className="dark-blue-dropdown" 
+              menu={{ items: previewMenu }} 
+              type="primary" 
+              style={{ fontWeight: 600 }} 
+              icon={<DownOutlined />}
+              onClick={handlePreview}
+              loading={createMutation.isPending}
+            >
               <Space>معاينة <EyeOutlined /></Space>
             </Dropdown.Button>
             <Button icon={<CloseOutlined />} onClick={() => navigate('/sales/quotations')} style={{ fontWeight: 600, color: '#001529', borderColor: '#001529' }}>إلغاء</Button>
@@ -241,6 +355,11 @@ export default function CreateQuotationPage() {
           </Row>
           <Row gutter={16}>
             <Col span={6}>
+              <Form.Item label="الفرع *" name="branchId" rules={[{ required: true, message: 'مطلوب' }]}>
+                <Select placeholder="اختر الفرع" options={branches.map(b => ({ label: b.name, value: b.id }))} />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
               <Form.Item label="رقم عرض الأسعار" name="quotationNumber">
                 <Input placeholder="تلقائي" disabled />
               </Form.Item>
@@ -258,17 +377,19 @@ export default function CreateQuotationPage() {
               </Form.Item>
             </Col>
             <Col span={6}>
-              <Form.Item label="العميل *" name="customerId" rules={[{ required: true, message: 'مطلوب' }]}>
-                <div style={{ display: 'flex' }}>
-                   <Button type="primary" style={{ backgroundColor: '#001529', borderColor: '#001529', borderRadius: '0 4px 4px 0' }} icon={<PlusOutlined />}>جديد</Button>
-                   <Select
-                    style={{ flex: 1, borderRadius: '4px 0 0 4px' }}
-                    showSearch
-                    placeholder="(اختر عميل)"
-                    filterOption={(input, option) => (option?.label as string)?.toLowerCase().includes(input.toLowerCase())}
-                      options={(((customers as SelectEntity[] | undefined) ?? []).map((c) => ({ label: c.name, value: c.id })))}
-                  />
-                </div>
+              <Form.Item label="العميل *" required>
+                <Space.Compact style={{ display: 'flex', width: '100%' }}>
+                   <Button type="primary" style={{ backgroundColor: '#001529', borderColor: '#001529' }} icon={<PlusOutlined />}>جديد</Button>
+                   <Form.Item name="customerId" noStyle rules={[{ required: true, message: 'مطلوب' }]}>
+                     <Select
+                      style={{ flex: 1 }}
+                      showSearch
+                      placeholder="(اختر عميل)"
+                      filterOption={(input, option) => (option?.label as string)?.toLowerCase().includes(input.toLowerCase())}
+                        options={(((customers as SelectEntity[] | undefined) ?? []).map((c) => ({ label: c.name, value: c.id })))}
+                    />
+                   </Form.Item>
+                </Space.Compact>
               </Form.Item>
             </Col>
           </Row>
@@ -308,7 +429,9 @@ export default function CreateQuotationPage() {
                   const q = form.getFieldValue(['items', name, 'quantity']) || 0;
                   const p = form.getFieldValue(['items', name, 'unitPrice']) || 0;
                   const d = form.getFieldValue(['items', name, 'discount']) || 0;
-                  const t = form.getFieldValue(['items', name, 'tax']) || 0;
+                  const taxId = form.getFieldValue(['items', name, 'taxId']);
+                  const selectedTax = (taxes as any)?.data?.find((tax: any) => tax.id === taxId);
+                  const t = selectedTax ? Number(selectedTax.rate) : 0;
                   const selectedProductId = form.getFieldValue(['items', name, 'productId']);
                   
                   const sub = q * p;
@@ -351,9 +474,12 @@ export default function CreateQuotationPage() {
                           <Option value="amount">$</Option>
                         </Select>
                       </div>
-                      <Form.Item {...restField} name={[name, 'tax']} style={{ margin: 0 }}>
-                         <Select placeholder="بدون ضريبة" allowClear>
-                            {/* tax options */}
+                      <Form.Item {...restField} name={[name, 'taxId']} style={{ margin: 0 }}>
+                         <Select 
+                          placeholder="بدون ضريبة" 
+                          allowClear 
+                          options={(taxes as any)?.data?.map((t: any) => ({ label: `${t.name} (${t.rate}%)`, value: t.id })) || []}
+                         >
                          </Select>
                       </Form.Item>
                       <div style={{ padding: '4px 11px', display: 'flex', alignItems: 'center' }}>

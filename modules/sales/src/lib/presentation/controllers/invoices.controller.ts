@@ -32,7 +32,7 @@ export class InvoicesController {
   @Get(':id')
   @RequirePermission('sales.invoices.view')
   findOne(@Param('id') id: string) {
-    return this.invoiceRepository.findById(id);
+    return this.invoiceRepository.findDetails(id);
   }
 
   @Post()

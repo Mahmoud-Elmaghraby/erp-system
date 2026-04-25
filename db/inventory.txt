@@ -1,0 +1,71 @@
+-- 1. Create a dummy Company
+INSERT INTO "core"."companies" ("id", "name", "email", "phone", "isActive", "createdAt", "updatedAt")
+VALUES (
+    'c0000000-0000-0000-0000-000000000001', 
+    'شركة النجوم للتجارة', 
+    'info@star-trading.com', 
+    '0123456789', 
+    true, 
+    NOW(), 
+    NOW()
+) ON CONFLICT DO NOTHING;
+
+-- 2. Create a dummy Branch
+INSERT INTO "core"."branches" ("id", "name", "companyId", "isActive", "createdAt", "updatedAt")
+VALUES (
+    'b0000000-0000-0000-0000-000000000001', 
+    'الفرع الرئيسي - القاهرة', 
+    'c0000000-0000-0000-0000-000000000001', 
+    true, 
+    NOW(), 
+    NOW()
+) ON CONFLICT DO NOTHING;
+
+-- 3. Create Categories
+INSERT INTO "inventory"."categories" ("id", "name", "companyId", "createdAt", "updatedAt")
+VALUES 
+    ('cat-001', 'إلكترونيات', 'c0000000-0000-0000-0000-000000000001', NOW(), NOW()),
+    ('cat-002', 'أثاث مكتبي', 'c0000000-0000-0000-0000-000000000001', NOW(), NOW()),
+    ('cat-003', 'قرطاسية', 'c0000000-0000-0000-0000-000000000001', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+
+-- 4. Create Units of Measure
+INSERT INTO "inventory"."units_of_measure" ("id", "name", "symbol", "unitCode", "companyId", "createdAt")
+VALUES 
+    ('uom-001', 'قطعة', 'H87', 'EA', 'c0000000-0000-0000-0000-000000000001', NOW()),
+    ('uom-002', 'كيلوجرام', 'KGM', 'KGM', 'c0000000-0000-0000-0000-000000000001', NOW())
+ON CONFLICT DO NOTHING;
+
+-- 5. Create a Warehouse
+INSERT INTO "inventory"."warehouses" ("id", "name", "companyId", "branchId", "isActive", "createdAt", "updatedAt")
+VALUES (
+    'wh-001', 
+    'مخزن القاهرة الرئيسي', 
+    'c0000000-0000-0000-0000-000000000001', 
+    'b0000000-0000-0000-0000-000000000001', 
+    true, 
+    NOW(), 
+    NOW()
+) ON CONFLICT DO NOTHING;
+
+-- 6. Create Products
+INSERT INTO "inventory"."products" (
+    "id", "name", "description", "barcode", "sku", "price", "cost", "isActive", 
+    "categoryId", "unitOfMeasureId", "companyId", "createdAt", "updatedAt"
+) VALUES 
+    ('p-001', 'شاشة سامسونج 24 بوصة', 'شاشة LED عالية الدقة', '8801234567', 'SAM-LED-24', 4500.00, 3800.00, true, 'cat-001', 'uom-001', 'c0000000-0000-0000-0000-000000000001', NOW(), NOW()),
+    ('p-002', 'لوحة مفاتيح لاسلكية', 'لوحة مفاتيح ميكانيكية احترافية', '6901234567', 'LOG-KBD-WL', 1200.00, 950.00, true, 'cat-001', 'uom-001', 'c0000000-0000-0000-0000-000000000001', NOW(), NOW()),
+    ('p-003', 'كرسي مكتب طبي', 'كرسي مريح للجلوس لفترات طويلة', '1234567890', 'OFF-CHR-01', 3200.00, 2500.00, true, 'cat-002', 'uom-001', 'c0000000-0000-0000-0000-000000000001', NOW(), NOW()),
+    ('p-004', 'طاولة مكتب 120 سم', 'خشب طبيعي متين', '1234567891', 'OFF-TBL-120', 2800.00, 2200.00, true, 'cat-002', 'uom-001', 'c0000000-0000-0000-0000-000000000001', NOW(), NOW()),
+    ('p-005', 'طابعة ليزر HP', 'طابعة سريعة موفرة للحبر', '8809876543', 'HP-LSR-P1', 6500.00, 5800.00, true, 'cat-001', 'uom-001', 'c0000000-0000-0000-0000-000000000001', NOW(), NOW())
+ON CONFLICT DO NOTHING;
+
+-- 7. Add Initial Stock
+INSERT INTO "inventory"."stock" ("id", "warehouseId", "productId", "quantity", "minStock", "updatedAt")
+VALUES 
+    (gen_random_uuid(), 'wh-001', 'p-001', 50.00, 5.00, NOW()),
+    (gen_random_uuid(), 'wh-001', 'p-002', 120.00, 10.00, NOW()),
+    (gen_random_uuid(), 'wh-001', 'p-003', 15.00, 2.00, NOW()),
+    (gen_random_uuid(), 'wh-001', 'p-004', 8.00, 2.00, NOW()),
+    (gen_random_uuid(), 'wh-001', 'p-005', 25.00, 5.00, NOW())
+ON CONFLICT DO NOTHING;

@@ -1,6 +1,7 @@
 import { Navigate, type RouteObject } from 'react-router-dom';
 import QuotationsPage from './pages/quotations/quotations.page';
 import CreateQuotationPage from './pages/quotations/create-quotation.page';
+import PreviewQuotationPage from './pages/quotations/preview-quotation.page';
 import InvoicesPage from './pages/invoices/invoices.page';
 import CreateInvoicePage from './pages/invoices/create-invoice.page';
 import InvoiceViewPage from './pages/invoices/invoice-view.page';
@@ -29,6 +30,7 @@ export const salesRoutes: RouteObject[] = [
       { path: 'invoices/:id', element: <InvoiceViewPage /> },
       { path: 'quotations', element: <QuotationsPage /> },
       { path: 'quotations/create', element: <CreateQuotationPage /> },
+      { path: 'quotations/preview/:id', element: <PreviewQuotationPage /> },
       { path: 'credit-notes', element: <CreditNotesPage /> },
       { path: 'credit-notes/create', element: <CreateCreditNotePage /> },
       { path: 'returns', element: <SalesReturnsPage /> },

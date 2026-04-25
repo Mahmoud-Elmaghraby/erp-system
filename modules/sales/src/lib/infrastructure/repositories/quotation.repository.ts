@@ -61,6 +61,39 @@ export class QuotationRepository implements IQuotationRepository {
     return quotation ? this.toEntity(quotation) : null;
   }
 
+  async findDetails(id: string): Promise<any> {
+    const quotation = await this.prisma.salesQuotation.findUnique({
+      where: { id },
+      include: {
+        customer: true,
+        paymentTerm: true,
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    if (!quotation) return null;
+
+    let company = null;
+    if (quotation.branchId) {
+      const branch = await this.prisma.branch.findUnique({
+        where: { id: quotation.branchId },
+        include: { company: true },
+      });
+      if (branch?.company) {
+        company = branch.company;
+      }
+    }
+
+    return {
+      ...quotation,
+      company,
+    };
+  }
+
   async create(entity: QuotationEntity): Promise<QuotationEntity> {
     const quotation = await this.prisma.salesQuotation.create({
       data: {

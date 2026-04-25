@@ -1,67 +1,84 @@
 import { useState } from 'react';
-import { Button } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
-import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from '../hooks/useProducts';
+import { Button, Input, Typography, Card, Row, Col, ConfigProvider } from 'antd';
+import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { useProducts, useDeleteProduct } from '../hooks/useProducts';
 import ProductTable from '../components/products/product-table';
-import ProductForm from '../components/products/product-form';
+import { useNavigate } from 'react-router-dom';
+
+const { Title } = Typography;
 
 export default function ProductsPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { data: products, isLoading } = useProducts();
-  const createMutation = useCreateProduct();
-  const updateMutation = useUpdateProduct();
   const deleteMutation = useDeleteProduct();
 
   const handleCreate = () => {
-    setEditingProduct(null);
-    setIsModalOpen(true);
+    navigate('/inventory/products/create');
   };
 
   const handleEdit = (record: any) => {
-    setEditingProduct(record);
-    setIsModalOpen(true);
+    navigate(`/inventory/products/${record.id}/edit`);
   };
 
-  const handleSubmit = (values: any) => {
-    if (editingProduct) {
-      updateMutation.mutate(
-        { id: editingProduct.id, data: values },
-        { onSuccess: () => { setIsModalOpen(false); setEditingProduct(null); } }
-      );
-    } else {
-      createMutation.mutate(values, {
-        onSuccess: () => { setIsModalOpen(false); }
-      });
-    }
-  };
-
-  const isPending = createMutation.isPending || updateMutation.isPending;
+  const filteredProducts = products?.filter((product: any) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      (product.name && product.name.toLowerCase().includes(term)) ||
+      (product.barcode && product.barcode.toLowerCase().includes(term)) ||
+      (product.sku && product.sku.toLowerCase().includes(term))
+    );
+  });
 
   return (
-    <div dir="rtl">
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h2>المنتجات</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-          إضافة منتج
-        </Button>
+    <ConfigProvider theme={{ token: { fontSize: 16 } }}>
+      <div style={{ padding: '24px 16px', backgroundColor: '#f0f2f5', minHeight: '100vh', fontFamily: "'Cairo', 'Tajawal', sans-serif" }} dir="rtl">
+        <div style={{ marginBottom: 24 }}>
+          <Row justify="space-between" align="middle">
+            <Col>
+              <Title level={3} style={{ margin: 0, color: '#001529', fontWeight: 700 }}>المنتجات</Title>
+            </Col>
+            <Col>
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <Input
+                  placeholder="بحث بالاسم أو الباركود"
+                  prefix={<SearchOutlined />}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ width: 300, borderRadius: 6 }}
+                  size="large"
+                />
+                <Button 
+                  type="primary" 
+                  icon={<PlusOutlined />} 
+                  onClick={handleCreate}
+                  size="large"
+                  style={{ backgroundColor: '#001529', borderColor: '#001529', fontWeight: 600, borderRadius: 6 }}
+                >
+                  إضافة منتج
+                </Button>
+              </div>
+            </Col>
+          </Row>
+        </div>
+
+        <Card 
+          bordered={false} 
+          style={{ borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+          bodyStyle={{ padding: '0' }}
+        >
+          <div style={{ padding: '24px' }}>
+            <ProductTable
+              data={filteredProducts || []}
+              loading={isLoading}
+              onEdit={handleEdit}
+              onDelete={(id) => deleteMutation.mutate(id)}
+            />
+          </div>
+        </Card>
       </div>
-
-      <ProductTable
-        data={products || []}
-        loading={isLoading}
-        onEdit={handleEdit}
-        onDelete={(id) => deleteMutation.mutate(id)}
-      />
-
-      <ProductForm
-        open={isModalOpen}
-        loading={isPending}
-        initialValues={editingProduct}
-        onSubmit={handleSubmit}
-        onCancel={() => { setIsModalOpen(false); setEditingProduct(null); }}
-      />
-    </div>
+    </ConfigProvider>
   );
 }

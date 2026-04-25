@@ -50,6 +50,50 @@ export class InvoiceRepository implements IInvoiceRepository {
     return invoice ? this.toEntity(invoice) : null;
   }
 
+  async findDetails(id: string): Promise<any> {
+    try {
+      console.log('Fetching invoice details for ID:', id);
+      const invoice = await this.prisma.invoice.findUnique({
+        where: { id },
+        include: {
+          paymentTerm: true,
+          items: {
+            include: {
+              product: true
+            }
+          },
+          order: {
+            include: { customer: true }
+          }
+        },
+      });
+
+      if (!invoice) {
+        console.log('Invoice not found in DB:', id);
+        return null;
+      }
+
+      let company = null;
+      if (invoice.order?.branchId) {
+        const branch = await this.prisma.branch.findUnique({
+          where: { id: invoice.order.branchId },
+          include: { company: true }
+        });
+        if (branch?.company) {
+          company = branch.company;
+        }
+      }
+
+      return {
+        ...invoice,
+        company
+      };
+    } catch (error) {
+      console.error('Error in findDetails:', error);
+      throw error;
+    }
+  }
+
 
 async findByBranch(branchId: string): Promise<InvoiceEntity[]> {
   const invoices = await this.prisma.invoice.findMany({

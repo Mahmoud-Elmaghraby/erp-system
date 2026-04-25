@@ -147,7 +147,7 @@ export default function InvoicesPage() {
             <Button type="text" icon={<EyeOutlined style={{ color: '#1890ff' }} />} size="small" onClick={() => navigate(`/sales/invoices/${record.id}`)} />
           </Tooltip>
           <Tooltip title="طباعة PDF">
-            <Button type="text" icon={<PrinterOutlined style={{ color: '#595959' }} />} size="small" />
+            <Button type="text" icon={<PrinterOutlined style={{ color: '#595959' }} />} size="small" onClick={() => window.open(`/sales/invoices/${record.id}?print=true`, '_blank')} />
           </Tooltip>
           {record.status !== 'PAID' && record.status !== 'CANCELLED' && (
             <Tooltip title="تسجيل دفع">

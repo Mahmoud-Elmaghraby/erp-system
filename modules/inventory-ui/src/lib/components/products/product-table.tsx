@@ -14,7 +14,7 @@ export default function ProductTable({ data, loading, onDelete, onEdit }: Props)
 
   const columns = [
     {
-      title: 'الاسم',
+      title: 'اسم المنتج',
       dataIndex: 'name',
       key: 'name',
       render: (name: string, record: any) => (
@@ -28,7 +28,7 @@ export default function ProductTable({ data, loading, onDelete, onEdit }: Props)
       ),
     },
     {
-      title: 'الباركود',
+      title: 'باركود المنتج',
       dataIndex: 'barcode',
       key: 'barcode',
       render: (v: string) => v ? <Tag>{v}</Tag> : <span style={{ color: '#999' }}>—</span>,
@@ -40,6 +40,12 @@ export default function ProductTable({ data, loading, onDelete, onEdit }: Props)
       render: (v: string) => v || <span style={{ color: '#999' }}>—</span>,
     },
     {
+      title: 'الفئة',
+      dataIndex: ['category', 'name'],
+      key: 'category',
+      render: (v: string) => v || <span style={{ color: '#999' }}>—</span>,
+    },
+    {
       title: 'سعر البيع',
       dataIndex: 'price',
       key: 'price',
@@ -47,10 +53,10 @@ export default function ProductTable({ data, loading, onDelete, onEdit }: Props)
       align: 'right' as const,
     },
     {
-      title: 'التكلفة',
-      dataIndex: 'cost',
-      key: 'cost',
-      render: (v: any) => v ? `${Number(v).toFixed(2)} ج.م` : '—',
+      title: 'نسبة الخصم',
+      dataIndex: 'discountPercentage',
+      key: 'discountPercentage',
+      render: (v: any) => v ? `${Number(v)}%` : '0%',
       align: 'right' as const,
     },
     {
@@ -65,18 +71,22 @@ export default function ProductTable({ data, loading, onDelete, onEdit }: Props)
       title: 'إجراءات',
       key: 'actions',
       render: (_: any, record: any) => (
-        <Space>
+        <Space size="middle">
           <Button
+            type="text"
             icon={<EyeOutlined />}
             size="small"
             onClick={() => navigate(`/inventory/products/${record.id}`)}
+            style={{ color: '#001529' }}
           >
             تفاصيل
           </Button>
           <Button
+            type="text"
             icon={<EditOutlined />}
             size="small"
             onClick={() => onEdit(record)}
+            style={{ color: '#001529' }}
           >
             تعديل
           </Button>
@@ -86,7 +96,7 @@ export default function ProductTable({ data, loading, onDelete, onEdit }: Props)
             okText="نعم"
             cancelText="لا"
           >
-            <Button danger icon={<DeleteOutlined />} size="small" />
+            <Button type="text" danger icon={<DeleteOutlined />} size="small" />
           </Popconfirm>
         </Space>
       ),

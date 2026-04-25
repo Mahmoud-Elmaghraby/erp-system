@@ -1,221 +1,307 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Spin, Typography, Space, Row, Col, Tag, Divider, Table } from 'antd';
-import { ArrowRightOutlined, PrinterOutlined, EditOutlined, FilePdfOutlined, CreditCardOutlined } from '@ant-design/icons';
-import { useInvoice } from '../../hooks/useInvoices';
+import { useQuery } from '@tanstack/react-query';
+import { salesApi } from '../../api/sales.api';
+import { Button, Card, Col, Divider, Row, Space, Spin, Table, Tag, Typography } from 'antd';
+import { PrinterOutlined, ArrowRightOutlined, DollarOutlined, CloseOutlined } from '@ant-design/icons';
+import type { ColumnsType } from 'antd/es/table';
+import { useEffect } from 'react';
 
 const { Title, Text } = Typography;
 
+const statusColors: Record<string, string> = {
+  UNPAID: 'red', PAID: 'green', PARTIAL: 'orange', CANCELLED: 'default',
+};
+const statusLabels: Record<string, string> = {
+  UNPAID: 'غير مدفوع', PAID: 'مدفوع', PARTIAL: 'جزئي', CANCELLED: 'ملغي',
+};
+
+
 export default function InvoiceViewPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { data: invoice, isLoading, error } = useInvoice(id || '');
+
+  const { data: queryData, isLoading } = useQuery({
+    queryKey: ['invoice', id],
+    queryFn: () => salesApi.invoices.getById(id as string),
+    enabled: !!id,
+  });
+
+  // Unwrap the data if the backend returns it in a data property
+  const invoice = (queryData as any)?.data || queryData;
+
+  useEffect(() => {
+    if (invoice && invoice.id && new URLSearchParams(window.location.search).get('print') === 'true') {
+      setTimeout(() => window.print(), 500);
+    }
+  }, [invoice]);
 
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
         <Spin size="large" />
       </div>
     );
   }
 
-  if (error || !invoice) {
+  if (!invoice || !invoice.id) {
     return (
-      <div style={{ padding: '24px', textAlign: 'center' }}>
-        <Title level={4}>لم يتم العثور على الفاتورة</Title>
+      <div style={{ padding: 24, textAlign: 'center' }} dir="rtl">
+        <Title level={4}>الفاتورة غير موجودة</Title>
         <Button onClick={() => navigate('/sales/invoices')}>العودة للفواتير</Button>
       </div>
     );
   }
 
-  const items = invoice.items || invoice.order?.items || [];
-  const customerName = invoice.customer?.name || invoice.order?.customer?.name || 'عميل نقدي';
-  const invoiceDate = invoice.dateTimeIssued 
-    ? new Date(invoice.dateTimeIssued).toLocaleDateString('ar-EG') 
-    : new Date().toLocaleDateString('ar-EG');
-    
-  const subTotal = items.reduce((acc: number, item: any) => acc + (Number(item.totalPrice || (item.unitPrice * item.quantity)) || 0), 0);
-  const totalAmount = Number(invoice.totalAmount || 0);
-  const paidAmount = Number(invoice.paidAmount || 0);
-  const dueAmount = totalAmount - paidAmount;
-  const vatAmount = totalAmount - subTotal;
-
   const handlePrint = () => {
     window.print();
   };
 
-  const columns = [
+  const columns: ColumnsType<any> = [
     {
       title: 'البند',
-      dataIndex: ['product', 'name'],
-      key: 'productName',
-      render: (_: any, record: any) => record.product?.name || record.description || 'بند غير معروف',
+      key: 'item',
+      render: (_, record) => record.product?.name || 'منتج غير معروف',
     },
     {
       title: 'الوصف',
-      dataIndex: 'description',
       key: 'description',
-      render: (text: string) => text || '-',
+      render: (_, record) => record.product?.description || '-',
     },
     {
       title: 'سعر الوحدة',
       dataIndex: 'unitPrice',
       key: 'unitPrice',
-      render: (val: any) => `${Number(val || 0).toFixed(2)} ج.م`,
+      align: 'right',
+      render: (v) => `${Number(v || 0).toLocaleString()} ج.م`,
     },
     {
       title: 'الكمية',
       dataIndex: 'quantity',
       key: 'quantity',
-      render: (val: any) => Number(val || 0),
+      align: 'center',
     },
     {
       title: 'المجموع',
+      dataIndex: 'total',
       key: 'total',
-      render: (_: any, record: any) => `${(Number(record.unitPrice || 0) * Number(record.quantity || 0)).toFixed(2)} ج.م`,
+      align: 'right',
+      render: (v) => `${Number(v || 0).toLocaleString()} ج.م`,
     },
   ];
 
   return (
-    <div style={{ padding: '24px 16px', backgroundColor: '#f0f2f5', minHeight: '100vh', fontFamily: "'Cairo', 'Tajawal', sans-serif" }} dir="rtl" className="invoice-view-container">
-      {/* Action Bar (Not printed) */}
-      <div className="no-print" style={{ marginBottom: '24px' }}>
-        <Row justify="space-between" align="middle" style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+    <div className="invoice-page-wrapper" style={{ padding: '24px 16px', backgroundColor: '#f0f2f5', minHeight: '100vh', fontFamily: "'Cairo', 'Tajawal', sans-serif" }} dir="rtl">
+      {/* Action Bar (Hidden when printing) */}
+      <div className="no-print" style={{ marginBottom: 16 }}>
+        <Row justify="space-between" align="middle">
           <Col>
-            <Space>
-              <Button icon={<ArrowRightOutlined />} onClick={() => navigate('/sales/invoices')}>
-                العودة
-              </Button>
-              <Tag color={invoice.status === 'PAID' ? 'green' : invoice.status === 'UNPAID' ? 'red' : 'orange'} style={{ fontSize: '14px', padding: '4px 8px' }}>
-                {invoice.status === 'PAID' ? 'مدفوعة' : invoice.status === 'UNPAID' ? 'غير مدفوعة' : invoice.status || 'مسودة'}
-              </Tag>
-              <Title level={5} style={{ margin: 0, paddingRight: '10px' }}>فاتورة #{invoice.invoiceNumber}</Title>
-            </Space>
+            <Button icon={<ArrowRightOutlined />} onClick={() => navigate('/sales/invoices')}>
+              رجوع
+            </Button>
           </Col>
           <Col>
             <Space>
-              <Button icon={<EditOutlined />}>تعديل</Button>
-              <Button icon={<FilePdfOutlined />}>PDF</Button>
-              <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint} style={{ backgroundColor: '#001529' }}>
-                طباعة
+              <Button type="primary" icon={<PrinterOutlined />} onClick={handlePrint}>
+                طباعة PDF
               </Button>
-              {invoice.status !== 'PAID' && invoice.status !== 'CANCELLED' && (
-                 <Button type="primary" icon={<CreditCardOutlined />} style={{ backgroundColor: '#52c41a' }}>
-                  إضافة عملية دفع
-                 </Button>
-              )}
             </Space>
           </Col>
         </Row>
       </div>
 
-      {/* A4 Paper Container */}
-      <div 
-        className="invoice-paper" 
-        style={{ 
-          maxWidth: '800px', 
-          margin: '0 auto', 
-          backgroundColor: '#fff', 
-          padding: '40px', 
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-          minHeight: '1000px'
-        }}
-      >
-        <Row justify="space-between">
-          <Col span={10}>
-             <Title level={1} style={{ marginBottom: '40px' }}>فاتورة</Title>
-             <div style={{ marginBottom: '8px' }}>
-               <Text strong style={{ width: '100px', display: 'inline-block' }}>رقم الفاتورة</Text>
-               <Text>{invoice.invoiceNumber || '---'}</Text>
-             </div>
-             <div>
-               <Text strong style={{ width: '100px', display: 'inline-block' }}>تاريخ الفاتورة</Text>
-               <Text>{invoiceDate}</Text>
-             </div>
-          </Col>
-          <Col span={10} style={{ textAlign: 'left' }}>
-             <Title level={4} style={{ margin: 0 }}>Lama</Title>
-             <Text type="secondary" style={{ display: 'block' }}>Company Register: Lama</Text>
-             <Text type="secondary" style={{ display: 'block' }}>Gamal Abd El Nasr Rd, Sidi Beshr</Text>
-             <Text type="secondary" style={{ display: 'block' }}>Alexandria</Text>
-          </Col>
-        </Row>
+      <div className="print-container">
+        <Card
+          className="invoice-print-card"
+          bordered={false}
+          style={{ maxWidth: 900, margin: '0 auto', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+          bodyStyle={{ padding: '40px' }}
+        >
+          {/* Status Tag */}
+          <div style={{ marginBottom: 24, textAlign: 'left' }}>
+            <Tag color={statusColors[invoice.status] || 'default'} style={{ fontSize: 14, padding: '4px 12px', borderRadius: 4 }}>
+              {statusLabels[invoice.status] || invoice.status}
+            </Tag>
+          </div>
 
-        <Divider style={{ margin: '30px 0' }} />
-
-        <Row justify="end" style={{ marginBottom: '30px', textAlign: 'left' }}>
-          <Col span={10}>
-            <Text strong style={{ display: 'block', marginBottom: '8px' }}>فاتورة لـ:</Text>
-            <Title level={5} style={{ margin: 0 }}>{customerName}</Title>
-          </Col>
-        </Row>
-
-        <Table
-          dataSource={items}
-          columns={columns}
-          pagination={false}
-          rowKey={record => record.id || Math.random().toString()}
-          bordered
-          style={{ marginBottom: '30px' }}
-        />
-
-        <Row justify="space-between">
-          <Col span={12}></Col>
-          <Col span={10}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <Text strong>المجموع:</Text>
-              <Text>{subTotal.toFixed(2)} ج.م</Text>
-            </div>
-            {vatAmount > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <Text strong>ضريبة (14%):</Text>
-                <Text>{vatAmount.toFixed(2)} ج.م</Text>
+          {/* Header */}
+          <Row justify="space-between" align="top" style={{ marginBottom: 40 }}>
+            <Col span={12}>
+              <Title level={2} style={{ margin: 0, fontWeight: 700 }}>فاتورة</Title>
+            </Col>
+            <Col span={12} style={{ textAlign: 'left' }}>
+            {invoice.company?.logoUrl ? (
+              <img src={invoice.company.logoUrl} alt="Company Logo" style={{ maxHeight: 60, maxWidth: 150, marginBottom: 8, objectFit: 'contain' }} />
+            ) : (
+              <div style={{ 
+                width: 120, 
+                height: 40, 
+                backgroundColor: '#e6f7ff', 
+                border: '1px dashed #91d5ff', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                color: '#1890ff',
+                fontWeight: 'bold',
+                borderRadius: 4,
+                marginBottom: 8
+              }}>
+                Logo Placeholder
               </div>
             )}
-            <Divider style={{ margin: '10px 0' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <Text strong style={{ fontSize: '18px' }}>الإجمالي:</Text>
-              <Text strong style={{ fontSize: '18px' }}>{totalAmount.toFixed(2)} ج.م</Text>
+            <div>
+              <Text strong style={{ fontSize: 16 }}>{invoice.company?.name || 'شركتي (My Company)'}</Text>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <Text strong>مدفوعة:</Text>
-              <Text>{paidAmount.toFixed(2)} ج.م</Text>
+            <div>
+              <Text type="secondary">{invoice.company?.address || 'القاهرة، مصر'}</Text>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <Text strong>المبلغ المستحق:</Text>
-              <Text strong style={{ color: dueAmount > 0 ? '#cf1322' : '#389e0d' }}>
-                {dueAmount.toFixed(2)} ج.م
-              </Text>
-            </div>
-          </Col>
-        </Row>
+            {(invoice.company?.commercialRegister || invoice.company?.taxNumber) ? (
+              <>
+                {invoice.company?.commercialRegister && (
+                  <div><Text type="secondary">سجل تجاري: {invoice.company.commercialRegister}</Text></div>
+                )}
+                {invoice.company?.taxNumber && (
+                  <div><Text type="secondary">بطاقة ضريبية: {invoice.company.taxNumber}</Text></div>
+                )}
+              </>
+            ) : (
+              <div>
+                <Text type="secondary">سجل تجاري: 123456</Text>
+              </div>
+            )}
+            </Col>
+          </Row>
+
+          {/* Invoice Info */}
+          <Row justify="space-between" style={{ marginBottom: 40 }}>
+            <Col span={12}>
+              <Space direction="vertical" size={2}>
+                <Text type="secondary">فاتورة لـ:</Text>
+                <Text strong style={{ fontSize: 16 }}>{invoice.order?.customer?.name || 'عميل غير مسجل'}</Text>
+                {invoice.order?.customer?.address && (
+                  <Text>{invoice.order.customer.address}</Text>
+                )}
+                {(invoice.order?.customer?.taxRegNumber || invoice.order?.customer?.commercialReg) && (
+                  <div style={{ marginTop: 4 }}>
+                    {invoice.order?.customer?.taxRegNumber && (
+                      <div><Text type="secondary" style={{ fontSize: 12 }}>بطاقة ضريبية: {invoice.order.customer.taxRegNumber}</Text></div>
+                    )}
+                    {invoice.order?.customer?.commercialReg && (
+                      <div><Text type="secondary" style={{ fontSize: 12 }}>سجل تجاري: {invoice.order.customer.commercialReg}</Text></div>
+                    )}
+                  </div>
+                )}
+              </Space>
+            </Col>
+            <Col span={12} style={{ textAlign: 'left' }}>
+              <Space direction="vertical" size={2}>
+                <Text type="secondary">رقم الفاتورة: <Text strong style={{ color: '#000' }}>{invoice.invoiceNumber}</Text></Text>
+                {invoice.dateTimeIssued && (
+                  <Text type="secondary">تاريخ الفاتورة: <Text strong style={{ color: '#000' }}>{new Date(invoice.dateTimeIssued).toLocaleDateString('ar-EG')}</Text></Text>
+                )}
+                {invoice.dueDate && (
+                  <Text type="secondary">تاريخ الاستحقاق: <Text strong style={{ color: '#000' }}>{new Date(invoice.dueDate).toLocaleDateString('ar-EG')}</Text></Text>
+                )}
+              </Space>
+            </Col>
+          </Row>
+
+          {/* Items Table */}
+          <Table
+            dataSource={invoice.items || []}
+            columns={columns}
+            pagination={false}
+            rowKey="id"
+            style={{ marginBottom: 32 }}
+            bordered
+            size="small"
+          />
+
+          {/* Totals */}
+          <Row justify="end">
+            <Col xs={24} sm={12} md={8}>
+              <div style={{ padding: '16px', backgroundColor: '#fafafa', borderRadius: '8px' }}>
+                <Row justify="space-between" style={{ marginBottom: 8 }}>
+                  <Text>المجموع:</Text>
+                  <Text>{Number(invoice.untaxedAmount || 0).toLocaleString()} ج.م</Text>
+                </Row>
+                <Row justify="space-between" style={{ marginBottom: 8 }}>
+                  <Text>الخصم:</Text>
+                  <Text>{Number(invoice.discountAmount || 0).toLocaleString()} ج.م</Text>
+                </Row>
+                <Row justify="space-between" style={{ marginBottom: 8 }}>
+                  <Text>الضريبة ({(invoice.taxAmount > 0 && invoice.untaxedAmount > 0) ? `${Math.round((Number(invoice.taxAmount) / Number(invoice.untaxedAmount)) * 100)}%` : '0%'}):</Text>
+                  <Text>{Number(invoice.taxAmount || 0).toLocaleString()} ج.م</Text>
+                </Row>
+                <Divider style={{ margin: '12px 0' }} />
+                <Row justify="space-between" style={{ marginBottom: 8 }}>
+                  <Text strong style={{ fontSize: 16 }}>الإجمالي:</Text>
+                  <Text strong style={{ fontSize: 16 }}>{Number(invoice.totalAmount || 0).toLocaleString()} ج.م</Text>
+                </Row>
+                <Row justify="space-between" style={{ marginBottom: 8 }}>
+                  <Text style={{ color: '#389e0d' }}>مدفوعة:</Text>
+                  <Text style={{ color: '#389e0d' }}>{Number(invoice.paidAmount || 0).toLocaleString()} ج.م</Text>
+                </Row>
+                <Divider style={{ margin: '12px 0' }} />
+                <Row justify="space-between">
+                  <Text strong style={{ color: '#cf1322' }}>المبلغ المستحق:</Text>
+                  <Text strong style={{ color: '#cf1322' }}>{(Number(invoice.totalAmount || 0) - Number(invoice.paidAmount || 0)).toLocaleString()} ج.م</Text>
+                </Row>
+              </div>
+            </Col>
+          </Row>
+
+        </Card>
       </div>
 
-      <style dangerouslySetInnerHTML={{__html: `
+      <style>{`
         @media print {
+          /* Force white background on the entire page */
+          html, body, #root, .ant-layout, .ant-layout-content, .invoice-page-wrapper {
+            background-color: #fff !important;
+            background: #fff !important;
+            height: auto !important;
+            min-height: 0 !important;
+          }
+          
+          /* Hide everything by default */
           body * {
             visibility: hidden;
           }
-          .invoice-view-container {
-             background-color: transparent !important;
-             padding: 0 !important;
-          }
-          .no-print, .no-print * {
-            display: none !important;
-          }
-          .invoice-paper, .invoice-paper * {
+          
+          /* Show only the print container and its contents */
+          .print-container, .print-container * {
             visibility: visible;
           }
-          .invoice-paper {
+          
+          /* Position print container at the top left */
+          .print-container {
             position: absolute;
             left: 0;
             top: 0;
             width: 100%;
-            background-color: white !important;
-            box-shadow: none !important;
+            margin: 0 !important;
             padding: 0 !important;
           }
+
+          /* Remove padding and backgrounds from our own wrapper */
+          .print-container > .ant-card {
+            margin: 0 !important;
+            padding: 20px !important; /* Give some breathing room since page margin is 0 */
+            box-shadow: none !important;
+          }
+
+          /* Ensure colors print correctly */
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          /* Hide browser default header (date/title) and footer (URL/page numbers) */
+          @page {
+            margin: 0;
+          }
         }
-      `}} />
+      `}</style>
     </div>
   );
 }

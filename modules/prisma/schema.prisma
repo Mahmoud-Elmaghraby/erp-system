@@ -15,8 +15,11 @@ model Company {
   name      String
   email     String   @unique
   phone     String?
-  address   String?
-  isActive  Boolean  @default(true)
+  address            String?
+  commercialRegister String?
+  taxNumber          String?
+  logoUrl            String?
+  isActive           Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -28,6 +31,7 @@ model Company {
   // Inventory
   products        Product[]
   categories      Category[]
+  brands          Brand[]
   units           UnitOfMeasure[]
   warehouses      Warehouse[]
   stockMovements  StockMovement[]
@@ -422,6 +426,20 @@ model Category {
   @@schema("inventory")
 }
 
+model Brand {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  products    Product[]
+
+  @@map("brands")
+  @@schema("inventory")
+}
+
 model UnitOfMeasure {
   id        String    @id @default(uuid())
   name      String
@@ -441,11 +459,13 @@ model Product {
   id          String  @id @default(uuid())
   name        String
   description String?
-  barcode     String? @unique
-  sku         String? @unique
-  price       Decimal @default(0)
-  cost        Decimal @default(0)
-  isActive    Boolean @default(true)
+  barcode         String? @unique
+  sku             String? @unique
+  price           Decimal @default(0)
+  cost            Decimal @default(0)
+  isActive        Boolean @default(true)
+  discountPercent Decimal @default(0)
+  discountAmount  Decimal @default(0)
 
   // E-Invoice Fields
   itemCode String? // GS1 or EGS Code
@@ -457,6 +477,8 @@ model Product {
 
   categoryId      String?
   category        Category?             @relation(fields: [categoryId], references: [id])
+  brandId         String?
+  brand           Brand?                @relation(fields: [brandId], references: [id])
   unitOfMeasureId String?
   unitOfMeasure   UnitOfMeasure?        @relation(fields: [unitOfMeasureId], references: [id])
   companyId       String
@@ -470,6 +492,11 @@ model Product {
   images          ProductImage[]
   priceHistory    ProductPriceHistory[]
   variants        ProductVariant[]
+  invoiceItems    InvoiceItem[]
+  salesOrderItems SalesOrderItem[]
+  deliveryItems   DeliveryItem[]
+  salesQuotationItems SalesQuotationItem[]
+  salesReturnItems SalesReturnItem[]
 
   @@map("products")
   @@schema("inventory")
@@ -824,6 +851,7 @@ model SalesQuotationItem {
   total     Decimal
 
   productId   String
+  product     Product   @relation(fields: [productId], references: [id])
   taxId       String?
   quotationId String
   quotation   SalesQuotation @relation(fields: [quotationId], references: [id])
@@ -891,6 +919,7 @@ model SalesOrderItem {
   total     Decimal
 
   productId String
+  product   Product @relation(fields: [productId], references: [id])
   taxId     String?
   orderId   String
   order     SalesOrder @relation(fields: [orderId], references: [id])
@@ -926,6 +955,7 @@ model DeliveryItem {
   id        String  @id @default(uuid())
   quantity  Decimal
   productId String
+  product   Product @relation(fields: [productId], references: [id])
 
   deliveryId String
   delivery   Delivery @relation(fields: [deliveryId], references: [id])
@@ -999,6 +1029,7 @@ model InvoiceItem {
   unitType String?
 
   productId String
+  product   Product @relation(fields: [productId], references: [id])
   taxId     String?
   invoiceId String
   invoice   Invoice @relation(fields: [invoiceId], references: [id])
@@ -1065,6 +1096,7 @@ model SalesReturnItem {
   unitPrice Decimal
   total     Decimal
   productId String
+  product   Product @relation(fields: [productId], references: [id])
 
   returnId String
   return   SalesReturn @relation(fields: [returnId], references: [id])

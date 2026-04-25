@@ -1,0 +1,68 @@
+📋 Prompt for AI Agent:
+Role: Expert Front-End Developer / UI-UX Engineer
+Task: Redesign and rebuild the "Product Details" (معلومات المنتج) page.
+Requirement: You must strictly adhere to the existing design system, CSS styling, color palette, typography, and component shapes inferred from the provided UI references of the modern ERP system.
+
+🎨 Design System & UI Guidelines to Follow:
+1. Global Layout & Direction:
+
+The application is fully RTL (Right-to-Left) for Arabic language support. Ensure all flexbox/grid alignments, margins, and paddings respect the RTL layout (direction: rtl or Tailwind's rtl: prefixes).
+
+Overall Structure: * A dark navy/charcoal sidebar on the right side containing the main navigation.
+
+A white top navigation bar containing the user profile on the far left.
+
+A light gray background (#F4F6F8 or similar) for the main content area.
+
+Content is housed inside large, white, rounded-corner cards with very subtle box-shadows.
+
+2. Color Palette:
+
+Sidebar: Dark Navy/Charcoal (approx. #1A2229).
+
+Sidebar Active Item: Bright solid blue (approx. #0D6EFD) with white text.
+
+Main Background: Light gray (#F8F9FA).
+
+Content Cards: Solid White (#FFFFFF).
+
+Text Color: Dark slate/black for primary text. Muted gray for placeholders and secondary labels.
+
+Buttons:
+
+Primary Actions (e.g., Edit, Save): Dark Navy/Black background with white text.
+
+Secondary/Outline Actions (e.g., Delete, Cancel): White background, thin light-gray border, black text.
+
+3. Typography:
+
+Font: Standard, clean Arabic sans-serif (e.g., Cairo, Tajawal, or system default).
+
+Weights: Normal for standard inputs and values, bold for form section headers, top global headers, and primary labels.
+
+4. Component Shapes & Structure:
+
+Buttons: Highly rounded corners (pill-shaped or border-radius: 9999px / Tailwind rounded-full for standard buttons).
+
+Inputs & Data Displays: Rectangular with very thin, light gray borders and slightly rounded corners (border-radius: 4px to 6px). Read-only data should be presented cleanly with muted labels and dark values.
+
+Tabs (Inner Navigation): * Text-based tabs (e.g., "معلومات", "حركة المخزون", "الجدول الزمني").
+
+The active tab is indicated by a thick, solid black underline. Inactive tabs have no underline and gray text.
+
+🛠️ The Specific Update Required:
+Primary Objective: Delete the existing legacy code for the "Product Details" (معلومات) page. You must rewrite and redesign this page entirely from scratch to match the modern ERP UI provided in the reference images.
+
+Instructions for the Redesign:
+
+Container: Wrap the entire product details content in a modern white card with rounded corners on the light gray background.
+
+Top Action Bar: Place the page actions (Edit/تعديل, Delete/حذف, Add Stock Transaction/أضف عملية, Print/مطبوعات) at the top of the card using the new pill-shaped button styles. Primary actions should be dark navy; secondary actions should be outline buttons.
+
+Tabs: Convert the old tab navigation ("معلومات", "حركة المخزون", etc.) to the new text-based tab style with the thick black underline for the active state.
+
+Data Layout: Organize the product information (SKU, Selling Price, Purchasing Price, Description, Product Image placeholder) into a clean, modern grid layout. Use muted gray text for labels (e.g., "كود المنتج SKU:") and bold dark text for the actual values.
+
+Inventory Summary Boxes: Convert the top summary metrics ("إجمالي المخزون", "إجمالي القطع المباعة") into clean, distinct UI blocks or mini-cards within the main layout, ensuring the numbers are prominent and bold.
+
+   

@@ -25,6 +25,7 @@
   ],
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
-    { "path": "../inventory-ui/tsconfig.lib.json" }
+    { "path": "../inventory-ui/tsconfig.lib.json" },
+    { "path": "../accounting-ui/tsconfig.lib.json" }
   ]
 }
