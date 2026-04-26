@@ -36,6 +36,7 @@ model Company {
   warehouses      Warehouse[]
   stockMovements  StockMovement[]
   productVariants ProductVariant[]
+  priceLists      PriceList[]
 
   // Sales
   customers Customer[]
@@ -499,6 +500,7 @@ model Product {
   deliveryItems   DeliveryItem[]
   salesQuotationItems SalesQuotationItem[]
   salesReturnItems SalesReturnItem[]
+  priceListItems  PriceListItem[]
 
   @@map("products")
   @@schema("inventory")
@@ -715,6 +717,39 @@ model InventorySettings {
   updatedAt DateTime @updatedAt
 
   @@map("inventory_settings")
+  @@schema("inventory")
+}
+
+// ===== PRICE LISTS =====
+model PriceList {
+  id        String   @id @default(uuid())
+  name      String
+  status    String   @default("active") // active, inactive
+  companyId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  company   Company         @relation(fields: [companyId], references: [id])
+  items     PriceListItem[]
+
+  @@map("price_lists")
+  @@schema("inventory")
+}
+
+model PriceListItem {
+  id           String    @id @default(uuid())
+  priceListId  String
+  productId    String
+  defaultPrice Decimal   @default(0)
+  customPrice  Decimal   @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  priceList    PriceList @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+  product      Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([priceListId, productId])
+  @@map("price_list_items")
   @@schema("inventory")
 }
 

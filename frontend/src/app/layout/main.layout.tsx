@@ -31,6 +31,7 @@ const menuItems = [
     label: 'المخزون',
     children: [
       { key: '/inventory/products', label: 'المنتجات' },
+      { key: '/inventory/price-lists', label: 'قوائم الأسعار' },
       { key: '/inventory/warehouses', label: 'المخازن' },
       { key: '/inventory/stock', label: 'المخزون الحالي' },
       { key: '/inventory/stock-movements', label: 'سجل الحركات' },

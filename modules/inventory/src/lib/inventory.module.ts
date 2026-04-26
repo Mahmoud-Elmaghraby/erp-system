@@ -61,6 +61,18 @@ import { PurchaseReceivedListener } from './application/listeners/purchase-recei
 import { StockLowListener } from './application/listeners/stock-low.listener';
 import { StockValuationService } from './application/services/stock-valuation.service';
 
+import { PriceListsController } from './presentation/controllers/price-lists.controller';
+import { PriceListRepository } from './infrastructure/repositories/price-list.repository';
+import { PRICE_LIST_REPOSITORY } from './domain/repositories/price-list.repository.interface';
+
+import { CreatePriceListUseCase } from './application/use-cases/price-lists/create-price-list.use-case';
+import { UpdatePriceListUseCase } from './application/use-cases/price-lists/update-price-list.use-case';
+import { GetPriceListsUseCase } from './application/use-cases/price-lists/get-price-lists.use-case';
+import { AddProductToPriceListUseCase } from './application/use-cases/price-lists/add-product-to-price-list.use-case';
+import { RemoveProductFromPriceListUseCase } from './application/use-cases/price-lists/remove-product-from-price-list.use-case';
+import { ImportCsvToPriceListUseCase } from './application/use-cases/price-lists/import-csv-to-price-list.use-case';
+import { CsvParserService } from './infrastructure/services/csv-parser.service';
+
 @Module({
   imports: [EventEmitterModule.forRoot(), RbacModule],
   controllers: [
@@ -78,6 +90,7 @@ import { StockValuationService } from './application/services/stock-valuation.se
     LotNumbersController,
     SerialNumbersController,
     StockValuationController,
+    PriceListsController,
   ],
   providers: [
     PrismaService,
@@ -96,7 +109,7 @@ import { StockValuationService } from './application/services/stock-valuation.se
     StockLowListener,
     StockValuationService,
     DeliveryConfirmedListener,
-SalesReturnConfirmedListener,
+    SalesReturnConfirmedListener,
     { provide: PRODUCT_REPOSITORY, useClass: ProductRepository },
     { provide: WAREHOUSE_REPOSITORY, useClass: WarehouseRepository },
     { provide: STOCK_REPOSITORY, useClass: StockRepository },
@@ -109,6 +122,14 @@ SalesReturnConfirmedListener,
     { provide: PRODUCT_VARIANT_REPOSITORY, useClass: ProductVariantRepository },
     { provide: LOT_NUMBER_REPOSITORY, useClass: LotNumberRepository },
     { provide: SERIAL_NUMBER_REPOSITORY, useClass: SerialNumberRepository },
+    { provide: PRICE_LIST_REPOSITORY, useClass: PriceListRepository },
+    CreatePriceListUseCase,
+    UpdatePriceListUseCase,
+    GetPriceListsUseCase,
+    AddProductToPriceListUseCase,
+    RemoveProductFromPriceListUseCase,
+    ImportCsvToPriceListUseCase,
+    CsvParserService,
   ],
   exports: [CreateProductUseCase, AddStockUseCase, RemoveStockUseCase],
 })

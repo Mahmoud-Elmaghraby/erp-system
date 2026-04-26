@@ -17,6 +17,8 @@ import ProductDetailPage from './pages/product-detail.page';
 import TraceabilityPage from './pages/traceability.page';
 import StockValuationPage from './pages/stock-valuation.page';
 import CreateRequisitionPage from './pages/create-requisition.page';
+import PriceListsPage from './pages/price-lists/price-lists.page';
+import CreatePriceListPage from './pages/price-lists/create-price-list.page';
 
 export const inventoryRoutes: RouteObject[] = [
   {
@@ -27,6 +29,9 @@ export const inventoryRoutes: RouteObject[] = [
       { path: 'products/create', element: <CreateProductPage /> },
       { path: 'products/:id/edit', element: <EditProductPage /> },
       { path: 'products/:id', element: <ProductDetailPage /> },
+      { path: 'price-lists', element: <PriceListsPage /> },
+      { path: 'price-lists/new', element: <CreatePriceListPage /> },
+      { path: 'price-lists/:id/edit', element: <CreatePriceListPage /> },
       { path: 'warehouses', element: <WarehousesPage /> },
       { path: 'warehouses/create', element: <CreateWarehousePage /> },
       { path: 'warehouses/:id', element: <WarehouseDetailPage /> },

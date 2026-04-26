@@ -6,7 +6,7 @@
     "tsBuildInfoFile": "dist/tsconfig.lib.tsbuildinfo",
     "emitDeclarationOnly": false,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node"],
+    "types": ["node", "multer"],
     "target": "es2021",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
