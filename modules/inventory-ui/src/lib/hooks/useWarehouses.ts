@@ -10,6 +10,16 @@ export const useWarehouses = () => useQuery({
   },
 });
 
+export const useWarehouse = (id: string) => useQuery({
+  queryKey: ['warehouses', id],
+  queryFn: async () => {
+    if (!id) return null;
+    const res = await inventoryApi.warehouses.getOne(id) as any;
+    return res?.data ?? res;
+  },
+  enabled: !!id,
+});
+
 export const useCreateWarehouse = () => {
   const queryClient = useQueryClient();
   return useMutation({

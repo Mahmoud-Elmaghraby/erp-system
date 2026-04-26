@@ -2,7 +2,10 @@ import { Navigate, type RouteObject } from 'react-router-dom';
 import ProductsPage from './pages/products.page';
 import CreateProductPage from './pages/create-product.page';
 import EditProductPage from './pages/edit-product.page';
-import WarehousesPage from './pages/warehouses.page';
+import WarehousesPage from './pages/warehouse/warehouses.page';
+import CreateWarehousePage from './pages/warehouse/create-warehouse.page';
+import WarehouseDetailPage from './pages/warehouse/warehouse-detail.page';
+import EditWarehousePage from './pages/warehouse/edit-warehouse.page';
 import StockPage from './pages/stock.page';
 import CategoriesPage from './pages/categories.page';
 import UnitsPage from './pages/units.page';
@@ -25,6 +28,9 @@ export const inventoryRoutes: RouteObject[] = [
       { path: 'products/:id/edit', element: <EditProductPage /> },
       { path: 'products/:id', element: <ProductDetailPage /> },
       { path: 'warehouses', element: <WarehousesPage /> },
+      { path: 'warehouses/create', element: <CreateWarehousePage /> },
+      { path: 'warehouses/:id', element: <WarehouseDetailPage /> },
+      { path: 'warehouses/:id/edit', element: <EditWarehousePage /> },
       { path: 'stock', element: <StockPage /> },
       { path: 'stock-movements', element: <StockMovementsPage /> },
       { path: 'adjustments', element: <AdjustmentsPage /> },

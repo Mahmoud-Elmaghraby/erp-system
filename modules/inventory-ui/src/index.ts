@@ -1,7 +1,10 @@
 export { inventoryRoutes } from './lib/routes';
 export { inventoryApi } from './lib/api/inventory.api';
 export { default as ProductsPage } from './lib/pages/products.page';
-export { default as WarehousesPage } from './lib/pages/warehouses.page';
+export { default as WarehousesPage } from './lib/pages/warehouse/warehouses.page';
+export { default as CreateWarehousePage } from './lib/pages/warehouse/create-warehouse.page';
+export { default as WarehouseDetailPage } from './lib/pages/warehouse/warehouse-detail.page';
+export { default as EditWarehousePage } from './lib/pages/warehouse/edit-warehouse.page';
 export { default as StockPage } from './lib/pages/stock.page';
 export { default as StockMovementsPage } from './lib/pages/stock-movements.page';
 export { default as AdjustmentsPage } from './lib/pages/adjustments.page';

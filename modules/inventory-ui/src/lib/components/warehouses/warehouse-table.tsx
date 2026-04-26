@@ -1,14 +1,15 @@
 import { Table, Button, Space, Popconfirm, Tag } from 'antd';
-import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, EyeOutlined } from '@ant-design/icons';
 
 interface Props {
   data: any[];
   loading: boolean;
   onEdit: (record: any) => void;
   onDelete: (id: string) => void;
+  onView: (id: string) => void;
 }
 
-export default function WarehouseTable({ data, loading, onEdit, onDelete }: Props) {
+export default function WarehouseTable({ data, loading, onEdit, onDelete, onView }: Props) {
   const columns = [
     { title: 'الاسم', dataIndex: 'name', key: 'name' },
     {
@@ -28,6 +29,13 @@ export default function WarehouseTable({ data, loading, onEdit, onDelete }: Prop
       key: 'actions',
       render: (_: any, record: any) => (
         <Space>
+          <Button
+            icon={<EyeOutlined />}
+            size="small"
+            onClick={() => onView(record.id)}
+          >
+            عرض
+          </Button>
           <Button
             icon={<EditOutlined />}
             size="small"
