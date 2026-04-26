@@ -393,6 +393,8 @@ model Warehouse {
   name             String
   address          String?
   isActive         Boolean           @default(true)
+  isPrimary        Boolean           @default(false)
+  permissions      Json?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   companyId        String

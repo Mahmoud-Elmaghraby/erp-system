@@ -12,8 +12,19 @@ export class CreateWarehouseUseCase {
     private warehouseRepository: IWarehouseRepository,
   ) {}
 
-  async execute(dto: CreateWarehouseDto, companyId: string): Promise<WarehouseEntity> {
-    const warehouse = WarehouseEntity.create({ id: randomUUID(), ...dto, companyId });
+  async execute(dto: CreateWarehouseDto, companyId: string, branchId: string): Promise<WarehouseEntity> {
+    const warehouse = WarehouseEntity.create({
+      id: randomUUID(),
+      name: dto.name,
+      address: dto.address,
+      isPrimary: dto.isPrimary,
+      permissions: dto.permissions as any,
+      companyId,
+      branchId,
+    });
+    if (dto.isActive === false) {
+      warehouse.deactivate();
+    }
     return this.warehouseRepository.create(warehouse);
   }
 }

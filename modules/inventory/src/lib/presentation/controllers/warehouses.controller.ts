@@ -31,14 +31,18 @@ export class WarehousesController {
 
   @Post()
   @RequirePermission('inventory.warehouses.create')
-  create(@Body() dto: CreateWarehouseDto, @CurrentUser('companyId') companyId: string) {
-    return this.createWarehouseUseCase.execute(dto, companyId);
+  create(
+    @Body() dto: CreateWarehouseDto,
+    @CurrentUser('companyId') companyId: string,
+    @CurrentUser('branchId') branchId: string,
+  ) {
+    return this.createWarehouseUseCase.execute(dto, companyId, branchId);
   }
 
   @Patch(':id')
   @RequirePermission('inventory.warehouses.edit')
   update(@Param('id') id: string, @Body() dto: UpdateWarehouseDto) {
-    return this.warehouseRepository.update(id, dto);
+    return this.warehouseRepository.update(id, dto as any);
   }
 
   @Delete(':id')

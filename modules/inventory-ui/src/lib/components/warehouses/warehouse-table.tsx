@@ -1,5 +1,5 @@
 import { Table, Button, Space, Popconfirm, Tag } from 'antd';
-import { DeleteOutlined, EditOutlined, EyeOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, EyeOutlined, FlagFilled } from '@ant-design/icons';
 
 interface Props {
   data: any[];
@@ -11,7 +11,19 @@ interface Props {
 
 export default function WarehouseTable({ data, loading, onEdit, onDelete, onView }: Props) {
   const columns = [
-    { title: 'الاسم', dataIndex: 'name', key: 'name' },
+    {
+      title: 'الاسم',
+      dataIndex: 'name',
+      key: 'name',
+      render: (name: string, record: any) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontWeight: 600, color: '#1e293b' }}>{name}</span>
+          {record.isPrimary && (
+            <Tag icon={<FlagFilled />} color="blue" style={{ margin: 0 }}>رئيسي</Tag>
+          )}
+        </div>
+      ),
+    },
     {
       title: 'العنوان',
       dataIndex: 'address',
@@ -64,6 +76,7 @@ export default function WarehouseTable({ data, loading, onEdit, onDelete, onView
       rowKey="id"
       loading={loading}
       pagination={{ pageSize: 20 }}
+      locale={{ emptyText: 'لا توجد مخازن' }}
     />
   );
 }

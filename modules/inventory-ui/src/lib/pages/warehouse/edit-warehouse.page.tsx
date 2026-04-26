@@ -28,8 +28,17 @@ export default function EditWarehousePage() {
   const updateStockPerm = Form.useWatch(['permissions', 'updateStock'], form);
 
   const onFinish = (values: any) => {
+    // Filter out extra properties that might be injected by setFieldsValue
+    const data = {
+      name: values.name,
+      address: values.address,
+      isActive: values.isActive,
+      isPrimary: values.isPrimary,
+      permissions: values.permissions,
+    };
+
     updateMutation.mutate(
-      { id: id as string, data: values },
+      { id: id as string, data },
       {
         onSuccess: () => navigate(`/inventory/warehouses/${id}`),
       }

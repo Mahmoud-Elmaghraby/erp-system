@@ -2,6 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inventoryApi } from '../api/inventory.api';
 import { message } from 'antd';
 
+const getErrorMessage = (error: any): string => {
+  const msg = error?.response?.data?.message;
+  if (Array.isArray(msg)) return msg.join(', ');
+  if (typeof msg === 'string') return msg;
+  return error?.message || 'حدث خطأ غير متوقع';
+};
+
 export const useWarehouses = () => useQuery({
   queryKey: ['warehouses'],
   queryFn: async () => {
@@ -28,7 +35,10 @@ export const useCreateWarehouse = () => {
       message.success('تم إضافة المخزن بنجاح');
       queryClient.invalidateQueries({ queryKey: ['warehouses'] });
     },
-    onError: () => message.error('حدث خطأ'),
+    onError: (error: any) => {
+      console.error('Create warehouse error:', error?.response?.data || error);
+      message.error(getErrorMessage(error));
+    },
   });
 };
 
@@ -41,7 +51,10 @@ export const useUpdateWarehouse = () => {
       message.success('تم تعديل المخزن بنجاح');
       queryClient.invalidateQueries({ queryKey: ['warehouses'] });
     },
-    onError: () => message.error('حدث خطأ'),
+    onError: (error: any) => {
+      console.error('Update warehouse error:', error?.response?.data || error);
+      message.error(getErrorMessage(error));
+    },
   });
 };
 
@@ -53,6 +66,9 @@ export const useDeleteWarehouse = () => {
       message.success('تم حذف المخزن');
       queryClient.invalidateQueries({ queryKey: ['warehouses'] });
     },
-    onError: () => message.error('حدث خطأ'),
+    onError: (error: any) => {
+      console.error('Delete warehouse error:', error?.response?.data || error);
+      message.error(getErrorMessage(error));
+    },
   });
 };

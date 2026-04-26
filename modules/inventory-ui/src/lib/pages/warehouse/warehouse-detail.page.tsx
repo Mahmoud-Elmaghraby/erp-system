@@ -6,14 +6,16 @@ import {
   DownOutlined, 
   EditOutlined,
   DeleteOutlined,
-  FlagFilled
+  FlagFilled,
+  ArrowRightOutlined
 } from '@ant-design/icons';
-import { useWarehouse, useDeleteWarehouse } from '../../hooks/useWarehouses';
+import { useWarehouse, useWarehouses, useDeleteWarehouse } from '../../hooks/useWarehouses';
 
 export default function WarehouseDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: warehouse, isLoading } = useWarehouse(id as string);
+  const { data: allWarehouses } = useWarehouses();
   const deleteMutation = useDeleteWarehouse();
   const [activeTab, setActiveTab] = useState('details');
 
@@ -23,23 +25,28 @@ export default function WarehouseDetailPage() {
     });
   };
 
+  // Prev/Next navigation
+  const warehouseList = Array.isArray(allWarehouses) ? allWarehouses : [];
+  const currentIndex = warehouseList.findIndex((w: any) => w.id === id);
+  const prevWarehouse = currentIndex > 0 ? warehouseList[currentIndex - 1] : null;
+  const nextWarehouse = currentIndex < warehouseList.length - 1 ? warehouseList[currentIndex + 1] : null;
+
   if (isLoading) {
     return <div style={{ padding: 40, textAlign: 'center' }}><Spin size="large" /></div>;
   }
 
-  // Fallback for mock if API doesn't return
-  const wh = warehouse || {
-    id: id || '1',
-    name: 'Primary Warehouse #1',
-    isActive: true,
-    isPrimary: true,
-    address: '',
-    permissions: {
-      view: 'all',
-      createInvoice: 'all',
-      updateStock: 'all'
-    }
-  };
+  if (!warehouse) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>
+        <p>لم يتم العثور على المخزن</p>
+        <Button type="primary" onClick={() => navigate('/inventory/warehouses')}>
+          العودة للقائمة
+        </Button>
+      </div>
+    );
+  }
+
+  const wh = warehouse;
 
   const getPermissionLabel = (val: string) => {
     switch(val) {
@@ -72,6 +79,12 @@ export default function WarehouseDetailPage() {
           borderBottom: '1px solid #e2e8f0'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <Button 
+              icon={<ArrowRightOutlined />} 
+              type="text"
+              onClick={() => navigate('/inventory/warehouses')}
+              style={{ color: '#64748b' }}
+            />
             <span style={{ fontSize: '18px', fontWeight: 700, color: '#1e293b' }}>
               {wh.name}
             </span>
@@ -86,6 +99,12 @@ export default function WarehouseDetailPage() {
                       <span style={{ fontWeight: 600, color: '#475569', fontSize: '14px' }}>نشط</span>
                     </div>
                   )}
+                  {!wh.isActive && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
+                      <span style={{ fontWeight: 600, color: '#475569', fontSize: '14px' }}>غير نشط</span>
+                    </div>
+                  )}
                   {wh.isPrimary && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <FlagFilled style={{ color: '#3b82f6', fontSize: '14px' }} />
@@ -98,15 +117,25 @@ export default function WarehouseDetailPage() {
           </div>
 
           <div style={{ display: 'flex', gap: '4px' }}>
-            <Button icon={<DownOutlined />} style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0', color: '#94a3b8' }} />
-            <Button icon={<UpOutlined />} style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0', color: '#94a3b8' }} />
+            <Button 
+              icon={<DownOutlined />} 
+              disabled={!nextWarehouse}
+              onClick={() => nextWarehouse && navigate(`/inventory/warehouses/${nextWarehouse.id}`)}
+              style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0', color: nextWarehouse ? '#475569' : '#94a3b8' }} 
+            />
+            <Button 
+              icon={<UpOutlined />} 
+              disabled={!prevWarehouse}
+              onClick={() => prevWarehouse && navigate(`/inventory/warehouses/${prevWarehouse.id}`)}
+              style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0', color: prevWarehouse ? '#475569' : '#94a3b8' }} 
+            />
           </div>
         </div>
 
         {/* Action Bar */}
         <div style={{ 
           display: 'flex', 
-          justifyContent: 'flex-start', // RTL -> Right side
+          justifyContent: 'flex-start',
           backgroundColor: '#ffffff',
           padding: '12px 24px',
           boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
@@ -193,7 +222,7 @@ export default function WarehouseDetailPage() {
                   borderBottom: '1px solid #e2e8f0',
                   marginTop: '16px'
                 }}>
-                  معلومات Warehouse
+                  معلومات المخزن
                 </div>
                 
                 <div style={{ padding: '24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
@@ -213,12 +242,15 @@ export default function WarehouseDetailPage() {
                   <div>
                     <div style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '8px' }}>الحالة</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                      {wh.isActive && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
-                          <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '14px' }}>نشط</span>
-                        </div>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ 
+                          width: '8px', height: '8px', borderRadius: '50%', 
+                          backgroundColor: wh.isActive ? '#22c55e' : '#ef4444' 
+                        }} />
+                        <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '14px' }}>
+                          {wh.isActive ? 'نشط' : 'غير نشط'}
+                        </span>
+                      </div>
                       {wh.isPrimary && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <FlagFilled style={{ color: '#3b82f6', fontSize: '14px' }} />
