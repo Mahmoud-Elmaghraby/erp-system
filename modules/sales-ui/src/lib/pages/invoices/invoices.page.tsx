@@ -4,18 +4,11 @@ import type { ColumnsType } from 'antd/es/table';
 import { SearchOutlined, CloseOutlined, PlusOutlined, EyeOutlined, PrinterOutlined, DollarOutlined, EditOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useInvoices, usePayInvoice, useCancelInvoice } from '../../hooks/useInvoices';
+import { statusColors, statusLabels, statusKeys } from './constants';
 
 const { Option } = Select;
 const { Title } = Typography;
 
-const statusColors: Record<string, string> = {
-  UNPAID: 'red', PAID: 'green', PARTIAL: 'orange', CANCELLED: 'default',
-  OVERDUE: 'darkred', DUE: 'orange', DRAFT: 'default', OVERPAID: 'cyan'
-};
-const statusLabels: Record<string, string> = {
-  UNPAID: 'غير مدفوع', PAID: 'مدفوع', PARTIAL: 'جزئي', CANCELLED: 'ملغي',
-  OVERDUE: 'متأخر', DUE: 'مستحقة الدفع', DRAFT: 'مسودة', OVERPAID: 'مدفوع بالزيادة'
-};
 
 interface PartyInfo {
   name?: string;
@@ -212,14 +205,9 @@ export default function InvoicesPage() {
                 size="large"
                 onChange={(v) => setStatusFilter(v)}
               >
-                <Option value="OVERPAID">مدفوع بالزيادة</Option>
-                <Option value="DRAFT">مسودة</Option>
-                <Option value="UNPAID">غير مدفوعة</Option>
-                <Option value="DUE">مستحقة الدفع</Option>
-                <Option value="OVERDUE">متأخر</Option>
-                <Option value="PARTIAL">جزئي</Option>
-                <Option value="PAID">مدفوع</Option>
-                <Option value="CANCELLED">ملغي</Option>
+                {statusKeys.map((k) => (
+                  <Option key={k} value={k}>{statusLabels[k]}</Option>
+                ))}
               </Select>
             </Col>
           </Row>

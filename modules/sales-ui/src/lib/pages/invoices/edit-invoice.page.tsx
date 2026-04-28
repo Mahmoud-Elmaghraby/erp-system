@@ -80,8 +80,7 @@ export default function EditInvoicePage() {
         customerId: invoice.customer?.id || invoice.order?.customer?.id,
         salesRepId: invoice.salesRepId,
         paymentTerms: invoice.paymentTerms,
-        paymentStatus: invoice.status?.toLowerCase() === 'unpaid' ? 'unpaid' : 
-                        invoice.status?.toLowerCase() === 'partial' ? 'partially_paid' : 'paid',
+        paymentStatus: invoice.status === 'DRAFT' ? 'UNPAID' : (invoice.status ?? 'UNPAID'),
         notes: invoice.notes,
         overallDiscount: invoice.overallDiscount || 0,
         overallDiscountType: invoice.overallDiscountType || 'percentage',

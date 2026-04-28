@@ -132,29 +132,44 @@ export class CreateDirectInvoiceUseCase {
 
     // ── Determine status ──
     const isDraft = dto.saveMode === 'draft';
-    let invoiceStatus = isDraft ? 'UNPAID' : (paidAmount >= totalAmount ? 'PAID' : (paidAmount > 0 ? 'PARTIAL' : 'UNPAID'));
+    let invoiceStatus = isDraft ? 'DRAFT' : (paidAmount >= totalAmount ? 'PAID' : (paidAmount > 0 ? 'PARTIAL' : 'UNPAID'));
 
     // If caller provided a paymentStatus from frontend, respect it (map to internal enum)
     if (dto.paymentStatus) {
+      const raw = String(dto.paymentStatus);
+      // Normalize common variants to the lowercase keys we map
+      let normalized = raw;
+      if (raw === 'PARTIAL') normalized = 'partially_paid';
+      if (raw === 'PARTIALLY_PAID') normalized = 'partially_paid';
+      if (raw === 'UNPAID') normalized = 'unpaid';
+      if (raw === 'PAID') normalized = 'paid';
+      if (raw === 'DRAFT') normalized = 'draft';
+      if (raw === 'draft') normalized = 'draft';
+
       const map: Record<string, string> = {
         unpaid: 'UNPAID',
         paid: 'PAID',
         partially_paid: 'PARTIAL',
+        draft: 'DRAFT',
       };
-      const provided = map[dto.paymentStatus];
+      const provided = map[normalized];
       if (provided) {
         invoiceStatus = provided;
         // If frontend indicates fully paid, set paidAmount to totalAmount
-        if (dto.paymentStatus === 'paid') {
+        if (normalized === 'paid') {
           paidAmount = totalAmount;
         }
-        // If partially paid and no advance provided, keep existing paidAmount (could be zero)
-        if (dto.paymentStatus === 'partially_paid' && paidAmount === 0 && dto.advancePayment) {
+        // If partially paid and no advance provided, use advancePayment if available
+        if (normalized === 'partially_paid' && paidAmount === 0 && dto.advancePayment) {
           if (dto.advancePaymentType === 'percentage') {
             paidAmount = (totalAmount * dto.advancePayment) / 100;
           } else {
             paidAmount = dto.advancePayment as number;
           }
+        }
+        // If draft, ensure paidAmount is zero
+        if (normalized === 'draft') {
+          paidAmount = 0;
         }
       }
     }

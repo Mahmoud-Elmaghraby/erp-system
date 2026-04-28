@@ -9,6 +9,7 @@ import updateLocale from 'dayjs/plugin/updateLocale';
 import { useCustomers } from '../../hooks/useCustomers';
 import { useCreateDirectInvoice } from '../../hooks/useInvoices';
 import { useProducts } from '@org/inventory-ui';
+import { statusLabels, statusKeys } from './constants';
 
 dayjs.extend(updateLocale);
 dayjs.updateLocale('ar', {
@@ -171,7 +172,7 @@ export default function CreateInvoicePage() {
         totalAmount,
         overallDiscount: values.overallDiscount as number,
         overallDiscountType: values.overallDiscountType as string,
-        paymentStatus: values.paymentStatus as string,
+        paymentStatus: 'DRAFT',
         saveMode: 'draft',
         items: values.items?.map((item) => ({
           productId: item.productId,
@@ -325,9 +326,9 @@ export default function CreateInvoicePage() {
             <Col span={12}>
               <Form.Item label="حالة الدفع" name="paymentStatus" rules={[{ required: true, message: 'مطلوب' }]}>
                 <Select placeholder="اختر حالة الدفع">
-                  <Option value="unpaid">غير مدفوع</Option>
-                  <Option value="partially_paid">مدفوع جزئياً</Option>
-                  <Option value="paid">مدفوع</Option>
+                  {statusKeys.map((k) => (
+                    <Option key={k} value={k}>{statusLabels[k]}</Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Col>

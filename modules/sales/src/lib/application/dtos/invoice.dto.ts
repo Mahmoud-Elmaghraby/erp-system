@@ -159,8 +159,8 @@ export class CreateDirectInvoiceDto {
   advancePaymentType?: string; // 'amount' | 'percentage'
 
   @IsOptional()
-  @IsIn(['unpaid', 'partially_paid', 'paid'])
-  paymentStatus?: 'unpaid' | 'partially_paid' | 'paid';
+  @IsIn(['unpaid', 'partially_paid', 'paid', 'UNPAID', 'PARTIAL', 'PAID', 'PARTIALLY_PAID', 'draft', 'DRAFT'])
+  paymentStatus?: 'unpaid' | 'partially_paid' | 'paid' | 'UNPAID' | 'PARTIAL' | 'PAID' | 'PARTIALLY_PAID' | 'draft' | 'DRAFT';
 
   // ── Shipping tab ──
 
