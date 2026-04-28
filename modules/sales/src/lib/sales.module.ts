@@ -15,6 +15,7 @@ import { CreateOrderUseCase } from './application/use-cases/orders/create-order.
 import { ConfirmOrderUseCase } from './application/use-cases/orders/confirm-order.use-case';
 import { CreateInvoiceUseCase } from './application/use-cases/invoices/create-invoice.use-case';
 import { PayInvoiceUseCase } from './application/use-cases/invoices/pay-invoice.use-case';
+import { CreateDirectInvoiceUseCase } from './application/use-cases/direct-invoices/create-direct-invoice.use-case';
 import { CreateQuotationUseCase } from './application/use-cases/quotations/create-quotation.use-case';
 import { ConfirmQuotationUseCase } from './application/use-cases/quotations/confirm-quotation.use-case';
 import { CreateDeliveryUseCase } from './application/use-cases/deliveries/create-delivery.use-case';
@@ -64,6 +65,7 @@ import { salesSettingsDefinition } from './sales.settings';
     ConfirmOrderUseCase,
     CreateInvoiceUseCase,
     PayInvoiceUseCase,
+    CreateDirectInvoiceUseCase,
     CreateQuotationUseCase,
     ConfirmQuotationUseCase,
     CreateDeliveryUseCase,
@@ -80,7 +82,7 @@ import { salesSettingsDefinition } from './sales.settings';
     { provide: DELIVERY_REPOSITORY, useClass: DeliveryRepository },
     { provide: SALES_RETURN_REPOSITORY, useClass: SalesReturnRepository },
   ],
-  exports: [CreateOrderUseCase, CreateInvoiceUseCase],
+  exports: [CreateOrderUseCase, CreateInvoiceUseCase, CreateDirectInvoiceUseCase],
 })
 export class SalesModule implements OnModuleInit {
   constructor(private settingsRegistry: SettingsRegistry) {}

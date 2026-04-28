@@ -11,6 +11,12 @@ export const useInvoices = (orderId?: string) => useQuery({
   },
 });
 
+export const useInvoiceById = (id: string) => useQuery({
+  queryKey: ['invoices', id],
+  queryFn: () => salesApi.invoices.getById(id),
+  enabled: !!id,
+});
+
 export const useCreateInvoice = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -20,6 +26,21 @@ export const useCreateInvoice = () => {
       qc.invalidateQueries({ queryKey: ['invoices'] });
     },
     onError: () => message.error('حدث خطأ'),
+  });
+};
+
+export const useCreateDirectInvoice = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: salesApi.invoices.createDirect,
+    onSuccess: () => {
+      message.success('تم إنشاء الفاتورة بنجاح');
+      qc.invalidateQueries({ queryKey: ['invoices'] });
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message;
+      message.error(Array.isArray(msg) ? msg.join(', ') : (msg || 'حدث خطأ أثناء إنشاء الفاتورة'));
+    },
   });
 };
 

@@ -39,7 +39,7 @@ export class InvoiceRepository implements IInvoiceRepository {
       include: { paymentTerm: true },
       orderBy: { dateTimeIssued: 'desc' },
     });
-    return invoices.map(this.toEntity);
+    return invoices.map((invoice) => this.toEntity(invoice as unknown as InvoiceRecord));
   }
 
   async findById(id: string): Promise<InvoiceEntity | null> {
@@ -47,10 +47,10 @@ export class InvoiceRepository implements IInvoiceRepository {
       where: { id },
       include: { paymentTerm: true, order: true },
     });
-    return invoice ? this.toEntity(invoice) : null;
+    return invoice ? this.toEntity(invoice as unknown as InvoiceRecord) : null;
   }
 
-  async findDetails(id: string): Promise<any> {
+  async findDetails(id: string): Promise<Record<string, unknown> | null> {
     try {
       console.log('Fetching invoice details for ID:', id);
       const invoice = await this.prisma.invoice.findUnique({
@@ -96,35 +96,35 @@ export class InvoiceRepository implements IInvoiceRepository {
 
 
 async findByBranch(branchId: string): Promise<InvoiceEntity[]> {
-  const invoices = await this.prisma.invoice.findMany({
-    where: { order: { branchId } },
-    include: { paymentTerm: true },
-    orderBy: { dateTimeIssued: 'desc' },
-  });
-  return invoices.map(this.toEntity);
-}
+    const invoices = await this.prisma.invoice.findMany({
+      where: { order: { branchId } },
+      include: { paymentTerm: true },
+      orderBy: { dateTimeIssued: 'desc' },
+    });
+    return invoices.map((invoice) => this.toEntity(invoice as unknown as InvoiceRecord));
+  }
 
   async findByCompany(companyId: string): Promise<InvoiceEntity[]> {
-  const invoices = await this.prisma.invoice.findMany({
-    where: {
-      order: {
-        branchId: {
-          in: await this.prisma.branch.findMany({
-            where: { companyId },
-            select: { id: true },
-          }).then(branches => branches.map(b => b.id)),
+    const invoices = await this.prisma.invoice.findMany({
+      where: {
+        order: {
+          branchId: {
+            in: await this.prisma.branch.findMany({
+              where: { companyId },
+              select: { id: true },
+            }).then((branches) => branches.map((branch) => branch.id)),
+          },
         },
       },
-    },
-    include: { paymentTerm: true },
-    orderBy: { dateTimeIssued: 'desc' },
-  });
-  return invoices.map(this.toEntity);
-}
+      include: { paymentTerm: true },
+      orderBy: { dateTimeIssued: 'desc' },
+    });
+    return invoices.map((invoice) => this.toEntity(invoice as unknown as InvoiceRecord));
+  }
 
   async create(entity: InvoiceEntity): Promise<InvoiceEntity> {
     const invoice = await this.prisma.invoice.create({
-      data: {
+      data: ({
         id: entity.id,
         invoiceNumber: entity.invoiceNumber,
         status: entity.status,
@@ -139,24 +139,24 @@ async findByBranch(branchId: string): Promise<InvoiceEntity[]> {
         dueDate: entity.dueDate,
         paymentTermId: entity.paymentTermId,
         dateTimeIssued: entity.dateTimeIssued,
-      },
+      } as unknown) as Parameters<typeof this.prisma.invoice.create>[0]['data'],
     });
-    return this.toEntity(invoice);
+    return this.toEntity(invoice as unknown as InvoiceRecord);
   }
 
   async update(id: string, data: Partial<InvoiceEntity>): Promise<InvoiceEntity> {
     const invoice = await this.prisma.invoice.update({
       where: { id },
-      data: {
+      data: ({
         status: data.status,
         paidAmount: data.paidAmount,
         etaStatus: data.etaStatus,
         etaUUID: data.etaUUID,
         zatcaStatus: data.zatcaStatus,
         qrCode: data.qrCode,
-      },
+      } as unknown) as Parameters<typeof this.prisma.invoice.update>[0]['data'],
     });
-    return this.toEntity(invoice);
+    return this.toEntity(invoice as unknown as InvoiceRecord);
   }
 
   private toEntity(i: InvoiceRecord): InvoiceEntity {

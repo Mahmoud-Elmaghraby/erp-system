@@ -2,8 +2,9 @@ import { Controller, Get, Post, Patch, Body, Param, UseGuards, Query, Inject } f
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard, RequirePermission, PermissionGuard, CurrentUser } from '@org/core';
 import { CreateInvoiceUseCase } from '../../application/use-cases/invoices/create-invoice.use-case';
+import { CreateDirectInvoiceUseCase } from '../../application/use-cases/direct-invoices/create-direct-invoice.use-case';
 import { PayInvoiceUseCase } from '../../application/use-cases/invoices/pay-invoice.use-case';
-import { CreateInvoiceDto, PayInvoiceDto } from '../../application/dtos/invoice.dto';
+import { CreateInvoiceDto, CreateDirectInvoiceDto, PayInvoiceDto } from '../../application/dtos/invoice.dto';
 import { INVOICE_REPOSITORY } from '../../domain/repositories/invoice.repository.interface';
 import type { IInvoiceRepository } from '../../domain/repositories/invoice.repository.interface';
 
@@ -14,6 +15,7 @@ import type { IInvoiceRepository } from '../../domain/repositories/invoice.repos
 export class InvoicesController {
   constructor(
     private createInvoiceUseCase: CreateInvoiceUseCase,
+    private createDirectInvoiceUseCase: CreateDirectInvoiceUseCase,
     private payInvoiceUseCase: PayInvoiceUseCase,
     @Inject(INVOICE_REPOSITORY)
     private invoiceRepository: IInvoiceRepository,
@@ -39,6 +41,16 @@ export class InvoicesController {
   @RequirePermission('sales.invoices.create')
   create(@Body() dto: CreateInvoiceDto) {
     return this.createInvoiceUseCase.execute(dto);
+  }
+
+  @Post('direct')
+  @RequirePermission('sales.invoices.create')
+  createDirect(
+    @Body() dto: CreateDirectInvoiceDto,
+    @CurrentUser('companyId') companyId: string,
+  ) {
+    // If branchId is not provided, attempt to use the user's branch
+    return this.createDirectInvoiceUseCase.execute(dto);
   }
 
   @Patch(':id/pay')

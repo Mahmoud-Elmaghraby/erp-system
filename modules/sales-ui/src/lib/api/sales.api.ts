@@ -123,6 +123,7 @@ getById: (id: string) => api.get(`/sales/customers/${id}`).then(r => r.data),
 create:  (data: unknown) => api.post('/sales/customers', data).then(r => r.data),
 update:  (id: string, data: unknown) => api.patch(`/sales/customers/${id}`, data).then(r => r.data),
 delete:  (id: string) => api.delete(`/sales/customers/${id}`).then(r => r.data),
+getAccountStatement: (id: string) => api.get(`/sales/customers/${id}/account-statement`).then(r => r.data),
 },
 
 quotations: {
@@ -151,6 +152,7 @@ return api.get(`/sales/invoices${params}`).then(r => r.data);
 },
 getById: (id: string) => api.get(`/sales/invoices/${id}`).then(r => r.data),
 create:  (data: unknown) => api.post('/sales/invoices', data).then(r => r.data),
+createDirect: (data: unknown) => api.post('/sales/invoices/direct', data).then(r => r.data),
 pay:     (id: string, data: unknown) => api.patch(`/sales/invoices/${id}/pay`, data).then(r => r.data),
 cancel:  (id: string) => api.patch(`/sales/invoices/${id}/cancel`).then(r => r.data),
 },

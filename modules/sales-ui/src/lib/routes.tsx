@@ -9,6 +9,9 @@ import SalesReturnsPage from './pages/returns/sales-returns.page';
 import CreditNotesPage from './pages/credit-notes/credit-notes.page';
 import CreateCreditNotePage from './pages/credit-notes/create-credit-note.page';
 import CustomerPaymentsPage from './pages/customer-payments/customer-payments.page';
+import CustomersPage from './pages/customers/customers.page';
+import CreateCustomerPage from './pages/customers/create-customer.page';
+import CustomerAccountStatementPage from './pages/customers/customer-account-statement.page';
 import SalesSettingsPage from './pages/sales-settings/sales-settings.page';
 import InvoiceSettingsPage from './pages/sales-settings/invoices-settings/invoice-settings.page';
 import InvoiceDesignsPage from './pages/sales-settings/invoices-settings/invoice-designs.page';
@@ -28,6 +31,11 @@ export const salesRoutes: RouteObject[] = [
       { path: 'invoices', element: <InvoicesPage /> },
       { path: 'invoices/create', element: <CreateInvoicePage /> },
       { path: 'invoices/:id', element: <InvoiceViewPage /> },
+      { path: 'customers', element: <CustomersPage /> },
+      { path: 'customers/create', element: <CreateCustomerPage /> },
+      { path: 'customers/:id', element: <CreateCustomerPage /> },
+      { path: 'customers/:id/edit', element: <CreateCustomerPage /> },
+        { path: 'customers/:id/account-statement', element: <CustomerAccountStatementPage /> },
       { path: 'quotations', element: <QuotationsPage /> },
       { path: 'quotations/create', element: <CreateQuotationPage /> },
       { path: 'quotations/preview/:id', element: <PreviewQuotationPage /> },

@@ -7,8 +7,8 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/ar';
 import updateLocale from 'dayjs/plugin/updateLocale';
 import { useCustomers } from '../../hooks/useCustomers';
-import { useCreateInvoice } from '../../hooks/useInvoices';
-import { useProducts } from '@org/inventory-ui'; // Assuming this exists based on order-form.tsx
+import { useCreateDirectInvoice } from '../../hooks/useInvoices';
+import { useProducts } from '@org/inventory-ui';
 
 dayjs.extend(updateLocale);
 dayjs.updateLocale('ar', {
@@ -53,7 +53,12 @@ export default function CreateInvoicePage() {
 
   const { data: customers } = useCustomers();
   const { data: products } = useProducts();
-  const createMutation = useCreateInvoice();
+  const createMutation = useCreateDirectInvoice();
+
+  // Get branchId from user context
+  const userStr = localStorage.getItem('erp_user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  const branchId = user?.branchId || '';
 
   const calculateTotals = () => {
     const items = (form.getFieldValue('items') || []) as InvoiceItemForm[];
@@ -113,17 +118,33 @@ export default function CreateInvoicePage() {
 
   const onFinish = (values: InvoiceFormValues) => {
     const payload = {
-      ...values,
+      customerId: values.customerId as string,
+      branchId,
+      date: values.date ? (values.date as any).format?.('YYYY-MM-DD') : undefined,
+      dueDate: values.dueDate ? (values.dueDate as any).format?.('YYYY-MM-DD') : undefined,
+      currency: 'EGP',
+      notes: values.notes as string,
+      paymentTerms: values.paymentTerms as number,
+      salesRepId: values.salesRepId as string,
+      method: values.method as string,
       untaxedAmount,
       taxAmount,
       discountAmount,
       totalAmount,
+      overallDiscount: values.overallDiscount as number,
+      overallDiscountType: values.overallDiscountType as string,
+      advancePayment: values.advancePayment as number,
+      advancePaymentType: values.advancePaymentType as string,
+      shippingDetails: values.shippingDetails as string,
+      shippingCost: values.shippingCost as number,
+      saveMode: 'confirm',
       items: values.items?.map((item) => ({
         productId: item.productId,
         quantity: Number(item.quantity),
         unitPrice: Number(item.unitPrice),
         discount: Number(item.discount || 0),
-        taxId: item.taxId, // if mapping to DB
+        tax: Number(item.tax || 0),
+        taxId: item.taxId,
         total: (Number(item.quantity) * Number(item.unitPrice)) * (1 - Number(item.discount || 0)/100) * (1 + Number(item.tax || 0)/100)
       })) ?? []
     };
@@ -133,6 +154,40 @@ export default function CreateInvoicePage() {
         message.success('تم الحفظ بنجاح');
         navigate('/sales/invoices');
       }
+    });
+  };
+
+  const onSaveAsDraft = () => {
+    form.validateFields().then((values: InvoiceFormValues) => {
+      const payload = {
+        customerId: values.customerId as string,
+        branchId,
+        date: values.date ? (values.date as any).format?.('YYYY-MM-DD') : undefined,
+        dueDate: values.dueDate ? (values.dueDate as any).format?.('YYYY-MM-DD') : undefined,
+        currency: 'EGP',
+        notes: values.notes as string,
+        untaxedAmount,
+        taxAmount,
+        discountAmount,
+        totalAmount,
+        overallDiscount: values.overallDiscount as number,
+        overallDiscountType: values.overallDiscountType as string,
+        saveMode: 'draft',
+        items: values.items?.map((item) => ({
+          productId: item.productId,
+          quantity: Number(item.quantity),
+          unitPrice: Number(item.unitPrice),
+          discount: Number(item.discount || 0),
+          tax: Number(item.tax || 0),
+          taxId: item.taxId,
+        })) ?? []
+      };
+      createMutation.mutate(payload, {
+        onSuccess: () => {
+          message.success('تم حفظ المسودة');
+          navigate('/sales/invoices');
+        }
+      });
     });
   };
 
@@ -221,7 +276,7 @@ export default function CreateInvoicePage() {
             <Dropdown.Button className="dark-blue-dropdown" menu={{ items: saveMenu }} type="primary" htmlType="submit" style={{ fontWeight: 600 }} loading={createMutation.isPending}>
               حفظ دون طباعة
             </Dropdown.Button>
-            <Button htmlType="submit" style={{ fontWeight: 600, color: '#001529', borderColor: '#001529' }}>حفظ كمسودة</Button>
+            <Button onClick={onSaveAsDraft} style={{ fontWeight: 600, color: '#001529', borderColor: '#001529' }}>حفظ كمسودة</Button>
             <Dropdown.Button className="dark-blue-dropdown" menu={{ items: previewMenu }} type="primary" style={{ fontWeight: 600 }} icon={<DownOutlined />}>
               <Space>معاينة <EyeOutlined /></Space>
             </Dropdown.Button>

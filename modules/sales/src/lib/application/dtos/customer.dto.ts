@@ -5,6 +5,10 @@ export class CreateCustomerDto {
   name!: string;
 
   @IsOptional()
+  @IsString()
+  code?: string;
+
+  @IsOptional()
   @IsEmail()
   email?: string;
 
@@ -14,19 +18,27 @@ export class CreateCustomerDto {
 
   @IsOptional()
   @IsString()
+  nationalId?: string;
+
+  @IsOptional()
+  @IsString()
+  taxNumber?: string;
+
+  @IsOptional()
+  @IsString()
   address?: string;
 
   @IsOptional()
   @IsString()
-  taxRegNumber?: string;
-
-  @IsOptional()
-  @IsString()
-  commercialReg?: string;
+  city?: string;
 
   @IsOptional()
   @IsString()
   country?: string;
+
+  @IsOptional()
+  @IsIn(['active', 'inactive'])
+  status?: 'active' | 'inactive';
 
   @IsOptional()
   @IsIn(['B', 'P'])
@@ -39,6 +51,10 @@ export class UpdateCustomerDto {
   name?: string;
 
   @IsOptional()
+  @IsString()
+  code?: string;
+
+  @IsOptional()
   @IsEmail()
   email?: string;
 
@@ -48,19 +64,27 @@ export class UpdateCustomerDto {
 
   @IsOptional()
   @IsString()
+  nationalId?: string;
+
+  @IsOptional()
+  @IsString()
+  taxNumber?: string;
+
+  @IsOptional()
+  @IsString()
   address?: string;
 
   @IsOptional()
   @IsString()
-  taxRegNumber?: string;
-
-  @IsOptional()
-  @IsString()
-  commercialReg?: string;
+  city?: string;
 
   @IsOptional()
   @IsString()
   country?: string;
+
+  @IsOptional()
+  @IsIn(['active', 'inactive'])
+  status?: 'active' | 'inactive';
 
   @IsOptional()
   @IsIn(['B', 'P'])

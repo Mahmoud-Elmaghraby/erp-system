@@ -52,6 +52,7 @@ const menuItems = [
       { key: '/sales/quotations', label: 'إدارة عروض الأسعار' },
       { key: '/sales/credit-notes', label: 'إشعارات دائنة' },
       { key: '/sales/returns', label: 'الفواتير المرتجعة' },
+      { key: '/sales/customers', label: 'إدارة العملاء' },
       { key: '/sales/payments', label: 'مدفوعات العملاء' },
       { key: '/sales/settings', label: 'إعدادات المبيعات' },
     ],
@@ -65,10 +66,10 @@ const menuItems = [
       { key: '/purchasing/suppliers', label: 'الموردين' },
     ],
   },
-{
-  key: '/accounting',
-  icon: <AccountBookOutlined />,
-  label: 'المحاسبة',
+  {
+    key: '/accounting',
+    icon: <AccountBookOutlined />,
+    label: 'المحاسبة',
   children: [
     { key: '/accounting/fiscal-years',      label: 'السنوات المالية' },
     { key: '/accounting/taxes',             label: 'الضرائب' },

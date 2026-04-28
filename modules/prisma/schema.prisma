@@ -756,18 +756,19 @@ model PriceListItem {
 // ===== SALES SCHEMA =====
 
 model Customer {
-  id            String  @id @default(uuid())
-  name          String
-  email         String?
-  phone         String?
-  address       String?
-  isActive      Boolean @default(true)
-  companyId     String
-  company       Company @relation(fields: [companyId], references: [id])
-  taxRegNumber  String?
-  commercialReg String?
-  country       String? @default("EG")
-  buyerType     String? @default("B")
+  id         String  @id @default(uuid())
+  code       String  @unique
+  name       String
+  email      String?
+  phone      String?
+  nationalId String?
+  taxNumber  String?
+  address    String?
+  isActive   Boolean @default(true)
+  companyId  String
+  company    Company @relation(fields: [companyId], references: [id])
+  country    String? @default("EG")
+  buyerType  String? @default("B")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1013,7 +1014,7 @@ enum DeliveryStatus {
 model Invoice {
   id            String        @id @default(uuid())
   invoiceNumber String        @unique
-  status        InvoiceStatus @default(UNPAID)
+  status        InvoiceStatus @default(UNPAID) @map("systemStatus")
 
   // Amounts
   untaxedAmount  Decimal @default(0)
@@ -1160,9 +1161,10 @@ enum SalesOrderStatus {
 }
 
 enum InvoiceStatus {
+  DRAFT
   UNPAID
   PAID
-  PARTIAL
+  PARTIAL @map("PARTIALLY_PAID")
   CANCELLED
 
   @@schema("sales")
