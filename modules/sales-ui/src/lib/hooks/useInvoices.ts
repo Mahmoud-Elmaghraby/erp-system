@@ -44,6 +44,22 @@ export const useCreateDirectInvoice = () => {
   });
 };
 
+export const useUpdateDirectInvoice = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: unknown }) =>
+      salesApi.invoices.updateDirect?.(id, data) || Promise.reject('Update method not available'),
+    onSuccess: () => {
+      message.success('تم تحديث الفاتورة بنجاح');
+      qc.invalidateQueries({ queryKey: ['invoices'] });
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message;
+      message.error(Array.isArray(msg) ? msg.join(', ') : (msg || 'حدث خطأ أثناء تحديث الفاتورة'));
+    },
+  });
+};
+
 export const usePayInvoice = () => {
   const qc = useQueryClient();
   return useMutation({

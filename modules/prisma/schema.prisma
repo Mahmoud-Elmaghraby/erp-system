@@ -1026,7 +1026,7 @@ model Invoice {
   // Currency
   currency     String  @default("EGP")
   exchangeRate Decimal @default(1)
-
+  paymentStatus String
   dueDate DateTime?
 
   // E-Invoice Fields

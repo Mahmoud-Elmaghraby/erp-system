@@ -1,5 +1,6 @@
 import { IsUUID, IsOptional, IsNumber, IsEnum, IsDateString, Min, IsString, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { IsIn } from 'class-validator';
 
 // ── Item DTO for direct invoice creation ─────────────────────────────
 
@@ -156,6 +157,10 @@ export class CreateDirectInvoiceDto {
   @IsOptional()
   @IsString()
   advancePaymentType?: string; // 'amount' | 'percentage'
+
+  @IsOptional()
+  @IsIn(['unpaid', 'partially_paid', 'paid'])
+  paymentStatus?: 'unpaid' | 'partially_paid' | 'paid';
 
   // ── Shipping tab ──
 

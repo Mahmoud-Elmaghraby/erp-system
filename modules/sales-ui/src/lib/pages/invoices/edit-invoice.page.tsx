@@ -1,14 +1,16 @@
-import { useState } from 'react';
-import { Form, Input, Select, DatePicker, Button, Tabs, InputNumber, Row, Col, Typography, Space, Divider, message, Switch, Upload, Dropdown } from 'antd';
+import { useState, useEffect } from 'react';
+import { Form, Input, Select, DatePicker, Button, Tabs, InputNumber, Row, Col, Typography, Space, Divider, message, Switch, Upload, Dropdown, Spin } from 'antd';
 import type { MenuProps } from 'antd';
-import { PlusOutlined, DeleteOutlined, EyeOutlined, CloseOutlined, QuestionCircleOutlined, CloudUploadOutlined, DownOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { PlusOutlined, DeleteOutlined, EyeOutlined, CloseOutlined, QuestionCircleOutlined, CloudUploadOutlined, DownOutlined, ArrowRightOutlined } from '@ant-design/icons';
+import { useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ar';
 import updateLocale from 'dayjs/plugin/updateLocale';
+import { useQuery } from '@tanstack/react-query';
 import { useCustomers } from '../../hooks/useCustomers';
-import { useCreateDirectInvoice } from '../../hooks/useInvoices';
+import { useUpdateDirectInvoice } from '../../hooks/useInvoices';
 import { useProducts } from '@org/inventory-ui';
+import { salesApi } from '../../api/sales.api';
 
 dayjs.extend(updateLocale);
 dayjs.updateLocale('ar', {
@@ -43,9 +45,10 @@ interface InvoiceFormValues {
   [key: string]: unknown;
 }
 
-export default function CreateInvoicePage() {
+export default function EditInvoicePage() {
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const { id } = useParams();
   const [totalAmount, setTotalAmount] = useState(0);
   const [untaxedAmount, setUntaxedAmount] = useState(0);
   const [taxAmount, setTaxAmount] = useState(0);
@@ -53,12 +56,52 @@ export default function CreateInvoicePage() {
 
   const { data: customers } = useCustomers();
   const { data: products } = useProducts();
-  const createMutation = useCreateDirectInvoice();
+  const updateMutation = useUpdateDirectInvoice?.();
 
   // Get branchId from user context
   const userStr = localStorage.getItem('erp_user');
   const user = userStr ? JSON.parse(userStr) : null;
   const branchId = user?.branchId || '';
+
+  // Fetch existing invoice
+  const { data: queryData, isLoading } = useQuery({
+    queryKey: ['invoice', id],
+    queryFn: () => salesApi.invoices.getById(id as string),
+    enabled: !!id,
+  });
+
+  const invoice = (queryData as any)?.data || queryData;
+
+  useEffect(() => {
+    if (invoice) {
+      const formData = {
+        invoiceNumber: invoice.invoiceNumber,
+        date: invoice.dateTimeIssued ? dayjs(invoice.dateTimeIssued) : undefined,
+        customerId: invoice.customer?.id || invoice.order?.customer?.id,
+        salesRepId: invoice.salesRepId,
+        paymentTerms: invoice.paymentTerms,
+        paymentStatus: invoice.status?.toLowerCase() === 'unpaid' ? 'unpaid' : 
+                        invoice.status?.toLowerCase() === 'partial' ? 'partially_paid' : 'paid',
+        notes: invoice.notes,
+        overallDiscount: invoice.overallDiscount || 0,
+        overallDiscountType: invoice.overallDiscountType || 'percentage',
+        advancePayment: invoice.advancePayment || 0,
+        advancePaymentType: invoice.advancePaymentType || 'amount',
+        shippingDetails: invoice.shippingDetails || 'auto',
+        shippingCost: invoice.shippingCost || 0,
+        items: invoice.items?.map((item: any) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          discount: item.discount || 0,
+          tax: item.tax || 0,
+          taxId: item.taxId,
+        })) || [],
+      };
+      form.setFieldsValue(formData);
+      calculateTotals();
+    }
+  }, [invoice, form]);
 
   const calculateTotals = () => {
     const items = (form.getFieldValue('items') || []) as InvoiceItemForm[];
@@ -73,7 +116,7 @@ export default function CreateInvoicePage() {
       const t = Number(item?.tax || 0);
 
       const subtotal = q * p;
-      const itemDiscount = (subtotal * d) / 100; // Assuming discount is percentage
+      const itemDiscount = (subtotal * d) / 100;
       const afterDiscount = subtotal - itemDiscount;
       const itemTax = (afterDiscount * t) / 100;
 
@@ -149,45 +192,11 @@ export default function CreateInvoicePage() {
       })) ?? []
     };
 
-    createMutation.mutate(payload, {
+    updateMutation?.mutate({ id: id as string, data: payload }, {
       onSuccess: () => {
-        message.success('تم الحفظ بنجاح');
+        message.success('تم تحديث الفاتورة بنجاح');
         navigate('/sales/invoices');
       }
-    });
-  };
-
-  const onSaveAsDraft = () => {
-    form.validateFields().then((values: InvoiceFormValues) => {
-      const payload = {
-        customerId: values.customerId as string,
-        branchId,
-        date: values.date ? (values.date as any).format?.('YYYY-MM-DD') : undefined,
-        currency: 'EGP',
-        notes: values.notes as string,
-        untaxedAmount,
-        taxAmount,
-        discountAmount,
-        totalAmount,
-        overallDiscount: values.overallDiscount as number,
-        overallDiscountType: values.overallDiscountType as string,
-        paymentStatus: values.paymentStatus as string,
-        saveMode: 'draft',
-        items: values.items?.map((item) => ({
-          productId: item.productId,
-          quantity: Number(item.quantity),
-          unitPrice: Number(item.unitPrice),
-          discount: Number(item.discount || 0),
-          tax: Number(item.tax || 0),
-          taxId: item.taxId,
-        })) ?? []
-      };
-      createMutation.mutate(payload, {
-        onSuccess: () => {
-          message.success('تم حفظ المسودة');
-          navigate('/sales/invoices');
-        }
-      });
     });
   };
 
@@ -208,6 +217,23 @@ export default function CreateInvoicePage() {
       label: 'حفظ وطباعة',
     },
   ];
+
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (!invoice) {
+    return (
+      <div style={{ padding: 24, textAlign: 'center' }} dir="rtl">
+        <Title level={4}>الفاتورة غير موجودة</Title>
+        <Button onClick={() => navigate('/sales/invoices')}>العودة للفواتير</Button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '24px 16px', backgroundColor: '#f0f2f5', minHeight: '100vh', fontFamily: "'Cairo', 'Tajawal', sans-serif" }} dir="rtl">
@@ -268,19 +294,17 @@ export default function CreateInvoicePage() {
         layout="vertical" 
         onFinish={onFinish} 
         onValuesChange={calculateTotals}
-        initialValues={{ items: [{}], overallDiscountType: 'percentage' }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24, alignItems: 'center' }}>
-          <Title level={3} style={{ margin: 0, color: '#001529', fontWeight: 700 }}></Title>
+          <Title level={3} style={{ margin: 0, color: '#001529', fontWeight: 700 }}>تعديل الفاتورة</Title>
           <Space>
-            <Dropdown.Button className="dark-blue-dropdown" menu={{ items: saveMenu }} type="primary" htmlType="submit" style={{ fontWeight: 600 }} loading={createMutation.isPending}>
+            <Dropdown.Button className="dark-blue-dropdown" menu={{ items: saveMenu }} type="primary" htmlType="submit" style={{ fontWeight: 600 }} loading={updateMutation?.isPending}>
               حفظ دون طباعة
             </Dropdown.Button>
-            <Button onClick={onSaveAsDraft} style={{ fontWeight: 600, color: '#001529', borderColor: '#001529' }}>حفظ كمسودة</Button>
             <Dropdown.Button className="dark-blue-dropdown" menu={{ items: previewMenu }} type="primary" style={{ fontWeight: 600 }} icon={<DownOutlined />}>
               <Space>معاينة <EyeOutlined /></Space>
             </Dropdown.Button>
-            <Button icon={<CloseOutlined />} onClick={() => navigate('/sales/invoices')} style={{ fontWeight: 600, color: '#001529', borderColor: '#001529' }}>إلغاء</Button>
+            <Button icon={<ArrowRightOutlined />} onClick={() => navigate('/sales/invoices')} style={{ fontWeight: 600, color: '#001529', borderColor: '#001529' }}>العودة</Button>
           </Space>
         </div>
 
@@ -357,7 +381,6 @@ export default function CreateInvoicePage() {
                   const aftDisc = sub - (sub * d / 100);
                   const totalLine = aftDisc + (aftDisc * t / 100);
 
-                  // Get all selected product IDs to check for duplicates
                   const allItems = form.getFieldValue('items') || [];
                   const selectedProductIds = allItems.map((item: InvoiceItemForm) => item.productId).filter(Boolean);
                   const currentProductId = form.getFieldValue(['items', name, 'productId']);
@@ -509,35 +532,6 @@ export default function CreateInvoicePage() {
                   </Form.Item>
                 </Col>
               </Row>
-            </TabPane>
-
-            <TabPane tab={<Space><QuestionCircleOutlined style={{ color: '#aaa' }} /> إرفاق المستندات</Space>} key="4">
-              <Tabs type="card" defaultActiveKey="new_doc" tabBarGutter={8} style={{ padding: '8px 0' }} className="dark-blue-tabs">
-                <TabPane tab="مستند جديد" key="new_doc">
-                  <div style={{ marginTop: 16 }}>
-                    <Form.Item label={<span style={{ fontWeight: 'bold' }}>المرفقات</span>} style={{ marginBottom: 0 }}>
-                      <Upload.Dragger name="files" action="/upload.do" multiple style={{ padding: 24 }}>
-                        <p className="ant-upload-drag-icon">
-                          <CloudUploadOutlined style={{ fontSize: 32, color: '#001529' }} />
-                        </p>
-                        <p className="ant-upload-text" style={{ color: '#001529' }}>
-                          افلت الملف هنا او اختر من جهازك
-                        </p>
-                      </Upload.Dragger>
-                    </Form.Item>
-                  </div>
-                </TabPane>
-                <TabPane tab="الملفات التي تم رفعها مسبقاً" key="pre_uploaded">
-                  <div style={{ marginTop: 16, maxWidth: 600 }}>
-                    <Form.Item label={<span style={{ fontWeight: 'bold' }}>المستند</span>}>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <Select placeholder="Select Document" style={{ flex: 1 }} />
-                        <Button type="primary" style={{ backgroundColor: '#001529', borderColor: '#001529' }}>أرفق</Button>
-                      </div>
-                    </Form.Item>
-                  </div>
-                </TabPane>
-              </Tabs>
             </TabPane>
           </Tabs>
         </div>

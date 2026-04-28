@@ -129,32 +129,20 @@ export default function InvoiceViewPage() {
               <Title level={2} style={{ margin: 0, fontWeight: 700 }}>فاتورة</Title>
             </Col>
             <Col span={12} style={{ textAlign: 'left' }}>
-            {invoice.company?.logoUrl ? (
+            {invoice.company?.logoUrl && (
               <img src={invoice.company.logoUrl} alt="Company Logo" style={{ maxHeight: 60, maxWidth: 150, marginBottom: 8, objectFit: 'contain' }} />
-            ) : (
-              <div style={{ 
-                width: 120, 
-                height: 40, 
-                backgroundColor: '#e6f7ff', 
-                border: '1px dashed #91d5ff', 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                color: '#1890ff',
-                fontWeight: 'bold',
-                borderRadius: 4,
-                marginBottom: 8
-              }}>
-                Logo Placeholder
+            )}
+            {invoice.company?.name && (
+              <div>
+                <Text strong style={{ fontSize: 16 }}>{invoice.company.name}</Text>
               </div>
             )}
-            <div>
-              <Text strong style={{ fontSize: 16 }}>{invoice.company?.name || 'شركتي (My Company)'}</Text>
-            </div>
-            <div>
-              <Text type="secondary">{invoice.company?.address || 'القاهرة، مصر'}</Text>
-            </div>
-            {(invoice.company?.commercialRegister || invoice.company?.taxNumber) ? (
+            {invoice.company?.address && (
+              <div>
+                <Text type="secondary">{invoice.company.address}</Text>
+              </div>
+            )}
+            {(invoice.company?.commercialRegister || invoice.company?.taxNumber) && (
               <>
                 {invoice.company?.commercialRegister && (
                   <div><Text type="secondary">سجل تجاري: {invoice.company.commercialRegister}</Text></div>
@@ -163,10 +151,6 @@ export default function InvoiceViewPage() {
                   <div><Text type="secondary">بطاقة ضريبية: {invoice.company.taxNumber}</Text></div>
                 )}
               </>
-            ) : (
-              <div>
-                <Text type="secondary">سجل تجاري: 123456</Text>
-              </div>
             )}
             </Col>
           </Row>
@@ -176,17 +160,17 @@ export default function InvoiceViewPage() {
             <Col span={12}>
               <Space direction="vertical" size={2}>
                 <Text type="secondary">فاتورة لـ:</Text>
-                <Text strong style={{ fontSize: 16 }}>{invoice.order?.customer?.name || 'عميل غير مسجل'}</Text>
-                {invoice.order?.customer?.address && (
-                  <Text>{invoice.order.customer.address}</Text>
+                <Text strong style={{ fontSize: 16 }}>{invoice.order?.customer?.name || invoice.customer?.name || 'عميل غير مسجل'}</Text>
+                {(invoice.order?.customer?.address || invoice.customer?.address) && (
+                  <Text>{invoice.order?.customer?.address || invoice.customer?.address}</Text>
                 )}
-                {(invoice.order?.customer?.taxRegNumber || invoice.order?.customer?.commercialReg) && (
+                {(invoice.order?.customer?.taxRegNumber || invoice.order?.customer?.commercialReg || invoice.customer?.taxRegNumber || invoice.customer?.commercialReg) && (
                   <div style={{ marginTop: 4 }}>
-                    {invoice.order?.customer?.taxRegNumber && (
-                      <div><Text type="secondary" style={{ fontSize: 12 }}>بطاقة ضريبية: {invoice.order.customer.taxRegNumber}</Text></div>
+                    {(invoice.order?.customer?.taxRegNumber || invoice.customer?.taxRegNumber) && (
+                      <div><Text type="secondary" style={{ fontSize: 12 }}>بطاقة ضريبية: {invoice.order?.customer?.taxRegNumber || invoice.customer?.taxRegNumber}</Text></div>
                     )}
-                    {invoice.order?.customer?.commercialReg && (
-                      <div><Text type="secondary" style={{ fontSize: 12 }}>سجل تجاري: {invoice.order.customer.commercialReg}</Text></div>
+                    {(invoice.order?.customer?.commercialReg || invoice.customer?.commercialReg) && (
+                      <div><Text type="secondary" style={{ fontSize: 12 }}>سجل تجاري: {invoice.order?.customer?.commercialReg || invoice.customer?.commercialReg}</Text></div>
                     )}
                   </div>
                 )}
@@ -194,7 +178,9 @@ export default function InvoiceViewPage() {
             </Col>
             <Col span={12} style={{ textAlign: 'left' }}>
               <Space direction="vertical" size={2}>
-                <Text type="secondary">رقم الفاتورة: <Text strong style={{ color: '#000' }}>{invoice.invoiceNumber}</Text></Text>
+                {invoice.invoiceNumber && (
+                  <Text type="secondary">رقم الفاتورة: <Text strong style={{ color: '#000' }}>{invoice.invoiceNumber}</Text></Text>
+                )}
                 {invoice.dateTimeIssued && (
                   <Text type="secondary">تاريخ الفاتورة: <Text strong style={{ color: '#000' }}>{new Date(invoice.dateTimeIssued).toLocaleDateString('ar-EG')}</Text></Text>
                 )}
@@ -255,8 +241,23 @@ export default function InvoiceViewPage() {
 
       <style>{`
         @media print {
+          /* Reset all backgrounds to white */
+          * {
+            background-color: transparent !important;
+            background: transparent !important;
+            color: #000 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
           /* Force white background on the entire page */
-          html, body, #root, .ant-layout, .ant-layout-content, .invoice-page-wrapper {
+          html, body {
+            background-color: #fff !important;
+            background: #fff !important;
+            color: #000 !important;
+          }
+
+          #root, .ant-layout, .ant-layout-content, .invoice-page-wrapper {
             background-color: #fff !important;
             background: #fff !important;
             height: auto !important;
@@ -281,24 +282,37 @@ export default function InvoiceViewPage() {
             width: 100%;
             margin: 0 !important;
             padding: 0 !important;
+            background-color: #fff !important;
           }
 
           /* Remove padding and backgrounds from our own wrapper */
           .print-container > .ant-card {
             margin: 0 !important;
-            padding: 20px !important; /* Give some breathing room since page margin is 0 */
+            padding: 20px !important;
             box-shadow: none !important;
-          }
-
-          /* Ensure colors print correctly */
-          * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+            background-color: #fff !important;
+            border: none !important;
           }
 
           /* Hide browser default header (date/title) and footer (URL/page numbers) */
           @page {
             margin: 0;
+            size: A4;
+          }
+
+          /* Ensure table prints correctly */
+          .ant-table {
+            background-color: #fff !important;
+          }
+
+          .ant-table-thead > tr > th {
+            background-color: #f5f5f5 !important;
+            border: 1px solid #d9d9d9 !important;
+          }
+
+          .ant-table-tbody > tr > td {
+            background-color: #fff !important;
+            border: 1px solid #d9d9d9 !important;
           }
         }
       `}</style>

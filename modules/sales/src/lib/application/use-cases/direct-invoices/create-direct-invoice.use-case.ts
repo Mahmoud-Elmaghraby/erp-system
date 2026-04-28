@@ -132,7 +132,32 @@ export class CreateDirectInvoiceUseCase {
 
     // ── Determine status ──
     const isDraft = dto.saveMode === 'draft';
-    const invoiceStatus = isDraft ? 'UNPAID' : (paidAmount >= totalAmount ? 'PAID' : (paidAmount > 0 ? 'PARTIAL' : 'UNPAID'));
+    let invoiceStatus = isDraft ? 'UNPAID' : (paidAmount >= totalAmount ? 'PAID' : (paidAmount > 0 ? 'PARTIAL' : 'UNPAID'));
+
+    // If caller provided a paymentStatus from frontend, respect it (map to internal enum)
+    if (dto.paymentStatus) {
+      const map: Record<string, string> = {
+        unpaid: 'UNPAID',
+        paid: 'PAID',
+        partially_paid: 'PARTIAL',
+      };
+      const provided = map[dto.paymentStatus];
+      if (provided) {
+        invoiceStatus = provided;
+        // If frontend indicates fully paid, set paidAmount to totalAmount
+        if (dto.paymentStatus === 'paid') {
+          paidAmount = totalAmount;
+        }
+        // If partially paid and no advance provided, keep existing paidAmount (could be zero)
+        if (dto.paymentStatus === 'partially_paid' && paidAmount === 0 && dto.advancePayment) {
+          if (dto.advancePaymentType === 'percentage') {
+            paidAmount = (totalAmount * dto.advancePayment) / 100;
+          } else {
+            paidAmount = dto.advancePayment as number;
+          }
+        }
+      }
+    }
 
     const orderId = randomUUID();
     const invoiceId = randomUUID();

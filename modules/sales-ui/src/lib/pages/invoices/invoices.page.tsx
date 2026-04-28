@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Table, Tag, Button, Modal, Form, InputNumber, Select, Space, Input, Popconfirm, Card, Typography, Row, Col, Empty, Tooltip } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { SearchOutlined, CloseOutlined, PlusOutlined, EyeOutlined, PrinterOutlined, DollarOutlined } from '@ant-design/icons';
+import { SearchOutlined, CloseOutlined, PlusOutlined, EyeOutlined, PrinterOutlined, DollarOutlined, EditOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useInvoices, usePayInvoice, useCancelInvoice } from '../../hooks/useInvoices';
 
@@ -143,6 +143,9 @@ export default function InvoicesPage() {
       title: 'الإجراءات', key: 'actions',
       render: (_: unknown, record: InvoiceRow) => (
         <Space size="small">
+          <Tooltip title="تعديل">
+            <Button type="text" icon={<EditOutlined style={{ color: '#faad14' }} />} size="small" onClick={() => navigate(`/sales/invoices/edit/${record.id}`)} />
+          </Tooltip>
           <Tooltip title="عرض">
             <Button type="text" icon={<EyeOutlined style={{ color: '#1890ff' }} />} size="small" onClick={() => navigate(`/sales/invoices/${record.id}`)} />
           </Tooltip>
