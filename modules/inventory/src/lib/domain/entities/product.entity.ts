@@ -9,6 +9,7 @@ export class ProductEntity {
     public sku: string | null,
     public price: Money,
     public cost: Money,
+    public lowestPrice: Money,
     public categoryId: string | null,
     public unitOfMeasureId: string | null,
     public isActive: boolean,
@@ -26,6 +27,7 @@ export class ProductEntity {
     sku?: string;
     price?: number;
     cost?: number;
+    lowestPrice?: number;
     categoryId?: string;
     unitOfMeasureId?: string;
     companyId: string;
@@ -37,14 +39,43 @@ export class ProductEntity {
       throw new Error('Product name is required');
     }
 
+    if (data.categoryId === undefined || data.categoryId === null) {
+      throw new Error('Product category is required');
+    }
+
+    if (data.price === undefined || data.price === null) {
+      throw new Error('Product price is required');
+    }
+
+    if (data.cost === undefined || data.cost === null) {
+      throw new Error('Product cost is required');
+    }
+
+    if (data.lowestPrice === undefined || data.lowestPrice === null) {
+      throw new Error('Lowest price is required');
+    }
+
+    const price = data.price;
+    const cost = data.cost;
+    const lowestPrice = data.lowestPrice;
+
+    if (price < cost) {
+      throw new Error('سعر البيع يجب أن يكون أكبر من أو يساوي تكلفة المنتج');
+    }
+
+    if (price < lowestPrice) {
+      throw new Error('سعر البيع يجب أن يكون أكبر من أو يساوي أقل سعر للبيع');
+    }
+
     return new ProductEntity(
       data.id,
       data.name,
       data.description ?? null,
       data.barcode ?? null,
       data.sku ?? null,
-      Money.create(data.price ?? 0),
-      Money.create(data.cost ?? 0),
+      Money.create(price),
+      Money.create(cost),
+      Money.create(lowestPrice),
       data.categoryId ?? null,
       data.unitOfMeasureId ?? null,
       true,
@@ -79,6 +110,7 @@ export class ProductEntity {
 
   updatePrice(price: Money): void { this.price = price; }
   updateCost(cost: Money): void { this.cost = cost; }
+  updateLowestPrice(lowestPrice: Money): void { this.lowestPrice = lowestPrice; }
   activate(): void { this.isActive = true; }
   deactivate(): void { this.isActive = false; }
 }

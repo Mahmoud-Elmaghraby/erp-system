@@ -7,10 +7,11 @@ import type { IProductRepository } from '../../domain/repositories/product.repos
 import { PRODUCT_REPOSITORY } from '../../domain/repositories/product.repository.interface';
 import { CreateProductDto, UpdateProductDto } from '../../application/dtos/product.dto';
 import { ProductEntity } from '../../domain/entities/product.entity';
+import { Money } from '../../domain/value-objects/money.vo';
 import { PrismaService } from '@org/core';
 import { randomUUID } from 'crypto';
 
-const serializeProduct = (product: ProductEntity) => ({
+const serializeProduct = (product: ProductEntity, categoryData?: any) => ({
   id: product.id,
   name: product.name,
   description: product.description,
@@ -19,7 +20,9 @@ const serializeProduct = (product: ProductEntity) => ({
   price: product.price.getAmount(),
   currency: product.price.getCurrency(),
   cost: product.cost.getAmount(),
+  lowestPrice: product.lowestPrice.getAmount(),
   categoryId: product.categoryId,
+  category: categoryData,
   unitOfMeasureId: product.unitOfMeasureId,
   isActive: product.isActive,
   companyId: product.companyId,
@@ -41,28 +44,50 @@ export class ProductsController {
   @Get()
   @RequirePermission('inventory.products.view')
   async findAll(@CurrentUser('companyId') companyId: string) {
-    const products = await this.productRepository.findAll(companyId);
-    return products.map(serializeProduct);
+    const products = await this.prisma.product.findMany({
+      where: { isActive: true, companyId },
+      include: { category: true },
+    });
+    return products.map((p) => serializeProduct(
+      this.toEntity(p),
+      p.category ? { id: p.category.id, name: p.category.name } : null,
+    ));
   }
 
   @Get(':id')
   @RequirePermission('inventory.products.view')
   async findOne(@Param('id') id: string) {
-    const product = await this.productRepository.findById(id);
-    return product ? serializeProduct(product) : null;
+    const product = await this.prisma.product.findUnique({
+      where: { id },
+      include: { category: true },
+    });
+    if (!product) return null;
+    return serializeProduct(
+      this.toEntity(product),
+      product.category ? { id: product.category.id, name: product.category.name } : null,
+    );
   }
 
   @Post()
   @RequirePermission('inventory.products.create')
   async create(@Body() dto: CreateProductDto, @CurrentUser('companyId') companyId: string) {
     const product = await this.createProductUseCase.execute(dto, companyId);
-    return serializeProduct(product);
+    const categoryData = dto.categoryId ? await this.prisma.category.findUnique({
+      where: { id: dto.categoryId },
+      select: { id: true, name: true },
+    }) : null;
+    return serializeProduct(product, categoryData);
   }
 
   @Patch(':id')
   @RequirePermission('inventory.products.edit')
   async update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
     const product = await this.updateProductUseCase.execute(id, dto);
+    const categoryId = product.categoryId;
+    const categoryData = categoryId ? await this.prisma.category.findUnique({
+      where: { id: categoryId },
+      select: { id: true, name: true },
+    }) : null;
     if (dto.price !== undefined || dto.cost !== undefined) {
       await this.prisma.productPriceHistory.create({
         data: {
@@ -73,12 +98,32 @@ export class ProductsController {
         },
       });
     }
-    return serializeProduct(product);
+    return serializeProduct(product, categoryData);
   }
 
   @Delete(':id')
   @RequirePermission('inventory.products.delete')
   remove(@Param('id') id: string) {
     return this.productRepository.delete(id);
+  }
+
+  private toEntity(product: any): ProductEntity {
+    return new ProductEntity(
+      product.id,
+      product.name,
+      product.description,
+      product.barcode,
+      product.sku,
+      Money.create(Number(product.price)),
+      Money.create(Number(product.cost)),
+      Money.create(Number(product.lowestPrice ?? 0)),
+      product.categoryId,
+      product.unitOfMeasureId,
+      product.isActive,
+      product.companyId,
+      product.itemCode ?? null,
+      product.itemType ?? null,
+      product.unitType ?? null,
+    );
   }
 }

@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import type { IProductRepository } from '../../../domain/repositories/product.repository.interface';
 import { PRODUCT_REPOSITORY } from '../../../domain/repositories/product.repository.interface';
 import { Money } from '../../../domain/value-objects/money.vo';
@@ -28,12 +28,21 @@ export class UpdateProductUseCase {
       unitOfMeasureId: dto.unitOfMeasureId,
     });
 
-    if (dto.price !== undefined) {
-      product.updatePrice(Money.create(dto.price));
+    product.updatePrice(Money.create(dto.price));
+    product.updateCost(Money.create(dto.cost));
+    product.updateLowestPrice(Money.create(dto.lowestPrice));
+
+    // Validate: price >= cost and price >= lowestPrice
+    const price = product.price.getAmount();
+    const cost = product.cost.getAmount();
+    const lowestPrice = product.lowestPrice.getAmount();
+
+    if (price < cost) {
+      throw new BadRequestException('سعر البيع يجب أن يكون أكبر من أو يساوي تكلفة المنتج');
     }
 
-    if (dto.cost !== undefined) {
-      product.updateCost(Money.create(dto.cost));
+    if (price < lowestPrice) {
+      throw new BadRequestException('سعر البيع يجب أن يكون أكبر من أو يساوي أقل سعر للبيع');
     }
 
     return this.productRepository.save(product);

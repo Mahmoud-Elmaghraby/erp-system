@@ -466,6 +466,7 @@ model Product {
   sku             String? @unique
   price           Decimal @default(0)
   cost            Decimal @default(0)
+  lowestPrice     Decimal @default(0)
   isActive        Boolean @default(true)
   discountPercent Decimal @default(0)
   discountAmount  Decimal @default(0)
@@ -492,7 +493,6 @@ model Product {
   reorderingRules ReorderingRule[]
   lotNumbers      LotNumber[]
   serialNumbers   SerialNumber[]
-  images          ProductImage[]
   priceHistory    ProductPriceHistory[]
   variants        ProductVariant[]
   invoiceItems    InvoiceItem[]
@@ -601,19 +601,6 @@ model ReorderingRule {
 
   @@unique([productId, warehouseId])
   @@map("reordering_rules")
-  @@schema("inventory")
-}
-
-model ProductImage {
-  id        String   @id @default(uuid())
-  url       String
-  isPrimary Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-
-  @@map("product_images")
   @@schema("inventory")
 }
 

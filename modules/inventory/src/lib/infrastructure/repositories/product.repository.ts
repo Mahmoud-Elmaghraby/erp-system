@@ -11,18 +11,23 @@ export class ProductRepository implements IProductRepository {
   async findAll(companyId: string): Promise<ProductEntity[]> {
     const products = await this.prisma.product.findMany({
       where: { isActive: true, companyId },
+      include: { category: true },
     });
     return products.map((p) => this.toEntity(p));
   }
 
   async findById(id: string): Promise<ProductEntity | null> {
-    const product = await this.prisma.product.findUnique({ where: { id } });
+    const product = await this.prisma.product.findUnique({
+      where: { id },
+      include: { category: true },
+    });
     return product ? this.toEntity(product) : null;
   }
 
   async findByBarcode(barcode: string, companyId: string): Promise<ProductEntity | null> {
     const product = await this.prisma.product.findFirst({
       where: { barcode, companyId },
+      include: { category: true },
     });
     return product ? this.toEntity(product) : null;
   }
@@ -30,6 +35,15 @@ export class ProductRepository implements IProductRepository {
   async findBySku(sku: string, companyId: string): Promise<ProductEntity | null> {
     const product = await this.prisma.product.findFirst({
       where: { sku, companyId },
+      include: { category: true },
+    });
+    return product ? this.toEntity(product) : null;
+  }
+
+  async findByNameAndCategory(name: string, categoryId: string | null, companyId: string): Promise<ProductEntity | null> {
+    const product = await this.prisma.product.findFirst({
+      where: { name, categoryId, companyId },
+      include: { category: true },
     });
     return product ? this.toEntity(product) : null;
   }
@@ -44,6 +58,7 @@ export class ProductRepository implements IProductRepository {
         sku: entity.sku,
         price: entity.price.getAmount(),
         cost: entity.cost.getAmount(),
+        lowestPrice: entity.lowestPrice.getAmount(),
         categoryId: entity.categoryId,
         unitOfMeasureId: entity.unitOfMeasureId,
         isActive: entity.isActive,
@@ -66,6 +81,7 @@ export class ProductRepository implements IProductRepository {
         sku: entity.sku,
         price: entity.price.getAmount(),
         cost: entity.cost.getAmount(),
+        lowestPrice: entity.lowestPrice.getAmount(),
         categoryId: entity.categoryId,
         unitOfMeasureId: entity.unitOfMeasureId,
         isActive: entity.isActive,
@@ -93,6 +109,7 @@ export class ProductRepository implements IProductRepository {
       product.sku,
       Money.create(Number(product.price)),
       Money.create(Number(product.cost)),
+      Money.create(Number(product.lowestPrice ?? 0)),
       product.categoryId,
       product.unitOfMeasureId,
       product.isActive,

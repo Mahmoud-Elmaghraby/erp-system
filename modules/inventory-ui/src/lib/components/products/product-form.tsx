@@ -1,9 +1,30 @@
-import { Form, Input, InputNumber, Select, Switch, Row, Col, Card, Upload, Button, message, Tabs } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
-import { useEffect, useState } from 'react';
+import { Form, Input, InputNumber, Select, Switch, Row, Col, Card, Button, message, Tabs, Tooltip } from 'antd';
+import { ReloadOutlined } from '@ant-design/icons';
+import { useEffect, useState, useCallback } from 'react';
 import { useCategories } from '../../hooks/useCategories';
 import { inventoryApi } from '../../api/inventory.api';
 import { useQuery } from '@tanstack/react-query';
+
+/**
+ * Generates a 13-digit EAN-style barcode
+ */
+function generateBarcode(): string {
+  const timestamp = Date.now().toString().slice(-10);
+  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  return timestamp + random;
+}
+
+/**
+ * Generates an SKU with format: SKU-XXXXXXXX (8 random alphanumeric uppercase chars)
+ */
+function generateSku(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = 'SKU-';
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
 
 interface Props {
   initialValues?: any;
@@ -45,19 +66,22 @@ export default function ProductForm({ initialValues, onSubmit, loading, onCancel
     }
   });
 
-  const [imageUrl, setImageUrl] = useState<string | undefined>(initialValues?.image);
+  const regenerateBarcode = useCallback(() => {
+    form.setFieldsValue({ barcode: generateBarcode() });
+  }, [form]);
+
+  const regenerateSku = useCallback(() => {
+    form.setFieldsValue({ sku: generateSku() });
+  }, [form]);
 
   useEffect(() => {
     if (initialValues) {
       form.setFieldsValue(initialValues);
-      if (initialValues.image) {
-        setImageUrl(initialValues.image);
-      }
     } else {
       form.setFieldsValue({
         isActive: true,
-        price: 0,
-        cost: 0,
+        barcode: generateBarcode(),
+        sku: generateSku(),
         taxAmount: 0,
         discountPercentage: 0,
         discountAmount: 0,
@@ -89,19 +113,7 @@ export default function ProductForm({ initialValues, onSubmit, loading, onCancel
   };
 
   const handleFinish = (values: any) => {
-    onSubmit({ ...values, image: imageUrl });
-  };
-
-  const uploadProps = {
-    beforeUpload: (file: File) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImageUrl(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-      return false; // Prevent actual upload
-    },
-    showUploadList: false,
+    onSubmit(values);
   };
 
   return (
@@ -142,23 +154,6 @@ export default function ProductForm({ initialValues, onSubmit, loading, onCancel
             children: (
               <Card bordered={false} style={{ marginBottom: 24, borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                 <Row gutter={[16, 16]}>
-                  <Col span={24}>
-                    <Form.Item label="صورة المنتج" name="image">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                        {imageUrl && (
-                          <img
-                            src={imageUrl}
-                            alt="Product"
-                            style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: 8, border: '1px solid #d9d9d9' }}
-                          />
-                        )}
-                        <Upload {...uploadProps}>
-                          <Button icon={<UploadOutlined />}>اختر صورة</Button>
-                        </Upload>
-                      </div>
-                    </Form.Item>
-                  </Col>
-
                   <Col xs={24} md={12}>
                     <Form.Item
                       label="اسم المنتج"
@@ -181,22 +176,36 @@ export default function ProductForm({ initialValues, onSubmit, loading, onCancel
                   </Col>
 
                   <Col xs={24} md={12}>
-                    <Form.Item label="باركود المنتج" name="barcode" tooltip="يتم إنشاؤه تلقائيًا إذا ترك فارغًا">
-                      <Input placeholder="الباركود" />
+                    <Form.Item label="باركود المنتج" name="barcode" tooltip="يتم إنشاؤه تلقائيًا - يمكنك تعديله">
+                      <Input
+                        placeholder="الباركود"
+                        addonAfter={
+                          <Tooltip title="إعادة إنشاء الباركود">
+                            <ReloadOutlined onClick={regenerateBarcode} style={{ cursor: 'pointer' }} />
+                          </Tooltip>
+                        }
+                      />
                     </Form.Item>
                   </Col>
 
                   <Col xs={24} md={12}>
-                    <Form.Item label="رمز المنتج (SKU)" name="sku" tooltip="يتم إنشاؤه تلقائيًا إذا ترك فارغًا">
-                      <Input placeholder="SKU" />
+                    <Form.Item label="رمز المنتج (SKU)" name="sku" tooltip="يتم إنشاؤه تلقائيًا - يمكنك تعديله">
+                      <Input
+                        placeholder="SKU"
+                        addonAfter={
+                          <Tooltip title="إعادة إنشاء رمز المنتج">
+                            <ReloadOutlined onClick={regenerateSku} style={{ cursor: 'pointer' }} />
+                          </Tooltip>
+                        }
+                      />
                     </Form.Item>
                   </Col>
 
-                  <Col xs={24} md={12}>
+                  <Col xs={24} md={24}>
                     <Form.Item
                       label="الفئة"
                       name="categoryId"
-                      rules={[{ required: true, message: 'هذا الحقل مطلوب' }]}
+                      rules={[{ required: true, message: 'اسم الفئة مطلوب' }]}
                     >
                       <Select
                         allowClear
@@ -206,7 +215,7 @@ export default function ProductForm({ initialValues, onSubmit, loading, onCancel
                     </Form.Item>
                   </Col>
 
-                  <Col xs={24} md={12}>
+                  {/* <Col xs={24} md={12}>
                     <Form.Item
                       label="العلامة التجارية"
                       name="brandId"
@@ -218,7 +227,7 @@ export default function ProductForm({ initialValues, onSubmit, loading, onCancel
                         options={(brands as any[] ?? []).map((b: any) => ({ label: b.name, value: b.id }))}
                       />
                     </Form.Item>
-                  </Col>
+                  </Col> */}
 
                   <Col span={24}>
                     <Form.Item label="وصف المنتج" name="description">
@@ -239,7 +248,23 @@ export default function ProductForm({ initialValues, onSubmit, loading, onCancel
                     <Form.Item
                       label="سعر البيع"
                       name="price"
-                      rules={[{ required: true, message: 'هذا الحقل مطلوب' }]}
+                      dependencies={['cost', 'lowestPrice']}
+                      rules={[
+                        { required: true, message: 'سعر البيع مطلوب' },
+                        ({ getFieldValue }) => ({
+                          validator(_, value) {
+                            const cost = getFieldValue('cost');
+                            const lowestPrice = getFieldValue('lowestPrice');
+                            if (value !== undefined && cost !== undefined && value < cost) {
+                              return Promise.reject(new Error('سعر البيع يجب أن يكون أكبر من أو يساوي تكلفة المنتج'));
+                            }
+                            if (value !== undefined && lowestPrice !== undefined && value < lowestPrice) {
+                              return Promise.reject(new Error('سعر البيع يجب أن يكون أكبر من أو يساوي أقل سعر للبيع'));
+                            }
+                            return Promise.resolve();
+                          },
+                        }),
+                      ]}
                     >
                       <InputNumber style={{ width: '100%' }} min={0} />
                     </Form.Item>
@@ -249,14 +274,42 @@ export default function ProductForm({ initialValues, onSubmit, loading, onCancel
                     <Form.Item
                       label="تكلفة المنتج"
                       name="cost"
-                      rules={[{ required: true, message: 'هذا الحقل مطلوب' }]}
+                      dependencies={['price']}
+                      rules={[
+                        { required: true, message: 'تكلفة المنتج مطلوبة' },
+                        ({ getFieldValue }) => ({
+                          validator(_, value) {
+                            const price = getFieldValue('price');
+                            if (value !== undefined && price !== undefined && price < value) {
+                              return Promise.reject(new Error('تكلفة المنتج يجب أن تكون أقل من أو تساوي سعر البيع'));
+                            }
+                            return Promise.resolve();
+                          },
+                        }),
+                      ]}
                     >
                       <InputNumber style={{ width: '100%' }} min={0} />
                     </Form.Item>
                   </Col>
 
                   <Col xs={24} md={8}>
-                    <Form.Item label="أقل سعر للبيع" name="lowestPrice">
+                    <Form.Item
+                      label="أقل سعر للبيع"
+                      name="lowestPrice"
+                      dependencies={['price']}
+                      rules={[
+                        { required: true, message: 'أقل سعر للبيع مطلوب' },
+                        ({ getFieldValue }) => ({
+                          validator(_, value) {
+                            const price = getFieldValue('price');
+                            if (value !== undefined && price !== undefined && price < value) {
+                              return Promise.reject(new Error('أقل سعر للبيع يجب أن يكون أقل من أو يساوي سعر البيع'));
+                            }
+                            return Promise.resolve();
+                          },
+                        }),
+                      ]}
+                    >
                       <InputNumber style={{ width: '100%' }} min={0} />
                     </Form.Item>
                   </Col>
@@ -288,73 +341,73 @@ export default function ProductForm({ initialValues, onSubmit, loading, onCancel
               </Card>
             ),
           },
-          {
-            key: 'inventory',
-            label: 'إدارة المخزون',
-            children: (
-              <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-                <Row gutter={[16, 16]}>
-                  <Col span={24}>
-                    <Form.Item name="trackInventory" valuePropName="checked">
-                      <Switch checkedChildren="تتبع المخزون مفعل" unCheckedChildren="بدون تتبع" />
-                    </Form.Item>
-                  </Col>
+          // {
+          //   key: 'inventory',
+          //   label: 'إدارة المخزون',
+          //   children: (
+          //     <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+          //       <Row gutter={[16, 16]}>
+          //         <Col span={24}>
+          //           <Form.Item name="trackInventory" valuePropName="checked">
+          //             <Switch checkedChildren="تتبع المخزون مفعل" unCheckedChildren="بدون تتبع" />
+          //           </Form.Item>
+          //         </Col>
 
-                  {/* We use Form.Item dependencies to conditionally render these fields */}
-                  <Form.Item
-                    noStyle
-                    shouldUpdate={(prevValues, currentValues) => prevValues.trackInventory !== currentValues.trackInventory}
-                  >
-                    {({ getFieldValue }) =>
-                      getFieldValue('trackInventory') ? (
-                        <>
-                          <Col xs={24} md={12}>
-                            <Form.Item label="نوع التتبع" name="trackingType" rules={[{ required: true, message: 'هذا الحقل مطلوب' }]}>
-                              <Select placeholder="اختر نوع التتبع">
-                                <Select.Option value="serial">الرقم التسلسلي</Select.Option>
-                                <Select.Option value="batch">رقم الشحنة</Select.Option>
-                                <Select.Option value="expiration">تاريخ الانتهاء</Select.Option>
-                                <Select.Option value="batch_expiration">رقم الشحنة وتاريخ الانتهاء</Select.Option>
-                                <Select.Option value="quantity">الكمية فقط</Select.Option>
-                              </Select>
-                            </Form.Item>
-                          </Col>
+          //         {/* We use Form.Item dependencies to conditionally render these fields */}
+          //         <Form.Item
+          //           noStyle
+          //           shouldUpdate={(prevValues, currentValues) => prevValues.trackInventory !== currentValues.trackInventory}
+          //         >
+          //           {({ getFieldValue }) =>
+          //             getFieldValue('trackInventory') ? (
+          //               <>
+          //                 <Col xs={24} md={12}>
+          //                   <Form.Item label="نوع التتبع" name="trackingType" rules={[{ required: true, message: 'هذا الحقل مطلوب' }]}>
+          //                     <Select placeholder="اختر نوع التتبع">
+          //                       <Select.Option value="serial">الرقم التسلسلي</Select.Option>
+          //                       <Select.Option value="batch">رقم الشحنة</Select.Option>
+          //                       <Select.Option value="expiration">تاريخ الانتهاء</Select.Option>
+          //                       <Select.Option value="batch_expiration">رقم الشحنة وتاريخ الانتهاء</Select.Option>
+          //                       <Select.Option value="quantity">الكمية فقط</Select.Option>
+          //                     </Select>
+          //                   </Form.Item>
+          //                 </Col>
 
-                          <Col xs={24} md={12}>
-                            <Form.Item label="المستودع" name="warehouseId" rules={[{ required: true, message: 'هذا الحقل مطلوب' }]}>
-                              <Select
-                                allowClear
-                                placeholder="اختر المستودع"
-                                options={(warehouses as any[] ?? []).map((w: any) => ({ label: w.name, value: w.id }))}
-                              />
-                            </Form.Item>
-                          </Col>
+          //                 <Col xs={24} md={12}>
+          //                   <Form.Item label="المستودع" name="warehouseId" rules={[{ required: true, message: 'هذا الحقل مطلوب' }]}>
+          //                     <Select
+          //                       allowClear
+          //                       placeholder="اختر المستودع"
+          //                       options={(warehouses as any[] ?? []).map((w: any) => ({ label: w.name, value: w.id }))}
+          //                     />
+          //                   </Form.Item>
+          //                 </Col>
 
-                          <Col xs={24} md={8}>
-                            <Form.Item label="الكمية بالمخزون" name="stockQuantity">
-                              <InputNumber style={{ width: '100%' }} min={0} />
-                            </Form.Item>
-                          </Col>
+          //                 <Col xs={24} md={8}>
+          //                   <Form.Item label="الكمية بالمخزون" name="stockQuantity">
+          //                     <InputNumber style={{ width: '100%' }} min={0} />
+          //                   </Form.Item>
+          //                 </Col>
 
-                          <Col xs={24} md={8}>
-                            <Form.Item label="نقطة إعادة الطلب" name="reorderPoint">
-                              <InputNumber style={{ width: '100%' }} min={0} />
-                            </Form.Item>
-                          </Col>
+          //                 <Col xs={24} md={8}>
+          //                   <Form.Item label="نقطة إعادة الطلب" name="reorderPoint">
+          //                     <InputNumber style={{ width: '100%' }} min={0} />
+          //                   </Form.Item>
+          //                 </Col>
 
-                          <Col xs={24} md={8}>
-                            <Form.Item label="كمية إعادة الطلب" name="reorderQuantity">
-                              <InputNumber style={{ width: '100%' }} min={0} />
-                            </Form.Item>
-                          </Col>
-                        </>
-                      ) : null
-                    }
-                  </Form.Item>
-                </Row>
-              </Card>
-            ),
-          },
+          //                 <Col xs={24} md={8}>
+          //                   <Form.Item label="كمية إعادة الطلب" name="reorderQuantity">
+          //                     <InputNumber style={{ width: '100%' }} min={0} />
+          //                   </Form.Item>
+          //                 </Col>
+          //               </>
+          //             ) : null
+          //           }
+          //         </Form.Item>
+          //       </Row>
+          //     </Card>
+          //   ),
+          // },
         ]}
       />
     </Form>

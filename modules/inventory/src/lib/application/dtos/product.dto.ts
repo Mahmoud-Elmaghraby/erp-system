@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, Min, IsUUID } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsNotEmpty, Min, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateProductDto {
@@ -17,21 +17,26 @@ export class CreateProductDto {
   @IsString()
   sku?: string;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'سعر البيع مطلوب' })
   @IsNumber()
   @Min(0)
   @Type(() => Number)
-  price?: number;
+  price!: number;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'تكلفة المنتج مطلوبة' })
   @IsNumber()
   @Min(0)
   @Type(() => Number)
-  cost?: number;
+  cost!: number;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'أقل سعر للبيع مطلوب' })
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  lowestPrice!: number;
+
   @IsUUID()
-  categoryId?: string;
+  categoryId!: string;
 
   @IsOptional()
   @IsUUID()
@@ -48,6 +53,24 @@ export class CreateProductDto {
   @IsOptional()
   @IsString()
   unitType?: string;
+
+  @IsOptional()
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  taxAmount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  discountPercentage?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  discountAmount?: number;
 }
 
 export class UpdateProductDto {
@@ -67,17 +90,23 @@ export class UpdateProductDto {
   @IsString()
   sku?: string;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'سعر البيع مطلوب' })
   @IsNumber()
   @Min(0)
   @Type(() => Number)
-  price?: number;
+  price!: number;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'تكلفة المنتج مطلوبة' })
   @IsNumber()
   @Min(0)
   @Type(() => Number)
-  cost?: number;
+  cost!: number;
+
+  @IsNotEmpty({ message: 'أقل سعر للبيع مطلوب' })
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  lowestPrice!: number;
 
   @IsOptional()
   @IsUUID()
@@ -98,4 +127,22 @@ export class UpdateProductDto {
   @IsOptional()
   @IsString()
   unitType?: string;
+
+  @IsOptional()
+  isActive?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  taxAmount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  discountPercentage?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  discountAmount?: number;
 }

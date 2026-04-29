@@ -10,6 +10,8 @@ export interface IProductRepository {
 
   findBySku(sku: string, companyId: string): Promise<ProductEntity | null>;
 
+  findByNameAndCategory(name: string, categoryId: string | null, companyId: string): Promise<ProductEntity | null>;
+
   create(product: ProductEntity): Promise<ProductEntity>;
 
   save(product: ProductEntity): Promise<ProductEntity>;
